@@ -19,5 +19,9 @@ package-lock.json
 package.json
 CLAUDE.md
 
+# Scripts
+assets/gen-icons.mjs
+assets/gen-icons-jpg.mjs
+
 # Environment
 scripts/env.js
