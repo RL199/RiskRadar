@@ -1,0 +1,28 @@
+:root {
+  color-scheme: dark;
+  --bg: #072a47;
+  --accent: #4dd0e1;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
+
+.popup {
+  width: 280px;
+  padding: 16px;
+  background: var(--bg);
+  color: #e6f4f1;
+}
+
+.title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: var(--accent);
+}
+
+.status {
+  margin: 0;
+  font-size: 14px;
+}
