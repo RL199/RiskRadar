@@ -10,13 +10,14 @@ python-scripts/
 notes/
 node_modules/
 
+# build output
+dist/
+
 # config files
 .vscode/
 .eslintrc.json
 .prettierrc
 eslint.config.mjs
-package-lock.json
-package.json
 CLAUDE.md
 
 # Scripts
