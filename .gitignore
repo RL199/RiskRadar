@@ -1,5 +1,22 @@
 # IDE folders
-.vscode/
 .idea/
 .hintrc
+svg-assets/
 .github/copilot-instructions.md
+.github/agents/
+.github/instructions/
+source files/
+python-scripts/
+notes/
+node_modules/
+
+# config files
+.vscode/
+.eslintrc.json
+.prettierrc
+eslint.config.mjs
+package-lock.json
+package.json
+
+# Environment
+scripts/env.js
