@@ -58,7 +58,7 @@ The source is **not** loaded directly — it is compiled into a `dist/` folder, 
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) 20 or newer
+- [Node.js](https://nodejs.org/) 24 or newer
 
 ### Build and load
 
