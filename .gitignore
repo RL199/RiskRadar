@@ -17,6 +17,7 @@ node_modules/
 eslint.config.mjs
 package-lock.json
 package.json
+CLAUDE.md
 
 # Environment
 scripts/env.js
