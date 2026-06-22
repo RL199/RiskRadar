@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Risk Radar — Settings</title>
+    <link rel="stylesheet" href="../styles/theme.css" />
+    <link rel="stylesheet" href="settings.css" />
+  </head>
+  <body>
+    <main class="settings">
+      <header class="settings__head">
+        <span class="settings__logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="32" height="32">
+            <path
+              d="M12 2 20 5v6c0 5-3.4 8.3-8 10-4.6-1.7-8-5-8-10V5l8-3Z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linejoin="round"
+            />
+            <path
+              d="m8.5 12 2.3 2.3L15.5 9.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+        <div>
+          <h1 class="settings__title" data-i18n="set_title">Settings</h1>
+          <p class="settings__subtitle" data-i18n="set_subtitle">Configure Risk Radar.</p>
+        </div>
+      </header>
+
+      <section class="card">
+        <h2 class="card__title" data-i18n="set_appearance">Appearance</h2>
+
+        <div class="field">
+          <label class="field__label" for="theme" data-i18n="set_theme">Theme</label>
+          <select id="theme" class="control">
+            <option value="system" data-i18n="set_theme_system">System</option>
+            <option value="light" data-i18n="set_theme_light">Light</option>
+            <option value="dark" data-i18n="set_theme_dark">Dark</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="lang" data-i18n="set_language">Language</label>
+          <select id="lang" class="control">
+            <option value="en">English</option>
+            <option value="he">עברית</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="card__title" data-i18n="set_ai">AI</h2>
+
+        <div class="field">
+          <label class="field__label" for="apikey" data-i18n="set_apikey">Claude API key</label>
+          <div class="apikey">
+            <input
+              id="apikey"
+              class="control"
+              type="password"
+              placeholder="sk-ant-..."
+              data-i18n-placeholder="set_apikey_placeholder"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button id="toggle-key" class="btn-ghost" type="button">Show</button>
+          </div>
+          <p class="field__help" data-i18n="set_apikey_help">
+            Used for AI-based content analysis. Stored locally on your device.
+          </p>
+        </div>
+
+        <div class="field__actions">
+          <button id="save" class="btn-primary" type="button" data-i18n="set_save">Save</button>
+          <span id="status" class="status-msg" role="status"></span>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="settings.js"></script>
+  </body>
+</html>
