@@ -15,6 +15,8 @@ const themeSelect = document.getElementById("theme") as HTMLSelectElement;
 const langSelect = document.getElementById("lang") as HTMLSelectElement;
 const apiKeyInput = document.getElementById("apikey") as HTMLInputElement;
 const toggleKeyBtn = document.getElementById("toggle-key") as HTMLButtonElement;
+const deepseekKeyInput = document.getElementById("deepseek-apikey") as HTMLInputElement;
+const toggleDeepseekKeyBtn = document.getElementById("toggle-deepseek-key") as HTMLButtonElement;
 const saveBtn = document.getElementById("save") as HTMLButtonElement;
 const statusEl = document.getElementById("status") as HTMLElement;
 
@@ -32,6 +34,8 @@ function flashSaved(): void {
 function updateToggleLabel(): void {
   const dict = messages[settings.lang];
   toggleKeyBtn.textContent = apiKeyInput.type === "text" ? dict.set_hide : dict.set_show;
+  toggleDeepseekKeyBtn.textContent =
+    deepseekKeyInput.type === "text" ? dict.set_hide : dict.set_show;
 }
 
 async function init(): Promise<void> {
@@ -40,6 +44,7 @@ async function init(): Promise<void> {
   themeSelect.value = settings.theme;
   langSelect.value = settings.lang;
   apiKeyInput.value = settings.apiKey;
+  deepseekKeyInput.value = settings.deepseekApiKey;
 
   applyTheme(settings.theme);
   applyI18n(settings.lang);
@@ -65,8 +70,17 @@ async function init(): Promise<void> {
     updateToggleLabel();
   });
 
+  toggleDeepseekKeyBtn.addEventListener("click", () => {
+    deepseekKeyInput.type = deepseekKeyInput.type === "password" ? "text" : "password";
+    updateToggleLabel();
+  });
+
   saveBtn.addEventListener("click", async () => {
-    settings = { ...settings, apiKey: apiKeyInput.value.trim() };
+    settings = {
+      ...settings,
+      apiKey: apiKeyInput.value.trim(),
+      deepseekApiKey: deepseekKeyInput.value.trim(),
+    };
     await saveSettings(settings);
     flashSaved();
   });

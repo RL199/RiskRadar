@@ -78,6 +78,27 @@
           </p>
         </div>
 
+        <div class="field">
+          <label class="field__label" for="deepseek-apikey" data-i18n="set_deepseek_apikey"
+            >DeepSeek API key</label
+          >
+          <div class="apikey">
+            <input
+              id="deepseek-apikey"
+              class="control"
+              type="password"
+              placeholder="sk-..."
+              data-i18n-placeholder="set_deepseek_apikey_placeholder"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button id="toggle-deepseek-key" class="btn-ghost" type="button">Show</button>
+          </div>
+          <p class="field__help" data-i18n="set_deepseek_apikey_help">
+            Used for AI-based content analysis. Stored locally on your device.
+          </p>
+        </div>
+
         <div class="field__actions">
           <button id="save" class="btn-primary" type="button" data-i18n="set_save">Save</button>
           <span id="status" class="status-msg" role="status"></span>

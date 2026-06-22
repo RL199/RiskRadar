@@ -8,12 +8,14 @@ export interface Settings {
   theme: ThemePref;
   lang: LangPref;
   apiKey: string;
+  deepseekApiKey: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: "dark",
   lang: "en",
   apiKey: "",
+  deepseekApiKey: "",
 };
 
 const STORAGE_KEY = "settings";
