@@ -4,13 +4,339 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Risk Radar</title>
+    <link rel="stylesheet" href="../styles/theme.css" />
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <main class="popup">
-      <h1 class="title">Risk Radar</h1>
-      <p id="status" class="status">Analyzing…</p>
-    </main>
+    <!-- ============================ MAIN VIEW ============================ -->
+    <section class="view is-active" id="view-main">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand__logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22">
+              <path
+                d="M12 2 20 5v6c0 5-3.4 8.3-8 10-4.6-1.7-8-5-8-10V5l8-3Z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linejoin="round"
+              />
+              <path
+                d="m8.5 12 2.3 2.3L15.5 9.5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+          <span class="brand__name">Risk Radar</span>
+        </div>
+        <div class="topbar__actions">
+          <button class="icon-btn" id="btn-settings" type="button" aria-label="Settings">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7" />
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <div class="site">
+        <h1 class="site__host" id="site-host">example.com</h1>
+        <p class="site__status">
+          <span class="dot"></span> <span data-i18n="scannedJustNow">Scanned just now</span>
+        </p>
+      </div>
+
+      <div class="score">
+        <svg class="score__ring" viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="score__track" cx="60" cy="60" r="52" />
+          <circle
+            class="score__value"
+            cx="60"
+            cy="60"
+            r="52"
+            style="stroke-dasharray: 277.7 326.7"
+          />
+        </svg>
+        <div class="score__label">
+          <span class="score__num">85</span>
+          <span class="score__max">/100</span>
+          <span class="score__verdict status--good" data-i18n="verdict_safe">Safe</span>
+        </div>
+      </div>
+
+      <ul class="cats">
+        <li>
+          <button class="cat" data-target="view-url" type="button">
+            <span class="tile tile--violet">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <rect x="5" y="11" width="14" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8" />
+                <path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="1.8" />
+              </svg>
+            </span>
+            <span class="cat__body">
+              <span class="cat__name" data-i18n="cat_url">URL &amp; Domain</span>
+              <span class="cat__status status--good" data-i18n="status_good">Good</span>
+              <span class="chevron" aria-hidden="true">›</span>
+            </span>
+          </button>
+        </li>
+        <li>
+          <button class="cat" data-target="view-reputation" type="button">
+            <span class="tile tile--teal">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path d="M12 3 19 6v5c0 4.5-3 7.4-7 8.8C8 18.4 5 15.5 5 11V6l7-3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+              </svg>
+            </span>
+            <span class="cat__body">
+              <span class="cat__name" data-i18n="cat_reputation">Reputation</span>
+              <span class="cat__status status--good" data-i18n="status_good">Good</span>
+              <span class="chevron" aria-hidden="true">›</span>
+            </span>
+          </button>
+        </li>
+        <li>
+          <button class="cat" data-target="view-content" type="button">
+            <span class="tile tile--purple">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path d="M7 3h7l4 4v14H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                <path d="M13 3v5h5M9 13h6M9 16h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              </svg>
+            </span>
+            <span class="cat__body">
+              <span class="cat__name" data-i18n="cat_content">Content Analysis</span>
+              <span class="cat__status status--warning" data-i18n="status_warning">Warning</span>
+              <span class="chevron" aria-hidden="true">›</span>
+            </span>
+          </button>
+        </li>
+        <li>
+          <button class="cat" data-target="view-links" type="button">
+            <span class="tile tile--sky">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7L11.5 6.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.4-1.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              </svg>
+            </span>
+            <span class="cat__body">
+              <span class="cat__name" data-i18n="cat_links">Links</span>
+              <span class="cat__status status--good" data-i18n="status_good">Good</span>
+              <span class="chevron" aria-hidden="true">›</span>
+            </span>
+          </button>
+        </li>
+        <li>
+          <button class="cat" data-target="view-ai" type="button">
+            <span class="tile tile--pink">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </span>
+            <span class="cat__body">
+              <span class="cat__name" data-i18n="cat_ai">AI Analysis</span>
+              <span class="cat__status status--good" data-i18n="status_good">Good</span>
+              <span class="chevron" aria-hidden="true">›</span>
+            </span>
+          </button>
+        </li>
+      </ul>
+
+      <footer class="actions">
+        <button class="action" id="btn-rescan" type="button">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path d="M20 12a8 8 0 1 1-2.3-5.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            <path d="M20 4v4h-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span data-i18n="rescan">Rescan</span>
+        </button>
+        <button class="action" id="btn-details" type="button">
+          <span data-i18n="details">Details</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path d="M14 4h6v6M20 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </footer>
+    </section>
+
+    <!-- ========================= URL & DOMAIN ========================= -->
+    <section class="view" id="view-url">
+      <header class="topbar topbar--detail">
+        <button class="icon-btn" data-back type="button" aria-label="Back">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <h2 class="topbar__title" data-i18n="cat_url">URL &amp; Domain</h2>
+      </header>
+
+      <div class="summary">
+        <span class="tile tile--violet tile--lg">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+            <rect x="5" y="11" width="14" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8" />
+            <path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="1.8" />
+          </svg>
+        </span>
+        <div>
+          <p class="summary__verdict status--good" data-i18n="status_good">Good</p>
+          <p class="summary__sub" data-i18n="sum_url">This URL looks safe.</p>
+        </div>
+      </div>
+
+      <ul class="rows">
+        <li class="row"><span class="row__label" data-i18n="lbl_protocol">Protocol</span><span class="row__value status--good">HTTPS</span><span class="ico-good" aria-hidden="true"></span></li>
+        <li class="row"><span class="row__label" data-i18n="lbl_domainAge">Domain Age</span><span class="row__value">2.3 years</span><span class="ico-good" aria-hidden="true"></span></li>
+        <li class="row"><span class="row__label" data-i18n="lbl_subdomain">Subdomain</span><span class="row__value">www.example.com</span><span class="ico-good" aria-hidden="true"></span></li>
+        <li class="row"><span class="row__label" data-i18n="lbl_urlLength">URL Length</span><span class="row__value" data-i18n="val_short">Short</span><span class="ico-good" aria-hidden="true"></span></li>
+        <li class="row"><span class="row__label" data-i18n="lbl_suspiciousKeywords">Suspicious Keywords</span><span class="row__value" data-i18n="val_noneFound">None found</span><span class="ico-good" aria-hidden="true"></span></li>
+      </ul>
+    </section>
+
+    <!-- ========================== REPUTATION ========================== -->
+    <section class="view" id="view-reputation">
+      <header class="topbar topbar--detail">
+        <button class="icon-btn" data-back type="button" aria-label="Back">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <h2 class="topbar__title" data-i18n="cat_reputation">Reputation</h2>
+      </header>
+
+      <div class="summary">
+        <span class="tile tile--teal tile--lg">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+            <path d="M12 3 19 6v5c0 4.5-3 7.4-7 8.8C8 18.4 5 15.5 5 11V6l7-3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+            <path d="m9 11.5 2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+        <div>
+          <p class="summary__verdict status--good" data-i18n="status_good">Good</p>
+          <p class="summary__sub" data-i18n="sum_reputation">This site has a good reputation.</p>
+        </div>
+      </div>
+
+      <ul class="rows">
+        <li class="row"><span class="row__label">Google Safe Browsing</span><span class="row__value status--good" data-i18n="val_clean">Clean</span><span class="ico-good" aria-hidden="true"></span></li>
+        <li class="row"><span class="row__label">VirusTotal</span><span class="row__value">0 / 90</span><span class="ico-good" aria-hidden="true"></span></li>
+        <li class="row"><span class="row__label" data-i18n="lbl_phishingDb">Phishing Database</span><span class="row__value" data-i18n="val_notListed">Not listed</span><span class="ico-good" aria-hidden="true"></span></li>
+        <li class="row"><span class="row__label" data-i18n="lbl_blacklist">Blacklist Status</span><span class="row__value status--good" data-i18n="val_clean">Clean</span><span class="ico-good" aria-hidden="true"></span></li>
+      </ul>
+    </section>
+
+    <!-- ======================= CONTENT ANALYSIS ======================= -->
+    <section class="view" id="view-content">
+      <header class="topbar topbar--detail">
+        <button class="icon-btn" data-back type="button" aria-label="Back">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <h2 class="topbar__title" data-i18n="cat_content">Content Analysis</h2>
+      </header>
+
+      <div class="summary">
+        <span class="tile tile--purple tile--lg">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+            <path d="M7 3h7l4 4v14H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+            <path d="M13 3v5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+          </svg>
+        </span>
+        <div>
+          <p class="summary__verdict status--warning" data-i18n="status_warning">Warning</p>
+          <p class="summary__sub" data-i18n="sum_content">Some content may be suspicious.</p>
+        </div>
+      </div>
+
+      <ul class="rows">
+        <li class="row"><span class="row__label" data-i18n="lbl_phishingIndicators">Phishing Indicators</span><span class="row__value status--danger">2</span><span class="ico-bad" aria-hidden="true"></span></li>
+        <li class="row"><span class="row__label" data-i18n="lbl_suspiciousForms">Suspicious Forms</span><span class="row__value status--warning">1</span><span class="ico-warn" aria-hidden="true"></span></li>
+        <li class="row"><span class="row__label" data-i18n="lbl_urgentLanguage">Urgent Language</span><span class="row__value" data-i18n="val_none">None</span><span class="ico-good" aria-hidden="true"></span></li>
+        <li class="row"><span class="row__label" data-i18n="lbl_brandImpersonation">Brand Impersonation</span><span class="row__value" data-i18n="val_none">None</span><span class="ico-good" aria-hidden="true"></span></li>
+      </ul>
+    </section>
+
+    <!-- ============================= LINKS ============================= -->
+    <section class="view" id="view-links">
+      <header class="topbar topbar--detail">
+        <button class="icon-btn" data-back type="button" aria-label="Back">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <h2 class="topbar__title" data-i18n="cat_links">Links</h2>
+      </header>
+
+      <div class="summary">
+        <span class="tile tile--sky tile--lg">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+            <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7L11.5 6.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.4-1.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+        </span>
+        <div>
+          <p class="summary__verdict status--good" data-i18n="status_good">Good</p>
+          <p class="summary__sub" data-i18n="sum_links">No suspicious links found.</p>
+        </div>
+      </div>
+
+      <ul class="rows">
+        <li class="row"><span class="row__label" data-i18n="lbl_totalLinks">Total Links</span><span class="row__value">24</span></li>
+        <li class="row"><span class="row__label" data-i18n="lbl_externalLinks">External Links</span><span class="row__value">6</span><span class="ico-good" aria-hidden="true"></span></li>
+        <li class="row"><span class="row__label" data-i18n="lbl_suspiciousLinks">Suspicious Links</span><span class="row__value">0</span><span class="ico-good" aria-hidden="true"></span></li>
+        <li class="row"><span class="row__label" data-i18n="lbl_maliciousRedirects">Malicious Redirects</span><span class="row__value">0</span><span class="ico-good" aria-hidden="true"></span></li>
+      </ul>
+    </section>
+
+    <!-- ========================== AI ANALYSIS ========================== -->
+    <section class="view" id="view-ai">
+      <header class="topbar topbar--detail">
+        <button class="icon-btn" data-back type="button" aria-label="Back">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <h2 class="topbar__title" data-i18n="cat_ai">AI Analysis</h2>
+      </header>
+
+      <div class="summary">
+        <span class="tile tile--pink tile--lg">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+            <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+        <div>
+          <p class="summary__verdict status--good" data-i18n="status_good">Good</p>
+          <p class="summary__sub" data-i18n="sum_ai">AI model did not find threats.</p>
+        </div>
+      </div>
+
+      <ul class="rows">
+        <li class="row"><span class="row__label" data-i18n="lbl_phishingProbability">Phishing Probability</span><span class="row__value">12%</span><span class="ico-good" aria-hidden="true"></span></li>
+        <li class="row"><span class="row__label" data-i18n="lbl_socialEngineering">Social Engineering</span><span class="row__value" data-i18n="val_low">Low</span><span class="ico-good" aria-hidden="true"></span></li>
+        <li class="row"><span class="row__label" data-i18n="lbl_contentRiskScore">Content Risk Score</span><span class="row__value">18 / 100</span><span class="ico-good" aria-hidden="true"></span></li>
+      </ul>
+
+      <div class="note">
+        <p class="note__title" data-i18n="lbl_summary">Summary</p>
+        <p class="note__body" data-i18n="ai_summary_body">The content appears to be legitimate and safe.</p>
+      </div>
+    </section>
+
     <script type="module" src="popup.js"></script>
   </body>
 </html>
