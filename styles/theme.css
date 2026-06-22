@@ -1,0 +1,65 @@
+/* Shared design tokens for the popup and the options page.
+   Dark is the default; [data-theme="light"] overrides the palette.
+   The data-theme attribute is set on <html> by scripts/shared/theme.ts. */
+:root {
+  color-scheme: dark;
+  --radius: 14px;
+
+  --bg: #0a0e14;
+  --surface: #10151d;
+  --surface-2: #151c26;
+  --border: #1f2832;
+
+  --text: #e6edf3;
+  --text-muted: #8b97a6;
+
+  --green: #4ade80;
+  --green-bg: rgba(74, 222, 128, 0.12);
+  --amber: #f5b13d;
+  --amber-bg: rgba(245, 177, 61, 0.12);
+  --blue: #6ea8fe;
+  --blue-bg: rgba(110, 168, 254, 0.12);
+
+  /* Category icon palette — intentionally distinct from the green/amber
+     status colors so the tiles don't read as a verdict. */
+  --violet: #a78bfa;
+  --violet-bg: rgba(167, 139, 250, 0.14);
+  --teal: #2dd4bf;
+  --teal-bg: rgba(45, 212, 191, 0.14);
+  --purple: #c084fc;
+  --purple-bg: rgba(192, 132, 252, 0.14);
+  --sky: #38bdf8;
+  --sky-bg: rgba(56, 189, 248, 0.14);
+  --pink: #f472b6;
+  --pink-bg: rgba(244, 114, 182, 0.14);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --surface-2: #eef1f5;
+  --border: #e2e7ee;
+
+  --text: #1b2330;
+  --text-muted: #5b6675;
+
+  --green: #16a34a;
+  --green-bg: rgba(22, 163, 74, 0.12);
+  --amber: #c2740a;
+  --amber-bg: rgba(217, 119, 6, 0.14);
+  --blue: #2563eb;
+  --blue-bg: rgba(37, 99, 235, 0.12);
+
+  --violet: #7c3aed;
+  --violet-bg: rgba(124, 58, 237, 0.12);
+  --teal: #0d9488;
+  --teal-bg: rgba(13, 148, 136, 0.12);
+  --purple: #9333ea;
+  --purple-bg: rgba(147, 51, 234, 0.12);
+  --sky: #0284c7;
+  --sky-bg: rgba(2, 132, 199, 0.12);
+  --pink: #db2777;
+  --pink-bg: rgba(219, 39, 119, 0.12);
+}
