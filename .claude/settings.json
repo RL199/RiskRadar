@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npm ls eslint typescript-eslint @eslint/js --depth=0 2>&1)",
+      "PowerShell(npm run lint 2>&1)"
+    ]
+  }
+}

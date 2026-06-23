@@ -19,6 +19,7 @@ dist/
 .prettierrc
 eslint.config.mjs
 CLAUDE.md
+.claude/
 
 # Scripts
 assets/gen-icons.mjs
