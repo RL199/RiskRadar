@@ -3,7 +3,7 @@
 // what to show and how risky it is; the domain-age check is async because it
 // queries a registry over the network (RDAP).
 
-export type RowStatus = "good" | "warn" | "bad" | "neutral";
+export type RowStatus = "good" | "warn" | "bad" | "neutral" | "unknown";
 
 export interface AnalyzedRow {
   // Either a literal value (e.g. "HTTPS", a hostname) or an i18n message key

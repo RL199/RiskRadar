@@ -26,15 +26,17 @@ const ICON_CLASS: Record<RowStatus, string> = {
   good: "row__icon ico-good",
   warn: "row__icon ico-warn",
   bad: "row__icon ico-bad",
+  unknown: "row__icon ico-unknown",
   neutral: "row__icon",
 };
 const TONE_CLASS: Record<RowStatus, string> = {
   good: "status--good",
   warn: "status--warning",
   bad: "status--danger",
+  unknown: "status--muted",
   neutral: "",
 };
-const SEVERITY: Record<RowStatus, number> = { neutral: 0, good: 1, warn: 2, bad: 3 };
+const SEVERITY: Record<RowStatus, number> = { neutral: 0, unknown: 0, good: 1, warn: 2, bad: 3 };
 
 function showView(id: string): void {
   for (const view of document.querySelectorAll<HTMLElement>(".view")) {
@@ -118,7 +120,7 @@ function renderRow(field: string, row: AnalyzedRow, dict: Dict, colorValue: bool
   const value = li.querySelector<HTMLElement>(".row__value");
   if (value) {
     value.textContent = resolveText(row, dict);
-    value.classList.remove("status--good", "status--warning", "status--danger");
+    value.classList.remove("status--good", "status--warning", "status--danger", "status--muted");
     const tone = TONE_CLASS[row.status];
     if (colorValue && tone) value.classList.add(tone);
   }
@@ -230,7 +232,7 @@ async function analyzeUrlView(rawUrl: string | undefined, lang: LangPref): Promi
       ageStatus = age.status;
       ageUnknown = false;
     } else {
-      renderRow("domainAge", { key: "val_unknown", status: "neutral" }, dict, false);
+      renderRow("domainAge", { key: "val_unknown", status: "unknown" }, dict, true);
     }
   } else {
     renderRow("domainAge", { key: "val_unknown", status: "neutral" }, dict, false);
