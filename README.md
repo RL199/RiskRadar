@@ -47,7 +47,7 @@ category's overall verdict reflects its worst finding.
 | **Domain Age**          | Registration date via [RDAP](https://about.rdap.org/) (see below)  | `< 30 days` → risky; `< 6 months` → warning; otherwise good. Unknown registries are reported as _Unknown_. |
 | **Subdomain**           | Hostname split into subdomain + registrable domain                 | Raw IP host → risky; deeply nested subdomains → warning; `www` or a single label → good. |
 | **URL Length**          | Character count of the full URL                                    | `< 54` Short → good; `≤ 100` Medium → good; `> 100` Long → warning.                 |
-| **Suspicious Keywords** | Host, path, and query scanned against a phishing wordlist          | None → good; 1–2 matches → warning; 3+ matches → risky. Matches are listed.         |
+| **Suspicious Keywords** | Host, path, and query scanned against a short phishing wordlist          | None → good; 1–2 matches → warning; 3+ matches → risky. Matches are listed.         |
 
 **Domain age lookup.** Classic WHOIS runs over TCP port 43 and can't be reached from a browser,
 so domain age is resolved with **RDAP** — the JSON-based successor to WHOIS. The extension queries

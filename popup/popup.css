@@ -56,8 +56,12 @@ body {
 }
 
 .brand__logo {
-  color: var(--green);
   display: inline-flex;
+}
+
+.brand__logo img {
+  width: auto;
+  height: 24px;
 }
 
 .brand__name {

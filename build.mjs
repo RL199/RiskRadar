@@ -23,6 +23,7 @@ const staticPaths = [
   "popup/popup.css",
   "settings/settings.html",
   "settings/settings.css",
+  "assets/icon-plain.svg",
   "assets/icons",
 ];
 

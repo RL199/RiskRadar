@@ -27,8 +27,12 @@ body {
 }
 
 .settings__logo {
-  color: var(--green);
   display: inline-flex;
+}
+
+.settings__logo img {
+  width: auto;
+  height: 34px;
 }
 
 .settings__title {
