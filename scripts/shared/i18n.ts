@@ -18,8 +18,12 @@ export const messages: Record<LangPref, Messages> = {
     // Statuses
     status_good: "Good",
     status_warning: "Warning",
+    status_danger: "Risky",
     // Detail summaries
     sum_url: "This URL looks safe.",
+    sum_url_warn: "This URL has some warning signs.",
+    sum_url_bad: "This URL looks risky.",
+    sum_url_unknown: "Couldn't fully analyze this URL.",
     sum_reputation: "This site has a good reputation.",
     sum_content: "Some content may be suspicious.",
     sum_links: "No suspicious links found.",
@@ -46,11 +50,18 @@ export const messages: Record<LangPref, Messages> = {
     lbl_summary: "Summary",
     // Row values
     val_short: "Short",
+    val_medium: "Medium",
+    val_long: "Long",
     val_noneFound: "None found",
     val_clean: "Clean",
     val_notListed: "Not listed",
     val_none: "None",
     val_low: "Low",
+    val_unknown: "Unknown",
+    // Domain-age units
+    unit_years: "years",
+    unit_months: "months",
+    unit_days: "days",
     ai_summary_body: "The content appears to be legitimate and safe.",
     // Settings page
     set_title: "Settings",
@@ -88,8 +99,12 @@ export const messages: Record<LangPref, Messages> = {
     // Statuses
     status_good: "תקין",
     status_warning: "אזהרה",
+    status_danger: "מסוכן",
     // Detail summaries
     sum_url: "הכתובת נראית בטוחה.",
+    sum_url_warn: "בכתובת יש סימני אזהרה מסוימים.",
+    sum_url_bad: "הכתובת נראית מסוכנת.",
+    sum_url_unknown: "לא ניתן היה לנתח את הכתובת במלואה.",
     sum_reputation: "לאתר יש מוניטין טוב.",
     sum_content: "ייתכן שחלק מהתוכן חשוד.",
     sum_links: "לא נמצאו קישורים חשודים.",
@@ -116,11 +131,18 @@ export const messages: Record<LangPref, Messages> = {
     lbl_summary: "סיכום",
     // Row values
     val_short: "קצרה",
+    val_medium: "בינונית",
+    val_long: "ארוכה",
     val_noneFound: "לא נמצאו",
     val_clean: "נקי",
     val_notListed: "לא רשום",
     val_none: "אין",
     val_low: "נמוכה",
+    val_unknown: "לא ידוע",
+    // Domain-age units
+    unit_years: "שנים",
+    unit_months: "חודשים",
+    unit_days: "ימים",
     ai_summary_body: "התוכן נראה לגיטימי ובטוח.",
     // Settings page
     set_title: "הגדרות",

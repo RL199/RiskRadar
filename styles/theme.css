@@ -17,6 +17,8 @@
   --green-bg: rgba(74, 222, 128, 0.12);
   --amber: #f5b13d;
   --amber-bg: rgba(245, 177, 61, 0.12);
+  --red: #f87171;
+  --red-bg: rgba(248, 113, 113, 0.12);
   --blue: #6ea8fe;
   --blue-bg: rgba(110, 168, 254, 0.12);
 
@@ -49,6 +51,8 @@
   --green-bg: rgba(22, 163, 74, 0.12);
   --amber: #c2740a;
   --amber-bg: rgba(217, 119, 6, 0.14);
+  --red: #dc2626;
+  --red-bg: rgba(220, 38, 38, 0.12);
   --blue: #2563eb;
   --blue-bg: rgba(37, 99, 235, 0.12);
 

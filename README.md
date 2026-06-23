@@ -34,6 +34,27 @@ third-party reputation services, and an AI model to surface threats before they 
    - **Phishing site** → low score + a clear alert.
    - **New / unknown site** → intermediate score + an uncertainty note.
 
+## Risk logic
+
+Each check produces a status — **good** (✓), **warning** (!), or **risky** (✕) — and the
+category's overall verdict reflects its worst finding.
+
+### URL & Domain
+
+| Check                   | How it's computed                                                  | Risk logic                                                                          |
+| ----------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| **Protocol**            | `URL.protocol` of the active tab                                   | `https` → good; `http` → risky (traffic is unencrypted).                            |
+| **Domain Age**          | Registration date via [RDAP](https://about.rdap.org/) (see below)  | `< 30 days` → risky; `< 6 months` → warning; otherwise good. Unknown registries are reported as _Unknown_. |
+| **Subdomain**           | Hostname split into subdomain + registrable domain                 | Raw IP host → risky; deeply nested subdomains → warning; `www` or a single label → good. |
+| **URL Length**          | Character count of the full URL                                    | `< 54` Short → good; `≤ 100` Medium → good; `> 100` Long → warning.                 |
+| **Suspicious Keywords** | Host, path, and query scanned against a phishing wordlist          | None → good; 1–2 matches → warning; 3+ matches → risky. Matches are listed.         |
+
+**Domain age lookup.** Classic WHOIS runs over TCP port 43 and can't be reached from a browser,
+so domain age is resolved with **RDAP** — the JSON-based successor to WHOIS. The extension queries
+the IANA bootstrap endpoint `https://rdap.org/domain/<domain>`, which redirects to the authoritative
+registry for the TLD, and reads the `registration` event date. It needs no API key and works from
+the popup because the extension's `<all_urls>` host permission bypasses CORS.
+
 ## Tech stack
 
 - **Languages:** TypeScript, HTML, CSS
@@ -79,6 +100,8 @@ Then load it in Chrome:
 | `npm run build`     | Production build into `dist/`.                          |
 | `npm run watch`     | Rebuild `dist/` automatically on file changes.          |
 | `npm run typecheck` | Type-check the project with `tsc` (no output emitted).  |
+| `npm run lint`      | Lint the project with ESLint.                           |
+| `npm run lint:fix`  | Lint and auto-fix where possible.                       |
 
 During development, run `npm run watch` and reload the extension from `chrome://extensions/`
 after each rebuild.

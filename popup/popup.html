@@ -190,17 +190,17 @@
           </svg>
         </span>
         <div>
-          <p class="summary__verdict status--good" data-i18n="status_good">Good</p>
-          <p class="summary__sub" data-i18n="sum_url">This URL looks safe.</p>
+          <p class="summary__verdict status--good" id="url-verdict" data-i18n="status_good">Good</p>
+          <p class="summary__sub" id="url-summary" data-i18n="sum_url">This URL looks safe.</p>
         </div>
       </div>
 
       <ul class="rows">
-        <li class="row"><span class="row__label" data-i18n="lbl_protocol">Protocol</span><span class="row__value status--good">HTTPS</span><span class="ico-good" aria-hidden="true"></span></li>
-        <li class="row"><span class="row__label" data-i18n="lbl_domainAge">Domain Age</span><span class="row__value">2.3 years</span><span class="ico-good" aria-hidden="true"></span></li>
-        <li class="row"><span class="row__label" data-i18n="lbl_subdomain">Subdomain</span><span class="row__value">www.example.com</span><span class="ico-good" aria-hidden="true"></span></li>
-        <li class="row"><span class="row__label" data-i18n="lbl_urlLength">URL Length</span><span class="row__value" data-i18n="val_short">Short</span><span class="ico-good" aria-hidden="true"></span></li>
-        <li class="row"><span class="row__label" data-i18n="lbl_suspiciousKeywords">Suspicious Keywords</span><span class="row__value" data-i18n="val_noneFound">None found</span><span class="ico-good" aria-hidden="true"></span></li>
+        <li class="row" data-field="protocol"><span class="row__label" data-i18n="lbl_protocol">Protocol</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
+        <li class="row" data-field="domainAge"><span class="row__label" data-i18n="lbl_domainAge">Domain Age</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
+        <li class="row" data-field="subdomain"><span class="row__label" data-i18n="lbl_subdomain">Subdomain</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
+        <li class="row" data-field="urlLength"><span class="row__label" data-i18n="lbl_urlLength">URL Length</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
+        <li class="row" data-field="suspiciousKeywords"><span class="row__label" data-i18n="lbl_suspiciousKeywords">Suspicious Keywords</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
       </ul>
     </section>
 
