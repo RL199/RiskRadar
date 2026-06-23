@@ -22,18 +22,17 @@
   --blue: #6ea8fe;
   --blue-bg: rgba(110, 168, 254, 0.12);
 
-  /* Category icon palette — intentionally distinct from the green/amber
-     status colors so the tiles don't read as a verdict. */
-  --violet: #a78bfa;
-  --violet-bg: rgba(167, 139, 250, 0.14);
-  --teal: #2dd4bf;
-  --teal-bg: rgba(45, 212, 191, 0.14);
-  --purple: #c084fc;
-  --purple-bg: rgba(192, 132, 252, 0.14);
-  --sky: #38bdf8;
-  --sky-bg: rgba(56, 189, 248, 0.14);
+  /* Category icon palette — a top-to-bottom hue sweep (pink → purple → blue →
+     teal → moss), intentionally distinct from the green/amber status colors so
+     the tiles don't read as a verdict. */
   --pink: #f472b6;
   --pink-bg: rgba(244, 114, 182, 0.14);
+  --purple: #c084fc;
+  --purple-bg: rgba(192, 132, 252, 0.14);
+  --teal: #2dd4bf;
+  --teal-bg: rgba(45, 212, 191, 0.14);
+  --moss: #aeb85c;
+  --moss-bg: rgba(174, 184, 92, 0.16);
 }
 
 [data-theme="light"] {
@@ -56,14 +55,12 @@
   --blue: #2563eb;
   --blue-bg: rgba(37, 99, 235, 0.12);
 
-  --violet: #7c3aed;
-  --violet-bg: rgba(124, 58, 237, 0.12);
-  --teal: #0d9488;
-  --teal-bg: rgba(13, 148, 136, 0.12);
-  --purple: #9333ea;
-  --purple-bg: rgba(147, 51, 234, 0.12);
-  --sky: #0284c7;
-  --sky-bg: rgba(2, 132, 199, 0.12);
   --pink: #db2777;
   --pink-bg: rgba(219, 39, 119, 0.12);
+  --purple: #9333ea;
+  --purple-bg: rgba(147, 51, 234, 0.12);
+  --teal: #0d9488;
+  --teal-bg: rgba(13, 148, 136, 0.12);
+  --moss: #6f7a25;
+  --moss-bg: rgba(111, 122, 37, 0.14);
 }

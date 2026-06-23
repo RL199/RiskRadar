@@ -250,14 +250,9 @@ body {
   border-radius: 12px;
 }
 
-.tile--violet {
-  background: var(--violet-bg);
-  color: var(--violet);
-}
-
-.tile--teal {
-  background: var(--teal-bg);
-  color: var(--teal);
+.tile--pink {
+  background: var(--pink-bg);
+  color: var(--pink);
 }
 
 .tile--purple {
@@ -265,14 +260,19 @@ body {
   color: var(--purple);
 }
 
-.tile--sky {
-  background: var(--sky-bg);
-  color: var(--sky);
+.tile--blue {
+  background: var(--blue-bg);
+  color: var(--blue);
 }
 
-.tile--pink {
-  background: var(--pink-bg);
-  color: var(--pink);
+.tile--teal {
+  background: var(--teal-bg);
+  color: var(--teal);
+}
+
+.tile--moss {
+  background: var(--moss-bg);
+  color: var(--moss);
 }
 
 /* ----------------------------- Actions ----------------------------- */
