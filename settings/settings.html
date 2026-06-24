@@ -60,6 +60,14 @@
           <p class="field__help" data-i18n="set_apikey_help">
             Used for AI-based content analysis. Stored locally on your device.
           </p>
+          <a
+            class="field__link"
+            href="https://console.anthropic.com/settings/keys"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-i18n="set_apikey_link"
+            >Get a key at the Anthropic Console</a
+          >
         </div>
 
         <div class="field">
@@ -81,6 +89,14 @@
           <p class="field__help" data-i18n="set_deepseek_apikey_help">
             Used for AI-based content analysis. Stored locally on your device.
           </p>
+          <a
+            class="field__link"
+            href="https://platform.deepseek.com/api_keys"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-i18n="set_deepseek_apikey_link"
+            >Get a key at the DeepSeek Platform</a
+          >
         </div>
       </section>
 
@@ -107,6 +123,14 @@
             Optional. Safe Browsing already works without a key via Google's public Transparency
             Report; a key upgrades it to the official Lookup API. Stored locally on your device.
           </p>
+          <a
+            class="field__link"
+            href="https://console.cloud.google.com/apis/library/safebrowsing.googleapis.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-i18n="set_safebrowsing_apikey_link"
+            >Get a key in the Google Cloud Console</a
+          >
         </div>
 
         <div class="field">
@@ -126,16 +150,25 @@
             <button id="toggle-virustotal-key" class="btn-ghost" type="button">Show</button>
           </div>
           <p class="field__help" data-i18n="set_virustotal_apikey_help">
-            Needed for the VirusTotal check — with a key the row shows an inline malicious/total
+            Needed for the VirusTotal check. With a key the row shows an inline malicious/total
             verdict; without one the popup shows a "Key needed" prompt. Stored locally on your device.
           </p>
+          <a
+            class="field__link"
+            href="https://www.virustotal.com/gui/my-apikey"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-i18n="set_virustotal_apikey_link"
+            >Get a key at VirusTotal</a
+          >
         </div>
 
-        <div class="field__actions">
-          <button id="save" class="btn-primary" type="button" data-i18n="set_save">Save</button>
-          <span id="status" class="status-msg" role="status"></span>
-        </div>
       </section>
+
+      <footer class="settings__foot">
+        <button id="save" class="btn-primary" type="button" data-i18n="set_save">Save</button>
+        <span id="status" class="status-msg" role="status"></span>
+      </footer>
     </main>
 
     <script type="module" src="settings.js"></script>
