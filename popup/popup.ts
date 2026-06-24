@@ -197,6 +197,8 @@ function setupKeyModal(lang: LangPref): void {
 
 // ----------------------- URL & Domain analysis ----------------------- //
 
+const URL_FIELDS = ["protocol", "domainAge", "subdomain", "urlLength", "suspiciousKeywords"] as const;
+
 function resolveText(row: AnalyzedRow, dict: Dict): string {
   if (row.key) return dict[row.key] ?? row.key;
   return row.text ?? "—";
@@ -263,18 +265,20 @@ function setVerdict(status: RowStatus, ageUnknown: boolean, dict: Dict): void {
 }
 
 function setUnsupported(dict: Dict): void {
+  for (const field of URL_FIELDS) renderRow(field, { key: "val_unknown", status: "neutral" }, dict, false);
+
   const verdict = document.getElementById("url-verdict");
   if (verdict) {
-    verdict.className = "summary__verdict";
-    verdict.textContent = "—";
+    verdict.className = "summary__verdict status--muted";
+    verdict.textContent = dict.val_unknown;
   }
   const summary = document.getElementById("url-summary");
   if (summary) summary.textContent = dict.sum_url_unknown;
 
   const chip = document.querySelector<HTMLElement>('.cat[data-target="view-url"] .cat__status');
   if (chip) {
-    chip.className = "cat__status";
-    chip.textContent = "—";
+    chip.className = "cat__status status--muted";
+    chip.textContent = dict.val_unknown;
   }
 }
 
@@ -460,7 +464,7 @@ async function analyzeReputationView(rawUrl: string | undefined, settings: Setti
   // Privileged pages (chrome://, the new-tab page, etc.) have nothing to check.
   if (!url || (url.protocol !== "http:" && url.protocol !== "https:")) {
     repContext = null;
-    for (const field of REPUTATION_FIELDS) renderRow(field, { text: "—", status: "neutral" }, dict, false);
+    for (const field of REPUTATION_FIELDS) renderRow(field, { key: "val_unknown", status: "neutral" }, dict, false);
     setReputationVerdict("unknown", dict);
     return;
   }
@@ -571,7 +575,7 @@ async function analyzeContentView(tab: chrome.tabs.Tab | undefined, lang: LangPr
 
   // Privileged pages (chrome://, the new-tab page, etc.) have no DOM to scan.
   if (!tab?.id || !url || (url.protocol !== "http:" && url.protocol !== "https:")) {
-    for (const field of CONTENT_FIELDS) renderRow(field, { text: "—", status: "neutral" }, dict, false);
+    for (const field of CONTENT_FIELDS) renderRow(field, { key: "val_unknown", status: "neutral" }, dict, false);
     setContentVerdict("unknown", dict);
     return;
   }
