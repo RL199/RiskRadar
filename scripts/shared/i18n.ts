@@ -28,7 +28,10 @@ export const messages: Record<LangPref, Messages> = {
     sum_reputation_warn: "This site has some reputation warnings.",
     sum_reputation_bad: "This site has a bad reputation.",
     sum_reputation_unknown: "Couldn't check this site's reputation.",
-    sum_content: "Some content may be suspicious.",
+    sum_content: "No suspicious content found.",
+    sum_content_warn: "Some content looks suspicious.",
+    sum_content_bad: "This page shows signs of phishing.",
+    sum_content_unknown: "Couldn't analyze this page's content.",
     sum_links: "No suspicious links found.",
     sum_ai: "AI model did not find threats.",
     // Row labels
@@ -135,7 +138,10 @@ export const messages: Record<LangPref, Messages> = {
     sum_reputation_warn: "לאתר יש סימני אזהרה במוניטין.",
     sum_reputation_bad: "לאתר יש מוניטין רע.",
     sum_reputation_unknown: "לא ניתן היה לבדוק את המוניטין של האתר.",
-    sum_content: "ייתכן שחלק מהתוכן חשוד.",
+    sum_content: "לא נמצא תוכן חשוד.",
+    sum_content_warn: "חלק מהתוכן נראה חשוד.",
+    sum_content_bad: "בדף יש סימנים לפישינג.",
+    sum_content_unknown: "לא ניתן היה לנתח את תוכן הדף.",
     sum_links: "לא נמצאו קישורים חשודים.",
     sum_ai: "מודל ה-AI לא מצא איומים.",
     // Row labels

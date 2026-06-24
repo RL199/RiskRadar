@@ -23,6 +23,14 @@ import {
   checkSucuri,
   checkVirusTotal,
 } from "../scripts/shared/reputation-analysis";
+import {
+  analyzeBrandImpersonation,
+  analyzePhishingIndicators,
+  analyzeSuspiciousForms,
+  analyzeUrgentLanguage,
+  extractPageContent,
+  type PageContent,
+} from "../scripts/shared/content-analysis";
 
 const MAIN_VIEW = "view-main";
 
@@ -72,10 +80,10 @@ function setupNavigation(): void {
     ?.addEventListener("click", () => chrome.runtime.openOptionsPage());
 }
 
-async function getActiveTabUrl(): Promise<string | undefined> {
+async function getActiveTab(): Promise<chrome.tabs.Tab | undefined> {
   try {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-    return tab?.url ?? undefined;
+    return tab ?? undefined;
   } catch {
     // The active tab can't be read (e.g. a privileged page).
     return undefined;
@@ -492,6 +500,105 @@ async function analyzeReputationView(rawUrl: string | undefined, settings: Setti
   repVerdict(dict);
 }
 
+// ----------------------- Content analysis ----------------------- //
+
+const CONTENT_FIELDS = [
+  "phishingIndicators",
+  "suspiciousForms",
+  "urgentLanguage",
+  "brandImpersonation",
+] as const;
+
+// Set the Content view's summary verdict + subtitle and the matching chip on the
+// main list, all from the overall (worst) status.
+function setContentVerdict(status: RowStatus, dict: Dict): void {
+  const tone = status === "unknown" ? "status--muted" : TONE_CLASS[status] || "status--good";
+  const vKey =
+    status === "bad"
+      ? "status_danger"
+      : status === "warn"
+        ? "status_warning"
+        : status === "unknown"
+          ? "val_unknown"
+          : "status_good";
+  const sKey =
+    status === "bad"
+      ? "sum_content_bad"
+      : status === "warn"
+        ? "sum_content_warn"
+        : status === "unknown"
+          ? "sum_content_unknown"
+          : "sum_content";
+
+  const verdict = document.getElementById("content-verdict");
+  if (verdict) {
+    verdict.className = `summary__verdict ${tone}`;
+    verdict.textContent = dict[vKey];
+  }
+  const summary = document.getElementById("content-summary");
+  if (summary) summary.textContent = dict[sKey];
+
+  const chip = document.querySelector<HTMLElement>('.cat[data-target="view-content"] .cat__status');
+  if (chip) {
+    chip.className = `cat__status ${tone}`;
+    chip.textContent = dict[vKey];
+  }
+}
+
+// Inject the self-contained extractor into the active tab and read back its
+// page summary. Returns null on any failure (privileged page, no host access).
+async function getPageContent(tabId: number): Promise<PageContent | null> {
+  try {
+    const [injection] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: extractPageContent,
+    });
+    return (injection?.result as PageContent | undefined) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function analyzeContentView(tab: chrome.tabs.Tab | undefined, lang: LangPref): Promise<void> {
+  const dict = messages[lang];
+
+  let url: URL | undefined;
+  try {
+    if (tab?.url) url = new URL(tab.url);
+  } catch {
+    // Leave url undefined; handled below.
+  }
+
+  // Privileged pages (chrome://, the new-tab page, etc.) have no DOM to scan.
+  if (!tab?.id || !url || (url.protocol !== "http:" && url.protocol !== "https:")) {
+    for (const field of CONTENT_FIELDS) renderRow(field, { text: "—", status: "neutral" }, dict, false);
+    setContentVerdict("unknown", dict);
+    return;
+  }
+
+  // Show placeholders while the page is being read.
+  for (const field of CONTENT_FIELDS) renderRow(field, { text: "…", status: "neutral" }, dict, false);
+
+  const page = await getPageContent(tab.id);
+  if (!page) {
+    for (const field of CONTENT_FIELDS) renderRow(field, { key: "val_unknown", status: "unknown" }, dict, true);
+    setContentVerdict("unknown", dict);
+    return;
+  }
+
+  const phishing = analyzePhishingIndicators(page);
+  const forms = analyzeSuspiciousForms(page);
+  const urgent = analyzeUrgentLanguage(page);
+  const brand = analyzeBrandImpersonation(page, url.hostname);
+
+  renderRow("phishingIndicators", phishing, dict, phishing.status !== "good");
+  renderRow("suspiciousForms", forms, dict, forms.status !== "good");
+  renderRow("urgentLanguage", urgent, dict, urgent.status !== "good");
+  renderRow("brandImpersonation", brand, dict, brand.status !== "good");
+
+  setContentVerdict(worst([phishing.status, forms.status, urgent.status, brand.status]), dict);
+}
+
 async function init(): Promise<void> {
   const settings = await loadSettings();
   currentLang = settings.lang;
@@ -499,11 +606,13 @@ async function init(): Promise<void> {
   applyI18n(settings.lang);
   setupNavigation();
   setupKeyModal(settings.lang);
-  const url = await getActiveTabUrl();
+  const tab = await getActiveTab();
+  const url = tab?.url ?? undefined;
   showActiveHost(url);
   setupVirusTotal(url);
   void analyzeUrlView(url, settings.lang);
   void analyzeReputationView(url, settings);
+  void analyzeContentView(tab, settings.lang);
 }
 
 void init();

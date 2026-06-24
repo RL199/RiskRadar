@@ -99,7 +99,7 @@
             </span>
             <span class="cat__body">
               <span class="cat__name" data-i18n="cat_content">Content Analysis</span>
-              <span class="cat__status status--warning" data-i18n="status_warning">Warning</span>
+              <span class="cat__status status--good" data-i18n="status_good">Good</span>
               <span class="chevron" aria-hidden="true">›</span>
             </span>
           </button>
@@ -241,16 +241,16 @@
           </svg>
         </span>
         <div>
-          <p class="summary__verdict status--warning" data-i18n="status_warning">Warning</p>
-          <p class="summary__sub" data-i18n="sum_content">Some content may be suspicious.</p>
+          <p class="summary__verdict status--good" id="content-verdict" data-i18n="status_good">Good</p>
+          <p class="summary__sub" id="content-summary" data-i18n="sum_content">No suspicious content found.</p>
         </div>
       </div>
 
       <ul class="rows">
-        <li class="row"><span class="row__label" data-i18n="lbl_phishingIndicators">Phishing Indicators</span><span class="row__value status--danger">2</span><span class="ico-bad" aria-hidden="true"></span></li>
-        <li class="row"><span class="row__label" data-i18n="lbl_suspiciousForms">Suspicious Forms</span><span class="row__value status--warning">1</span><span class="ico-warn" aria-hidden="true"></span></li>
-        <li class="row"><span class="row__label" data-i18n="lbl_urgentLanguage">Urgent Language</span><span class="row__value" data-i18n="val_none">None</span><span class="ico-good" aria-hidden="true"></span></li>
-        <li class="row"><span class="row__label" data-i18n="lbl_brandImpersonation">Brand Impersonation</span><span class="row__value" data-i18n="val_none">None</span><span class="ico-good" aria-hidden="true"></span></li>
+        <li class="row" data-field="phishingIndicators"><span class="row__label" data-i18n="lbl_phishingIndicators">Phishing Indicators</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
+        <li class="row" data-field="suspiciousForms"><span class="row__label" data-i18n="lbl_suspiciousForms">Suspicious Forms</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
+        <li class="row" data-field="urgentLanguage"><span class="row__label" data-i18n="lbl_urgentLanguage">Urgent Language</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
+        <li class="row" data-field="brandImpersonation"><span class="row__label" data-i18n="lbl_brandImpersonation">Brand Impersonation</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
       </ul>
     </section>
 
