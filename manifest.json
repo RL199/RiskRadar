@@ -9,8 +9,12 @@
         "48": "assets/icons/icon-48.png",
         "128": "assets/icons/icon-128.png"
     },
-    "permissions": ["storage", "activeTab", "scripting"],
+    "permissions": ["storage", "activeTab", "scripting", "alarms", "unlimitedStorage"],
     "host_permissions": ["<all_urls>"],
+    "background": {
+        "service_worker": "scripts/background/background.js",
+        "type": "module"
+    },
     "action": {
         "default_popup": "popup/popup.html",
         "default_title": "Risk Radar",

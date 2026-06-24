@@ -207,16 +207,18 @@
           </svg>
         </span>
         <div>
-          <p class="summary__verdict status--good" data-i18n="status_good">Good</p>
-          <p class="summary__sub" data-i18n="sum_reputation">This site has a good reputation.</p>
+          <p class="summary__verdict status--good" id="rep-verdict" data-i18n="status_good">Good</p>
+          <p class="summary__sub" id="rep-summary" data-i18n="sum_reputation">This site has a good reputation.</p>
         </div>
       </div>
 
       <ul class="rows">
-        <li class="row"><span class="row__label">Google Safe Browsing</span><span class="row__value status--good" data-i18n="val_clean">Clean</span><span class="ico-good" aria-hidden="true"></span></li>
-        <li class="row"><span class="row__label">VirusTotal</span><span class="row__value">0 / 90</span><span class="ico-good" aria-hidden="true"></span></li>
-        <li class="row"><span class="row__label" data-i18n="lbl_phishingDb">Phishing Database</span><span class="row__value" data-i18n="val_notListed">Not listed</span><span class="ico-good" aria-hidden="true"></span></li>
-        <li class="row"><span class="row__label" data-i18n="lbl_blacklist">Blacklist Status</span><span class="row__value status--good" data-i18n="val_clean">Clean</span><span class="ico-good" aria-hidden="true"></span></li>
+        <li class="row" data-field="safeBrowsing"><span class="row__label" data-i18n="lbl_safeBrowsing">Google Safe Browsing</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
+        <li class="row" data-field="virusTotal"><span class="row__label" data-i18n="lbl_virusTotal">VirusTotal</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
+        <li class="row" data-field="sucuri"><span class="row__label" data-i18n="lbl_sucuri">Sucuri SiteCheck</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
+        <li class="row" data-field="phishingDb"><span class="row__label" data-i18n="lbl_phishingDb">Phishing Database</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
+        <li class="row" data-field="blacklist"><span class="row__label" data-i18n="lbl_blacklist">Blacklist Status</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
+        <li class="row" data-field="ipReputation"><span class="row__label" data-i18n="lbl_ipReputation">Server IP Reputation</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
       </ul>
     </section>
 
@@ -320,6 +322,29 @@
         <p class="note__body" data-i18n="ai_summary_body">The content appears to be legitimate and safe.</p>
       </div>
     </section>
+
+    <!-- ============================ KEY MODAL ============================ -->
+    <div class="modal" id="key-modal" hidden>
+      <div class="modal__backdrop" data-key-close></div>
+      <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="key-modal-title">
+        <h2 class="modal__title" id="key-modal-title">API key</h2>
+        <p class="modal__help" id="key-modal-help"></p>
+        <div class="apikey">
+          <input
+            id="key-modal-input"
+            class="control"
+            type="password"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button id="key-modal-toggle" class="btn-ghost" type="button">Show</button>
+        </div>
+        <div class="modal__actions">
+          <button id="key-modal-cancel" class="btn-ghost" type="button" data-key-close>Cancel</button>
+          <button id="key-modal-save" class="btn-primary" type="button">Save</button>
+        </div>
+      </div>
+    </div>
 
     <script type="module" src="popup.js"></script>
   </body>

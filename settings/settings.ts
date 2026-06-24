@@ -17,6 +17,10 @@ const apiKeyInput = document.getElementById("apikey") as HTMLInputElement;
 const toggleKeyBtn = document.getElementById("toggle-key") as HTMLButtonElement;
 const deepseekKeyInput = document.getElementById("deepseek-apikey") as HTMLInputElement;
 const toggleDeepseekKeyBtn = document.getElementById("toggle-deepseek-key") as HTMLButtonElement;
+const safeBrowsingKeyInput = document.getElementById("safebrowsing-apikey") as HTMLInputElement;
+const toggleSafeBrowsingKeyBtn = document.getElementById("toggle-safebrowsing-key") as HTMLButtonElement;
+const virusTotalKeyInput = document.getElementById("virustotal-apikey") as HTMLInputElement;
+const toggleVirusTotalKeyBtn = document.getElementById("toggle-virustotal-key") as HTMLButtonElement;
 const saveBtn = document.getElementById("save") as HTMLButtonElement;
 const statusEl = document.getElementById("status") as HTMLElement;
 
@@ -33,9 +37,18 @@ function flashSaved(): void {
 // through a static data-i18n attribute.
 function updateToggleLabel(): void {
   const dict = messages[settings.lang];
-  toggleKeyBtn.textContent = apiKeyInput.type === "text" ? dict.set_hide : dict.set_show;
-  toggleDeepseekKeyBtn.textContent =
-    deepseekKeyInput.type === "text" ? dict.set_hide : dict.set_show;
+  const label = (input: HTMLInputElement): string =>
+    input.type === "text" ? dict.set_hide : dict.set_show;
+  toggleKeyBtn.textContent = label(apiKeyInput);
+  toggleDeepseekKeyBtn.textContent = label(deepseekKeyInput);
+  toggleSafeBrowsingKeyBtn.textContent = label(safeBrowsingKeyInput);
+  toggleVirusTotalKeyBtn.textContent = label(virusTotalKeyInput);
+}
+
+// Flip a password field between masked and revealed, then refresh its label.
+function toggleVisibility(input: HTMLInputElement): void {
+  input.type = input.type === "password" ? "text" : "password";
+  updateToggleLabel();
 }
 
 async function init(): Promise<void> {
@@ -45,6 +58,8 @@ async function init(): Promise<void> {
   langSelect.value = settings.lang;
   apiKeyInput.value = settings.apiKey;
   deepseekKeyInput.value = settings.deepseekApiKey;
+  safeBrowsingKeyInput.value = settings.safeBrowsingApiKey;
+  virusTotalKeyInput.value = settings.virusTotalApiKey;
 
   applyTheme(settings.theme);
   applyI18n(settings.lang);
@@ -65,21 +80,18 @@ async function init(): Promise<void> {
     flashSaved();
   });
 
-  toggleKeyBtn.addEventListener("click", () => {
-    apiKeyInput.type = apiKeyInput.type === "password" ? "text" : "password";
-    updateToggleLabel();
-  });
-
-  toggleDeepseekKeyBtn.addEventListener("click", () => {
-    deepseekKeyInput.type = deepseekKeyInput.type === "password" ? "text" : "password";
-    updateToggleLabel();
-  });
+  toggleKeyBtn.addEventListener("click", () => toggleVisibility(apiKeyInput));
+  toggleDeepseekKeyBtn.addEventListener("click", () => toggleVisibility(deepseekKeyInput));
+  toggleSafeBrowsingKeyBtn.addEventListener("click", () => toggleVisibility(safeBrowsingKeyInput));
+  toggleVirusTotalKeyBtn.addEventListener("click", () => toggleVisibility(virusTotalKeyInput));
 
   saveBtn.addEventListener("click", async () => {
     settings = {
       ...settings,
       apiKey: apiKeyInput.value.trim(),
       deepseekApiKey: deepseekKeyInput.value.trim(),
+      safeBrowsingApiKey: safeBrowsingKeyInput.value.trim(),
+      virusTotalApiKey: virusTotalKeyInput.value.trim(),
     };
     await saveSettings(settings);
     flashSaved();

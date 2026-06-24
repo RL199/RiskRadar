@@ -9,6 +9,8 @@ export interface Settings {
   lang: LangPref;
   apiKey: string;
   deepseekApiKey: string;
+  safeBrowsingApiKey: string;
+  virusTotalApiKey: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -16,6 +18,8 @@ export const DEFAULT_SETTINGS: Settings = {
   lang: "en",
   apiKey: "",
   deepseekApiKey: "",
+  safeBrowsingApiKey: "",
+  virusTotalApiKey: "",
 };
 
 const STORAGE_KEY = "settings";

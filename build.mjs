@@ -10,9 +10,11 @@ const isWatch = process.argv.includes("--watch");
 
 // TypeScript entry points to bundle. Add background/content/interceptor here
 // as those files are created (e.g. "scripts/content/content-main.ts").
-const entryPoints = ["popup/popup.ts", "settings/settings.ts"].filter((p) =>
-  existsSync(join(root, p)),
-);
+const entryPoints = [
+  "popup/popup.ts",
+  "settings/settings.ts",
+  "scripts/background/background.ts",
+].filter((p) => existsSync(join(root, p)));
 
 // Static files copied verbatim into dist/, preserving their relative paths
 // so the manifest's references keep resolving.

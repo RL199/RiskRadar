@@ -1,7 +1,7 @@
 // Popup entry point. Compiled to popup.js by esbuild and loaded from popup.html.
 // Applies the user's theme/language, then handles view navigation.
 
-import { loadSettings, type LangPref } from "../scripts/shared/settings";
+import { loadSettings, saveSettings, type LangPref, type Settings } from "../scripts/shared/settings";
 import { applyTheme } from "../scripts/shared/theme";
 import { applyI18n, messages } from "../scripts/shared/i18n";
 import {
@@ -15,6 +15,14 @@ import {
   type AnalyzedRow,
   type RowStatus,
 } from "../scripts/shared/url-analysis";
+import {
+  checkDnsBlacklist,
+  checkIpReputation,
+  checkPhishingDatabase,
+  checkSafeBrowsing,
+  checkSucuri,
+  checkVirusTotal,
+} from "../scripts/shared/reputation-analysis";
 
 const MAIN_VIEW = "view-main";
 
@@ -101,6 +109,81 @@ function setupVirusTotal(url: string | undefined): void {
     if (!url) return;
     const id = await sha256Hex(url);
     await chrome.tabs.create({ url: `https://www.virustotal.com/gui/url/${id}` });
+  });
+}
+
+// ----------------------- API key modal ----------------------- //
+
+let currentLang: LangPref = "en";
+let modalOnSave: ((key: string) => void | Promise<void>) | null = null;
+
+function closeKeyModal(): void {
+  const modal = document.getElementById("key-modal");
+  const input = document.getElementById("key-modal-input") as HTMLInputElement | null;
+  if (modal) modal.hidden = true;
+  if (input) {
+    input.value = "";
+    input.type = "password";
+  }
+  modalOnSave = null;
+}
+
+function openKeyModal(opts: {
+  title: string;
+  help: string;
+  placeholder: string;
+  onSave: (key: string) => void | Promise<void>;
+}): void {
+  const modal = document.getElementById("key-modal");
+  const input = document.getElementById("key-modal-input") as HTMLInputElement | null;
+  if (!modal || !input) return;
+
+  const title = document.getElementById("key-modal-title");
+  const help = document.getElementById("key-modal-help");
+  const toggle = document.getElementById("key-modal-toggle");
+  if (title) title.textContent = opts.title;
+  if (help) help.textContent = opts.help;
+  if (toggle) toggle.textContent = messages[currentLang].set_show;
+  input.placeholder = opts.placeholder;
+  input.value = "";
+  input.type = "password";
+  modalOnSave = opts.onSave;
+  modal.hidden = false;
+  input.focus();
+}
+
+// Wire the modal's static controls once. The save button delegates to whatever
+// callback the opener registered.
+function setupKeyModal(lang: LangPref): void {
+  const dict = messages[lang];
+  const input = document.getElementById("key-modal-input") as HTMLInputElement | null;
+  const toggle = document.getElementById("key-modal-toggle");
+  const cancel = document.getElementById("key-modal-cancel");
+  const save = document.getElementById("key-modal-save");
+
+  if (toggle && input) {
+    toggle.addEventListener("click", () => {
+      input.type = input.type === "password" ? "text" : "password";
+      toggle.textContent = input.type === "text" ? dict.set_hide : dict.set_show;
+    });
+  }
+  if (cancel) cancel.textContent = dict.btn_cancel;
+  for (const el of document.querySelectorAll("[data-key-close]")) {
+    el.addEventListener("click", closeKeyModal);
+  }
+  if (save && input) {
+    save.textContent = dict.set_save;
+    save.addEventListener("click", () => {
+      const key = input.value.trim();
+      const cb = modalOnSave;
+      closeKeyModal();
+      if (key && cb) void cb(key);
+    });
+  }
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    const modal = document.getElementById("key-modal");
+    if (modal && !modal.hidden) closeKeyModal();
   });
 }
 
@@ -245,15 +328,182 @@ async function analyzeUrlView(rawUrl: string | undefined, lang: LangPref): Promi
   );
 }
 
+// ----------------------- Reputation analysis ----------------------- //
+
+const REPUTATION_FIELDS = [
+  "safeBrowsing",
+  "virusTotal",
+  "sucuri",
+  "phishingDb",
+  "blacklist",
+  "ipReputation",
+] as const;
+
+// The category's verdict from its rows: the worst *determinate* finding, or
+// "unknown" when nothing could be checked (no keys + DNS lookups all failed).
+function reputationOverall(statuses: RowStatus[]): RowStatus {
+  const determinate = statuses.filter((s) => s === "good" || s === "warn" || s === "bad");
+  return determinate.length ? worst(determinate) : "unknown";
+}
+
+// Set the Reputation view's summary verdict + subtitle and the matching chip on
+// the main list, all from the overall status.
+function setReputationVerdict(status: RowStatus, dict: Dict): void {
+  const tone = status === "unknown" ? "status--muted" : TONE_CLASS[status] || "status--good";
+  const vKey =
+    status === "bad"
+      ? "status_danger"
+      : status === "warn"
+        ? "status_warning"
+        : status === "unknown"
+          ? "val_unknown"
+          : "status_good";
+  const sKey =
+    status === "bad"
+      ? "sum_reputation_bad"
+      : status === "warn"
+        ? "sum_reputation_warn"
+        : status === "unknown"
+          ? "sum_reputation_unknown"
+          : "sum_reputation";
+
+  const verdict = document.getElementById("rep-verdict");
+  if (verdict) {
+    verdict.className = `summary__verdict ${tone}`;
+    verdict.textContent = dict[vKey];
+  }
+  const summary = document.getElementById("rep-summary");
+  if (summary) summary.textContent = dict[sKey];
+
+  const chip = document.querySelector<HTMLElement>('.cat[data-target="view-reputation"] .cat__status');
+  if (chip) {
+    chip.className = `cat__status ${tone}`;
+    chip.textContent = dict[vKey];
+  }
+}
+
+// Last computed status of each reputation row, plus the page context — kept so a
+// single row (e.g. VirusTotal after a key is added) can be re-run and the overall
+// verdict recomputed without re-doing every lookup.
+const repStatuses: Partial<Record<(typeof REPUTATION_FIELDS)[number], RowStatus>> = {};
+let repContext: { host: string; settings: Settings } | null = null;
+
+function repVerdict(dict: Dict): void {
+  const statuses = Object.values(repStatuses).filter((s): s is RowStatus => s !== undefined);
+  setReputationVerdict(reputationOverall(statuses), dict);
+}
+
+// Render a row that can't run until the user supplies an API key: a "Key needed"
+// note plus an "Add key" button that opens the key modal.
+function renderKeyNeeded(field: string, dict: Dict, onAdd: () => void): void {
+  const li = document.querySelector<HTMLElement>(`.row[data-field="${field}"]`);
+  if (!li) return;
+
+  const icon = li.querySelector<HTMLElement>(".row__icon");
+  if (icon) icon.className = ICON_CLASS.unknown;
+
+  const value = li.querySelector<HTMLElement>(".row__value");
+  if (!value) return;
+  value.className = "row__value status--warning";
+  value.textContent = "";
+
+  const label = document.createElement("span");
+  label.textContent = dict.val_keyNeeded;
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "row__keybtn";
+  btn.textContent = dict.btn_addKey;
+  btn.addEventListener("click", onAdd);
+  value.append(label, " ", btn);
+}
+
+// Prompt for the VirusTotal key, then persist it and re-run just that row.
+function openVirusTotalKeyModal(): void {
+  if (!repContext) return;
+  const { host, settings } = repContext;
+  const dict = messages[settings.lang];
+
+  openKeyModal({
+    title: dict.set_virustotal_apikey,
+    help: dict.set_virustotal_apikey_help,
+    placeholder: dict.set_virustotal_apikey_placeholder,
+    onSave: async (key) => {
+      settings.virusTotalApiKey = key;
+      await saveSettings(settings);
+      renderRow("virusTotal", { text: "…", status: "neutral" }, dict, false);
+      const vt = await checkVirusTotal(host, key);
+      renderRow("virusTotal", vt, dict, true);
+      repStatuses.virusTotal = vt.status;
+      repVerdict(dict);
+    },
+  });
+}
+
+async function analyzeReputationView(rawUrl: string | undefined, settings: Settings): Promise<void> {
+  const dict = messages[settings.lang];
+
+  let url: URL | undefined;
+  try {
+    if (rawUrl) url = new URL(rawUrl);
+  } catch {
+    // Leave url undefined; handled below.
+  }
+
+  // Privileged pages (chrome://, the new-tab page, etc.) have nothing to check.
+  if (!url || (url.protocol !== "http:" && url.protocol !== "https:")) {
+    repContext = null;
+    for (const field of REPUTATION_FIELDS) renderRow(field, { text: "—", status: "neutral" }, dict, false);
+    setReputationVerdict("unknown", dict);
+    return;
+  }
+
+  repContext = { host: url.hostname, settings };
+
+  // Show placeholders while the lookups (all network) are in flight.
+  for (const field of REPUTATION_FIELDS) renderRow(field, { text: "…", status: "neutral" }, dict, false);
+
+  // VirusTotal needs a key; without one show a "Key needed" prompt instead.
+  const hasVtKey = Boolean(settings.virusTotalApiKey);
+  const [safeBrowsing, virusTotal, sucuri, phishingDb, blacklist, ipReputation] = await Promise.all([
+    checkSafeBrowsing(url.href, url.hostname, settings.safeBrowsingApiKey),
+    hasVtKey
+      ? checkVirusTotal(url.hostname, settings.virusTotalApiKey)
+      : Promise.resolve<AnalyzedRow>({ status: "unknown" }),
+    checkSucuri(url.hostname),
+    checkPhishingDatabase(url.hostname),
+    checkDnsBlacklist(url.hostname),
+    checkIpReputation(url.hostname),
+  ]);
+
+  renderRow("safeBrowsing", safeBrowsing, dict, true);
+  if (hasVtKey) renderRow("virusTotal", virusTotal, dict, true);
+  else renderKeyNeeded("virusTotal", dict, openVirusTotalKeyModal);
+  renderRow("sucuri", sucuri, dict, true);
+  renderRow("phishingDb", phishingDb, dict, true);
+  renderRow("blacklist", blacklist, dict, true);
+  renderRow("ipReputation", ipReputation, dict, true);
+
+  repStatuses.safeBrowsing = safeBrowsing.status;
+  repStatuses.virusTotal = virusTotal.status;
+  repStatuses.sucuri = sucuri.status;
+  repStatuses.phishingDb = phishingDb.status;
+  repStatuses.blacklist = blacklist.status;
+  repStatuses.ipReputation = ipReputation.status;
+  repVerdict(dict);
+}
+
 async function init(): Promise<void> {
   const settings = await loadSettings();
+  currentLang = settings.lang;
   applyTheme(settings.theme);
   applyI18n(settings.lang);
   setupNavigation();
+  setupKeyModal(settings.lang);
   const url = await getActiveTabUrl();
   showActiveHost(url);
   setupVirusTotal(url);
   void analyzeUrlView(url, settings.lang);
+  void analyzeReputationView(url, settings);
 }
 
 void init();

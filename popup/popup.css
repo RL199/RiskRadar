@@ -354,6 +354,24 @@ body {
   font-weight: 500;
 }
 
+/* Inline "Add key" button shown in a row that needs an API key. */
+.row__keybtn {
+  margin-inline-start: 8px;
+  padding: 2px 9px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--blue);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.row__keybtn:hover {
+  background: var(--surface-2);
+}
+
 /* Status check / warning icons rendered with CSS so markup stays light */
 .ico-good,
 .ico-warn,
@@ -401,6 +419,114 @@ body {
   margin: 0;
   color: var(--text-muted);
   line-height: 1.4;
+}
+
+/* ------------------------------ Modal ------------------------------ */
+.modal[hidden] {
+  display: none;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.modal__dialog {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.modal__title {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.modal__help {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* Form controls (used by the modal; mirrors the settings page). */
+.control {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.control:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+
+.apikey {
+  display: flex;
+  gap: 6px;
+}
+
+.apikey .control {
+  flex: 1;
+  font-family: ui-monospace, "Cascadia Code", monospace;
+}
+
+.btn-primary {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--blue);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.btn-ghost {
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-ghost:hover {
+  background: var(--surface-2);
+  color: var(--text);
 }
 
 /* ----------------------------- Status ----------------------------- */

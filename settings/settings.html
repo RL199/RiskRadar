@@ -82,6 +82,54 @@
             Used for AI-based content analysis. Stored locally on your device.
           </p>
         </div>
+      </section>
+
+      <section class="card">
+        <h2 class="card__title" data-i18n="set_reputation">Reputation</h2>
+
+        <div class="field">
+          <label class="field__label" for="safebrowsing-apikey" data-i18n="set_safebrowsing_apikey"
+            >Google Safe Browsing API key</label
+          >
+          <div class="apikey">
+            <input
+              id="safebrowsing-apikey"
+              class="control"
+              type="password"
+              placeholder="AIza..."
+              data-i18n-placeholder="set_safebrowsing_apikey_placeholder"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button id="toggle-safebrowsing-key" class="btn-ghost" type="button">Show</button>
+          </div>
+          <p class="field__help" data-i18n="set_safebrowsing_apikey_help">
+            Optional. Safe Browsing already works without a key via Google's public Transparency
+            Report; a key upgrades it to the official Lookup API. Stored locally on your device.
+          </p>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="virustotal-apikey" data-i18n="set_virustotal_apikey"
+            >VirusTotal API key</label
+          >
+          <div class="apikey">
+            <input
+              id="virustotal-apikey"
+              class="control"
+              type="password"
+              placeholder="VirusTotal API key"
+              data-i18n-placeholder="set_virustotal_apikey_placeholder"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button id="toggle-virustotal-key" class="btn-ghost" type="button">Show</button>
+          </div>
+          <p class="field__help" data-i18n="set_virustotal_apikey_help">
+            Needed for the VirusTotal check — with a key the row shows an inline malicious/total
+            verdict; without one the popup shows a "Key needed" prompt. Stored locally on your device.
+          </p>
+        </div>
 
         <div class="field__actions">
           <button id="save" class="btn-primary" type="button" data-i18n="set_save">Save</button>
