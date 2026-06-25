@@ -273,16 +273,16 @@
           </svg>
         </span>
         <div>
-          <p class="summary__verdict status--good" data-i18n="status_good">Good</p>
-          <p class="summary__sub" data-i18n="sum_links">No suspicious links found.</p>
+          <p class="summary__verdict status--good" id="links-verdict" data-i18n="status_good">Good</p>
+          <p class="summary__sub" id="links-summary" data-i18n="sum_links">No suspicious links found.</p>
         </div>
       </div>
 
       <ul class="rows">
-        <li class="row"><span class="row__label" data-i18n="lbl_totalLinks">Total Links</span><span class="row__value">24</span></li>
-        <li class="row"><span class="row__label" data-i18n="lbl_externalLinks">External Links</span><span class="row__value">6</span><span class="ico-good" aria-hidden="true"></span></li>
-        <li class="row"><span class="row__label" data-i18n="lbl_suspiciousLinks">Suspicious Links</span><span class="row__value">0</span><span class="ico-good" aria-hidden="true"></span></li>
-        <li class="row"><span class="row__label" data-i18n="lbl_maliciousRedirects">Malicious Redirects</span><span class="row__value">0</span><span class="ico-good" aria-hidden="true"></span></li>
+        <li class="row" data-field="totalLinks"><span class="row__label" data-i18n="lbl_totalLinks">Total Links</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
+        <li class="row" data-field="externalLinks"><span class="row__label" data-i18n="lbl_externalLinks">External Links</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
+        <li class="row" data-field="suspiciousLinks"><span class="row__label" data-i18n="lbl_suspiciousLinks">Suspicious Links</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
+        <li class="row" data-field="maliciousRedirects"><span class="row__label" data-i18n="lbl_maliciousRedirects">Malicious Redirects</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
       </ul>
     </section>
 

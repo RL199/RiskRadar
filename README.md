@@ -18,8 +18,8 @@ third-party reputation services, and an AI model to surface threats before they 
 ## Features
 
 - **URL analysis:** protocol, domain, and structure checks (e.g. HTTP vs. HTTPS).
-- **Content scanning:** inspects the page DOM for suspicious patterns.
-- **Link scanning:** evaluates internal and external links on the page.
+- **Content scanning:** inspects the page DOM for suspicious patterns, and marks the matches on the page.
+- **Link scanning:** classifies the page's links into internal, external, suspicious, and malicious redirects, and marks them on the page.
 - **Reputation integration:** Google Safe Browsing, VirusTotal, Sucuri SiteCheck, threat-filtering DNS (Cloudflare, Quad9), and server-IP reputation (SANS ISC / DShield).
 - **AI analysis:** textual and behavioral analysis of page content via an API.
 - **Clear results:** a trust score plus risk indicators, explained at varying levels of detail.
@@ -119,20 +119,40 @@ content ever leaves the browser.
 
 | Check                    | How it's computed                                                                                                                                            | Risk logic                                                                                                  |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| **Phishing Indicators**  | The page title + visible text are scanned for a curated list of **credential-bait phrases** ("verify your account", "confirm your password", "unusual sign-in activity"…). | None → good; 1 to 2 matches → warning; 3+ → risky. The match count is shown.                                   |
-| **Suspicious Forms**     | Every `<form>` containing an `<input type="password">` is checked: does it submit to a **different registrable domain** (cross-origin) or over **plain HTTP**?       | No such form → good; a cross-origin (HTTPS) password POST → warning; a cleartext **HTTP** password POST → risky. The count is shown. |
-| **Urgent Language**      | The title + text are scanned for **time-pressure / fear wording** ("act now", "within 24 hours", "final notice", "your account will be suspended"…).            | None → good; 1 to 2 matches → warning; 3+ → risky. The match count is shown.                                   |
-| **Brand Impersonation**  | A well-known brand (Microsoft, Google, Amazon, Apple, PayPal, banks, couriers…) is named in the title/text while the host **isn't** one of that brand's own domains, **and** the page asks for a password. | Mismatch on a credential-entry page → risky, naming the impersonated brand; otherwise good.                 |
+| **Phishing Indicators**  | The page title + visible text are scanned for a curated list of **credential-bait phrases** ("verify your account", "confirm your password", "unusual sign-in activity"…). | None → good; 1 to 2 matches → warning; 3+ → risky. The count is shown, and the matched phrases are listed under the row.                                   |
+| **Suspicious Forms**     | Every `<form>` containing an `<input type="password">` is checked: does it submit to a **different registrable domain** (cross-origin) or over **plain HTTP**?       | No such form → good; a cross-origin (HTTPS) password POST → warning; a cleartext **HTTP** password POST → risky. The count is shown, and the kind of leak (cleartext HTTP and/or cross-domain) is listed under the row. |
+| **Urgent Language**      | The title + text are scanned for **time-pressure / fear wording** ("act now", "within 24 hours", "final notice", "your account will be suspended"…).            | None → good; 1 to 2 matches → warning; 3+ → risky. The count is shown, and the matched phrases are listed under the row.                                   |
+| **Brand Impersonation**  | A well-known brand (Microsoft, Google, Amazon, Apple, PayPal, banks, couriers…) is named in the title/text while the host **isn't** one of that brand's own domains, **and** the page asks for a password. | Mismatch on a credential-entry page → risky, naming the impersonated brand and listing the brand wording that matched; otherwise good.                 |
 
 **The wordlists ("small database").** The phrases and brands the three text checks match against live in
 their own module, [`scripts/shared/content-data.ts`](scripts/shared/content-data.ts), separate from the
 matching logic so they can grow without touching the algorithms. The phishing/urgency wording follows
-common phishing-email keyword round-ups (Expel, KnowBe4, MetaCompliance), and the brand table follows the
-quarterly _most-impersonated-brand_ reports (Check Point Research's Q4 2025 top ten was Microsoft, Google,
-Amazon, Apple, Facebook/Meta, PayPal, Adobe, Booking, DHL and LinkedIn), extended with the shipping
+common phishing-email keyword round-ups ([Expel](https://expel.com/blog/top-phishing-keywords/),
+[KnowBe4](https://blog.knowbe4.com/a-look-at-phishing-keywords),
+[MetaCompliance](https://www.metacompliance.com/blog/phishing-and-ransomware/words-terminology-phishing-emails),
+[TechRepublic](https://www.techrepublic.com/article/the-top-keywords-used-in-phishing-email-subject-lines/)),
+and the brand table follows the quarterly _most-impersonated-brand_ reports
+([Check Point Research](https://blog.checkpoint.com/research/microsoft-remains-the-most-imitated-brand-in-phishing-attacks-in-q4-2025/)'s
+Q4 2025 top ten was Microsoft, Google, Amazon, Apple, Facebook/Meta, PayPal, Adobe, Booking, DHL and
+LinkedIn), extended with the shipping
 (FedEx, UPS, USPS), banking (Chase, Wells Fargo, Bank of America, Citi, Amex…), crypto (Coinbase, Binance)
 and gaming (Roblox, Steam) brands phishing kits routinely clone. Each brand carries both the phrases that
 signal it and the set of registrable labels that are legitimately its own.
+
+**Hebrew (Israel) coverage.** The same three text checks also carry the wording Israeli phishing SMS,
+emails and pages actually use (for example `פעילות חשודה בחשבון`, `החשבון שלך נחסם`, `לאמת את החשבון`,
+`חבילה ממתינה במכס`, `חוב אגרה`, and urgency wording like `דחוף`, `תוך 24 שעות`, `לחץ על הקישור`), plus
+the local bodies most impersonated in Israel: Highway 6 (כביש 6) tolls, the banks and credit-card issuers
+(Bank Hapoalim, Leumi, Discount, Mizrahi-Tefahot, Isracard, Cal, Max), Israel Post (דואר ישראל), the Tax
+Authority, El Al, the Electric Company and National Insurance. This follows Israeli phishing round-ups and
+national guidance: [mako](https://www.mako.co.il/nexter-news/Article-0e0541aa5257c91027.htm) and
+[Ynet](https://www.ynet.co.il/digital/technews/article/byvvjxhfj) on the most-impersonated bodies and the
+most common local scam messages, the Israel National Cyber Directorate's
+[how-to-recognize-phishing guide](https://www.gov.il/en/pages/recognize_phishing_2711),
+[ISOC-IL](https://www.isoc.org.il/digital-literacy/online-safety-guides/guides-users/how-to-spot-phishing),
+[Israel Post's own fake-SMS notice](https://israelpost.co.il/%D7%A9%D7%99%D7%A8%D7%95%D7%AA%D7%99%D7%9D/sms-%D7%9E%D7%94%D7%93%D7%95%D7%90%D7%A8-%D7%9B%D7%9A-%D7%AA%D7%95%D7%95%D7%93%D7%90%D7%95-%D7%A9%D7%9C%D7%90-%D7%9E%D7%93%D7%95%D7%91%D7%A8-%D7%91%D7%94%D7%95%D7%93%D7%A2%D7%AA-%D7%A4%D7%99%D7%A9%D7%99%D7%A0%D7%92/),
+a [penetrationtest.co.il SMS-fraud guide](https://penetrationtest.co.il/sms-fraud/), and the
+[Jerusalem Post report on the Israel Electric scam](https://www.jpost.com/israel-news/israel-electric-warns-of-phishing-scam-trying-to-steal-customer-details-673983).
 
 > **Note.** These are deliberately **short, hardcoded lists**; they cover the *most common* phishing
 > wording and the *most-impersonated* brands rather than aiming to be exhaustive. The goal is to catch
@@ -142,7 +162,9 @@ signal it and the set of registrable labels that are legitimately its own.
 **Matching is whole-word and de-duplicated.** Text is matched case-insensitively with the page's title and
 body folded to one normalized string (smart quotes → ASCII, whitespace collapsed so a phrase still matches
 across a line break). Terms match on **word boundaries**, so a short token like `ups` can't fire inside
-`backups` and `apple` can't fire inside `pineapple`. When a broad term and a more specific one cover the
+`backups` and `apple` can't fire inside `pineapple`. The boundary is **Unicode-aware** (it treats any
+Unicode letter or number as a word character) rather than the ASCII-only `\b`, so the Hebrew terms match
+exactly the same whole-word way the English ones do. When a broad term and a more specific one cover the
 same text (`action required` inside `immediate action required`), only the longer match is counted, so a
 single phrase can't inflate the score.
 
@@ -165,6 +187,90 @@ while look-alikes (`paypal-secure.tk`, `microsoft-verify.com`) do not.
 sends credentials in clear text, an unambiguous, hard risk. A password field that POSTs cross-origin
 over HTTPS is *suspicious* but can be legitimate (federated/SSO login often posts to an auth domain), so
 it's capped at a warning rather than treated as a certain compromise.
+
+**Marking matches on the page.** Besides listing what it found in the popup, the Content view marks the
+same findings on the page itself. After scanning, the popup injects a second self-contained function
+(`highlightPageMatches`) that gives every flagged phrase (phishing wording, urgent language, and the
+matched brand keywords) a **light red highlight**, and every **suspicious password form** a **red
+outline**. Hovering a mark names its category (for example _"Phishing Indicators"_, _"Urgent Language"_,
+or _"Suspicious Forms"_), so it's clear at a glance why each was flagged. The phrase highlight uses the
+[CSS Custom Highlight API](https://developer.mozilla.org/en-US/docs/Web/API/CSS_Custom_Highlight_API),
+which paints text ranges without inserting any wrapper elements, so it never changes the page's structure;
+because a painted highlight can't carry a tooltip, the popup hit-tests the cursor against the marked ranges
+on hover and shows a small floating label, while a form (a real element) uses a native `title`. The marks
+are non-destructive and reversible (the form outline and any borrowed `title` are restored on the next
+scan), the highlighter runs in the page's **main world** so it shares the page's CSS highlight registry,
+and re-running clears the previous pass so a now-clean page is left unmarked.
+
+> **A note on false positives.** Several of these signals also show up on perfectly legitimate pages: your
+> bank's real login genuinely says "verify your account", a real promotion genuinely says "limited time
+> offer" or "act now", and a real federated login genuinely posts your password to a separate auth domain.
+> Risk Radar treats each check as an **advisory signal, not a standalone verdict**, and is tuned to keep
+> these cases quiet: it never blocks a page, the wording checks need **three or more** matches before they
+> turn risky (one or two are only a warning), Brand Impersonation fires only when the page also asks for a
+> password, and a cross-origin (HTTPS) password form is capped at a warning rather than called a certain
+> compromise. Because every match is **listed in the popup and highlighted on the page**, you can see
+> exactly what was flagged and judge it in context. A flagged legitimate page is expected now and then;
+> weigh the Content verdict alongside the URL, Reputation, and Links categories rather than on its own.
+
+### Links
+
+This category inspects the **links on the page** rather than the page's own URL or reputation. Like
+Content, the popup can't read another tab's DOM directly, so it injects a small, self-contained extractor
+([`extractPageLinks` in `scripts/shared/link-analysis.ts`](scripts/shared/link-analysis.ts)) into the
+active tab with [`chrome.scripting.executeScript`](https://developer.chrome.com/docs/extensions/reference/api/scripting)
+(granted by `activeTab` + `scripting` + the `<all_urls>` host permission). The extractor returns a tiny
+JSON summary: the page URL, the total number of `<a href>` links, and, for the first 500 in document
+order, each link's resolved href and visible text. The risk logic then runs in the popup, sorting every
+link into one bucket: **internal** (same registrable domain), **external** (a different domain with no
+risk traits), **suspicious**, **redirect**, or **ignore** (a `mailto:` / `tel:` / `javascript:` link or a
+same-page `#` anchor). Pages with no readable DOM (a `chrome://` page, the new-tab page, the Web Store)
+are reported as _Unknown_ and excluded from the verdict. All checks are offline; no link ever leaves the
+browser.
+
+| Check                    | How it's computed                                                                                          | Risk logic                                                                                                          |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Total Links**          | Count of every `<a href>` on the page.                                                                     | Informational; never affects the verdict.                                                                          |
+| **External Links**       | Links whose **registrable domain differs** from the page's.                                                | Normal and expected → good. The distinct external domains are listed.                                              |
+| **Suspicious Links**     | External links whose **destination itself** looks dangerous (see below).                                   | None → good; 1 to 2 → warning; 3+ → risky. The flagged hosts are listed.                                           |
+| **Malicious Redirects**  | Links that **hide or bounce** their true destination (see below).                                          | None → good; a parameter bounce → warning; a displayed-vs-real URL mismatch → risky. The destinations are listed.  |
+
+**What makes a link "suspicious".** A suspicious link points off-site to a destination that itself carries
+a phishing tell, drawn from the standard anti-phishing URL indicators (CISA, the APWG, OWASP): a raw **IP
+address** host; a **punycode / IDN homograph** domain (`xn--`); **credentials embedded in the URL**
+(`https://paypal.com@evil.com`); a **brand look-alike**, where a known brand token appears in the host but
+the registrable domain is not that brand's (`paypal.secure-login.com`); a **URL shortener** that hides the
+real destination; **unusually deep subdomains** (`login.account.secure.verify.evil.tld`); or **stacked
+phishing keywords** in the host (two or more of `secure`, `login`, `verify`, `account`… as in
+`secure-account-login.com`). Single signals are kept high-signal to limit false positives (a stated
+project goal): a lone `login.` subdomain, a real brand domain, and an ordinary external link all stay good.
+
+**What counts as a "malicious redirect".** A redirect is a link that **disguises where it really goes**,
+caught before the internal/external check so an open redirect hosted on the page's own trusted domain is
+still flagged. Two patterns are detected: an **open-redirect parameter** carrying an absolute off-domain
+URL (`https://trusted.com/out?url=https://evil.com`, scanning common parameter names like `url`, `next`,
+`redirect`, `dest`, `continue` in both the query and the fragment); and a **displayed-vs-real URL
+mismatch**, where the visible link text is presented as one domain (`https://www.mybank.com/login`) while
+the href opens another. A redirect that stays within the same domain family (a `continue=` back to a
+sibling subdomain) is not flagged.
+
+**The look-alike token list and shorteners.** The distinctive brand tokens the look-alike check watches
+for live alongside the Content wordlists in
+[`scripts/shared/content-data.ts`](scripts/shared/content-data.ts) (`BRAND_URL_TOKENS`), kept to long,
+unambiguous brand words so short or dictionary-ish labels don't trip it. The shortener and redirect
+parameter lists live in [`link-analysis.ts`](scripts/shared/link-analysis.ts) and can be extended at any
+time.
+
+**Marking links on the page.** After scanning, the popup injects a second self-contained function
+(`highlightPageLinks`) that outlines the same links on the page itself, in document order so each mark
+lines up with its verdict: **internal links get a subtle green outline**, **suspicious links and malicious
+redirects a red one**, and **every mark carries a hover label** naming exactly what it is (greens
+included), for example _"Internal link (same domain)"_, _"Suspicious link: domain imitates a known brand"_,
+or _"Malicious redirect: link text shows a different domain than it opens"_. The marks are non-destructive
+(an `outline` plus a borrowed `title`, both restored on the next scan) and re-running clears the previous
+pass. **Benign external links are counted but deliberately not painted red:** an ordinary page links out
+to many legitimate sites (CDNs, social, references), so flagging every external link would bury the real
+warnings; only off-site links with an actual phishing tell are marked.
 
 ## Tech stack
 

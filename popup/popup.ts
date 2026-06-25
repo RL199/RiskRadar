@@ -33,6 +33,14 @@ import {
   type HighlightGroup,
   type PageContent,
 } from "../scripts/shared/content-analysis";
+import {
+  analyzeLinks,
+  extractPageLinks,
+  highlightPageLinks,
+  type ClassifiedLink,
+  type LinkMark,
+  type PageLinks,
+} from "../scripts/shared/link-analysis";
 
 const MAIN_VIEW = "view-main";
 
@@ -662,6 +670,128 @@ async function analyzeContentView(tab: chrome.tabs.Tab | undefined, lang: LangPr
   void markPageMatches(tab.id, groups, dict.lbl_suspiciousForms);
 }
 
+// ----------------------- Links analysis ----------------------- //
+
+const LINK_FIELDS = ["totalLinks", "externalLinks", "suspiciousLinks", "maliciousRedirects"] as const;
+
+// Set the Links view's summary verdict + subtitle and the matching chip on the
+// main list, all from the overall (worst) status.
+function setLinksVerdict(status: RowStatus, dict: Dict): void {
+  const tone = status === "unknown" ? "status--muted" : TONE_CLASS[status] || "status--good";
+  const vKey =
+    status === "bad"
+      ? "status_danger"
+      : status === "warn"
+        ? "status_warning"
+        : status === "unknown"
+          ? "val_unknown"
+          : "status_good";
+  const sKey =
+    status === "bad"
+      ? "sum_links_bad"
+      : status === "warn"
+        ? "sum_links_warn"
+        : status === "unknown"
+          ? "sum_links_unknown"
+          : "sum_links";
+
+  const verdict = document.getElementById("links-verdict");
+  if (verdict) {
+    verdict.className = `summary__verdict ${tone}`;
+    verdict.textContent = dict[vKey];
+  }
+  const summary = document.getElementById("links-summary");
+  if (summary) summary.textContent = dict[sKey];
+
+  const chip = document.querySelector<HTMLElement>('.cat[data-target="view-links"] .cat__status');
+  if (chip) {
+    chip.className = `cat__status ${tone}`;
+    chip.textContent = dict[vKey];
+  }
+}
+
+// Inject the self-contained link extractor into the active tab and read back its
+// summary. Returns null on any failure (privileged page, no host access).
+async function getPageLinks(tabId: number): Promise<PageLinks | null> {
+  try {
+    const [injection] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: extractPageLinks,
+    });
+    return (injection?.result as PageLinks | undefined) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Outline the classified links on the page itself, each carrying its hover label.
+// Passing all-"skip" marks clears any marks from a prior scan.
+async function markPageLinks(tabId: number, marks: LinkMark[]): Promise<void> {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: highlightPageLinks,
+      args: [marks],
+    });
+  } catch {
+    // Page isn't scriptable (privileged page, no host access), nothing to mark.
+  }
+}
+
+// The hover label for a flagged link: the bucket name plus its specific reason.
+function linkTitle(link: ClassifiedLink, dict: Dict): string {
+  if (link.verdict === "internal") return dict.tip_link_internal;
+  const head = link.verdict === "redirect" ? dict.tip_link_redirect : dict.tip_link_suspicious;
+  const reason = link.reasonKey ? dict[link.reasonKey] : undefined;
+  return reason ? `${head}: ${reason}` : head;
+}
+
+async function analyzeLinksView(tab: chrome.tabs.Tab | undefined, lang: LangPref): Promise<void> {
+  const dict = messages[lang];
+
+  let url: URL | undefined;
+  try {
+    if (tab?.url) url = new URL(tab.url);
+  } catch {
+    // Leave url undefined; handled below.
+  }
+
+  // Privileged pages (chrome://, the new-tab page, etc.) have no DOM to scan.
+  if (!tab?.id || !url || (url.protocol !== "http:" && url.protocol !== "https:")) {
+    for (const field of LINK_FIELDS) renderRow(field, { key: "val_unknown", status: "neutral" }, dict, false);
+    setLinksVerdict("unknown", dict);
+    return;
+  }
+
+  // Show placeholders while the page is being read.
+  for (const field of LINK_FIELDS) renderRow(field, { text: "…", status: "neutral" }, dict, false);
+
+  const page = await getPageLinks(tab.id);
+  if (!page) {
+    for (const field of LINK_FIELDS) renderRow(field, { key: "val_unknown", status: "unknown" }, dict, true);
+    setLinksVerdict("unknown", dict);
+    return;
+  }
+
+  const { classified, total, external, suspicious, redirects } = analyzeLinks(page);
+
+  renderRow("totalLinks", total, dict, false);
+  renderRow("externalLinks", external, dict, false);
+  renderRow("suspiciousLinks", suspicious, dict, suspicious.status !== "good");
+  renderRow("maliciousRedirects", redirects, dict, redirects.status !== "good");
+
+  setLinksVerdict(worst([total.status, external.status, suspicious.status, redirects.status]), dict);
+
+  // Mark the same links on the page (greens included), each tagged with its
+  // hover label. marks line up with the page's anchors by document order.
+  const marks: LinkMark[] = classified.map((link) =>
+    link.verdict === "internal" || link.verdict === "suspicious" || link.verdict === "redirect"
+      ? { verdict: link.verdict, title: linkTitle(link, dict) }
+      : { verdict: "skip", title: "" },
+  );
+  void markPageLinks(tab.id, marks);
+}
+
 async function init(): Promise<void> {
   const settings = await loadSettings();
   currentLang = settings.lang;
@@ -676,6 +806,7 @@ async function init(): Promise<void> {
   void analyzeUrlView(url, settings.lang);
   void analyzeReputationView(url, settings);
   void analyzeContentView(tab, settings.lang);
+  void analyzeLinksView(tab, settings.lang);
 }
 
 void init();

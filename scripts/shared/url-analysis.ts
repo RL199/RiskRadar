@@ -31,14 +31,15 @@ const MULTI_PART_SUFFIXES = new Set([
 
 // Tokens that show up far more often in phishing URLs than in the paths of the
 // sites they impersonate. Kept deliberately high-signal to limit false
-// positives (a stated project goal); tune this list as needed.
-const SUSPICIOUS_KEYWORDS = [
+// positives (a stated project goal); tune this list as needed. Shared with the
+// Links view, which reuses it to spot stacked phishing words in a link's host.
+export const SUSPICIOUS_KEYWORDS = [
   "login", "signin", "sign-in", "verify", "verification", "secure", "account",
   "update", "confirm", "password", "banking", "webscr", "ebayisapi", "wallet",
   "suspended", "unlock", "recover", "billing", "invoice", "appleid",
 ];
 
-const IPV4_RE = /^\d{1,3}(\.\d{1,3}){3}$/;
+export const IPV4_RE = /^\d{1,3}(\.\d{1,3}){3}$/;
 
 /** Split a hostname into its subdomain prefix and registrable domain. */
 export function splitDomain(hostname: string): { sub: string; registrable: string } {

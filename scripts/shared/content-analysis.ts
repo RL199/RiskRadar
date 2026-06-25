@@ -46,9 +46,13 @@ function normalize(text: string): string {
 }
 
 // Whether a lowercase term occurs in `haystack` as a whole word/phrase, so short
-// tokens (e.g. "ups") don't fire inside unrelated words ("backups").
+// tokens (e.g. "ups") don't fire inside unrelated words ("backups"). The boundary
+// is a Unicode-aware lookaround rather than \b: JavaScript's \b only knows ASCII
+// word chars, so \b would never match a Hebrew (or any non-Latin) term — these
+// lookarounds treat any Unicode letter/number as a word char, so whole-word
+// matching works the same for "verify your account" and "אמת את החשבון".
 function hasTerm(haystack: string, term: string): boolean {
-  return new RegExp(`\\b${escapeRegExp(term)}\\b`).test(haystack);
+  return new RegExp(`(?<![\\p{L}\\p{N}])${escapeRegExp(term)}(?![\\p{L}\\p{N}])`, "u").test(haystack);
 }
 
 // Terms from `list` present in the (already normalized) haystack, with any match
@@ -235,15 +239,20 @@ export function highlightPageMatches(groups: HighlightGroup[], formLabel: string
   if (typeof Highlight === "undefined" || !CSS.highlights || !document.body) return;
 
   // Build a tolerant regex per phrase, tagged with its category label: whole-word
-  // (as the analyzers matched), case-insensitive, flexible whitespace so a phrase
-  // still matches across a line break, and apostrophes matching typographic ones.
+  // (as the analyzers matched, via the same Unicode-aware boundary so Hebrew terms
+  // highlight too), case-insensitive, flexible whitespace so a phrase still matches
+  // across a line break, and apostrophes matching typographic ones.
   const esc = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const tagged = groups
     .filter((g) => g.phrases.length > 0)
     .map((g) => ({
       label: g.label,
       regexes: g.phrases.map(
-        (p) => new RegExp(`\\b${esc(p).replace(/ /g, "\\s+").replace(/'/g, "['‘’]")}\\b`, "gi"),
+        (p) =>
+          new RegExp(
+            `(?<![\\p{L}\\p{N}])${esc(p).replace(/ /g, "\\s+").replace(/'/g, "['‘’]")}(?![\\p{L}\\p{N}])`,
+            "giu",
+          ),
       ),
     }));
   if (tagged.length === 0) return;
