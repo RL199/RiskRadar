@@ -34,6 +34,9 @@ export const messages: Record<LangPref, Messages> = {
     sum_content_unknown: "Couldn't analyze this page's content.",
     sum_links: "No suspicious links found.",
     sum_ai: "AI model did not find threats.",
+    // Content-analysis finding details (chips shown under a row)
+    det_form_insecure: "Password sent over HTTP",
+    det_form_crossOrigin: "Password posted to another domain",
     // Row labels
     lbl_protocol: "Protocol",
     lbl_domainAge: "Domain Age",
@@ -150,6 +153,9 @@ export const messages: Record<LangPref, Messages> = {
     sum_content_unknown: "לא ניתן היה לנתח את תוכן הדף.",
     sum_links: "לא נמצאו קישורים חשודים.",
     sum_ai: "מודל ה-AI לא מצא איומים.",
+    // Content-analysis finding details (chips shown under a row)
+    det_form_insecure: "סיסמה נשלחת דרך HTTP",
+    det_form_crossOrigin: "סיסמה נשלחת לדומיין אחר",
     // Row labels
     lbl_protocol: "פרוטוקול",
     lbl_domainAge: "גיל הדומיין",

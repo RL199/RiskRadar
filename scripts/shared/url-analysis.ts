@@ -11,6 +11,12 @@ export interface AnalyzedRow {
   text?: string;
   key?: string;
   status: RowStatus;
+  // Optional list of the specific risky items behind this verdict, shown under
+  // the row. `detail` holds literal text found verbatim on the page (e.g. the
+  // matched phrases) and is rendered as-is; `detailKeys` holds i18n message keys
+  // for described findings (e.g. the kind of suspicious form) the caller resolves.
+  detail?: string[];
+  detailKeys?: string[];
 }
 
 // Second-level suffixes where the registrable domain is the last THREE labels

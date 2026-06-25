@@ -29,6 +29,8 @@ import {
   analyzeSuspiciousForms,
   analyzeUrgentLanguage,
   extractPageContent,
+  highlightPageMatches,
+  type HighlightGroup,
   type PageContent,
 } from "../scripts/shared/content-analysis";
 
@@ -204,8 +206,36 @@ function resolveText(row: AnalyzedRow, dict: Dict): string {
   return row.text ?? "—";
 }
 
-// Fill one row of the URL view: its value text (optionally tinted) and its
-// trailing status icon.
+// Render the list of specific risky items behind a row (the matched phrases /
+// described findings) as chips on a line under it, or clear it when there are
+// none. Literal `detail` strings are shown verbatim; `detailKeys` are resolved
+// against the dictionary. Chips are tinted with the row's status colour.
+function renderRowDetail(li: HTMLElement, row: AnalyzedRow, dict: Dict): void {
+  const items = [...(row.detailKeys ?? []).map((k) => dict[k] ?? k), ...(row.detail ?? [])];
+
+  let detail = li.querySelector<HTMLElement>(".row__detail");
+  if (items.length === 0) {
+    detail?.remove();
+    return;
+  }
+  if (!detail) {
+    detail = document.createElement("ul");
+    detail.className = "row__detail";
+    li.append(detail);
+  }
+  const tone = TONE_CLASS[row.status];
+  detail.replaceChildren(
+    ...items.map((item) => {
+      const chip = document.createElement("li");
+      chip.className = tone ? `row__chip ${tone}` : "row__chip";
+      chip.textContent = item;
+      return chip;
+    }),
+  );
+}
+
+// Fill one row of a detail view: its value text (optionally tinted), its trailing
+// status icon, and the chip list of specific findings underneath (when present).
 function renderRow(field: string, row: AnalyzedRow, dict: Dict, colorValue: boolean): void {
   const li = document.querySelector<HTMLElement>(`.row[data-field="${field}"]`);
   if (!li) return;
@@ -220,6 +250,8 @@ function renderRow(field: string, row: AnalyzedRow, dict: Dict, colorValue: bool
 
   const icon = li.querySelector<HTMLElement>(".row__icon");
   if (icon) icon.className = ICON_CLASS[row.status];
+
+  renderRowDetail(li, row, dict);
 }
 
 function worst(statuses: RowStatus[]): RowStatus {
@@ -563,6 +595,23 @@ async function getPageContent(tabId: number): Promise<PageContent | null> {
   }
 }
 
+// Mark the flagged phrases (and outline leaky password forms) on the page itself,
+// each labelled with its category for the in-page hover tooltip. Runs in the MAIN
+// world so the highlighter shares the page's CSS highlight registry. Passing
+// empty groups clears any marks from a prior scan.
+async function markPageMatches(tabId: number, groups: HighlightGroup[], formLabel: string): Promise<void> {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      world: "MAIN",
+      func: highlightPageMatches,
+      args: [groups, formLabel],
+    });
+  } catch {
+    // Page isn't scriptable (privileged page, no host access) — nothing to mark.
+  }
+}
+
 async function analyzeContentView(tab: chrome.tabs.Tab | undefined, lang: LangPref): Promise<void> {
   const dict = messages[lang];
 
@@ -601,6 +650,16 @@ async function analyzeContentView(tab: chrome.tabs.Tab | undefined, lang: LangPr
   renderRow("brandImpersonation", brand, dict, brand.status !== "good");
 
   setContentVerdict(worst([phishing.status, forms.status, urgent.status, brand.status]), dict);
+
+  // Mark those same matches on the page, each tagged with its category so the
+  // in-page hover tooltip can name it. The form outlines are re-detected in the
+  // page, so only the matched phrases need to cross over.
+  const groups: HighlightGroup[] = [
+    { label: dict.lbl_phishingIndicators, phrases: phishing.detail ?? [] },
+    { label: dict.lbl_urgentLanguage, phrases: urgent.detail ?? [] },
+    { label: dict.lbl_brandImpersonation, phrases: brand.detail ?? [] },
+  ];
+  void markPageMatches(tab.id, groups, dict.lbl_suspiciousForms);
 }
 
 async function init(): Promise<void> {

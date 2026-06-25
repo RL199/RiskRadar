@@ -336,6 +336,7 @@ body {
 .row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   padding: 13px 2px;
   border-top: 1px solid var(--border);
@@ -352,6 +353,26 @@ body {
 
 .row__value {
   font-weight: 500;
+}
+
+/* The specific risky items behind a row, as chips on their own line below it. */
+.row__detail {
+  flex-basis: 100%;
+  list-style: none;
+  margin: -2px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.row__chip {
+  padding: 2px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 /* Inline "Add key" button shown in a row that needs an API key. */
