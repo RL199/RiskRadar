@@ -741,6 +741,7 @@ async function markPageLinks(tabId: number, marks: LinkMark[]): Promise<void> {
 // The hover label for a flagged link: the bucket name plus its specific reason.
 function linkTitle(link: ClassifiedLink, dict: Dict): string {
   if (link.verdict === "internal") return dict.tip_link_internal;
+  if (link.verdict === "external") return dict.tip_link_external;
   const head = link.verdict === "redirect" ? dict.tip_link_redirect : dict.tip_link_suspicious;
   const reason = link.reasonKey ? dict[link.reasonKey] : undefined;
   return reason ? `${head}: ${reason}` : head;
@@ -782,10 +783,14 @@ async function analyzeLinksView(tab: chrome.tabs.Tab | undefined, lang: LangPref
 
   setLinksVerdict(worst([total.status, external.status, suspicious.status, redirects.status]), dict);
 
-  // Mark the same links on the page (greens included), each tagged with its
-  // hover label. marks line up with the page's anchors by document order.
+  // Mark the same links on the page (greens and teals included), each tagged
+  // with its hover label. marks line up with the page's anchors by document
+  // order; only the "ignore" bucket stays unmarked.
   const marks: LinkMark[] = classified.map((link) =>
-    link.verdict === "internal" || link.verdict === "suspicious" || link.verdict === "redirect"
+    link.verdict === "internal" ||
+    link.verdict === "external" ||
+    link.verdict === "suspicious" ||
+    link.verdict === "redirect"
       ? { verdict: link.verdict, title: linkTitle(link, dict) }
       : { verdict: "skip", title: "" },
   );

@@ -6,7 +6,7 @@
 //
 // Every anchor is sorted into exactly one bucket:
 //  - internal:   same registrable domain as the page. Reassuring; marked green.
-//  - external:   a different domain with no risk traits. Counted, not marked.
+//  - external:   a different domain with no risk traits. Counted; marked teal.
 //  - suspicious: an off-domain link whose destination itself looks dangerous (an
 //                IP-literal host, a punycode/IDN homograph, credentials embedded
 //                in the URL, a brand look-alike domain, a URL shortener, unusually
@@ -252,23 +252,35 @@ export function analyzeLinks(page: PageLinks): {
 // to show. "skip" leaves the link unmarked. Built in the popup (which has the
 // dictionary) so the injected highlighter stays free of i18n.
 export interface LinkMark {
-  verdict: "internal" | "suspicious" | "redirect" | "skip";
+  verdict: "internal" | "external" | "suspicious" | "redirect" | "skip";
   title: string;
 }
 
 // Injected into the active tab to mark the classified links on the page itself:
-// internal links get a subtle green outline, suspicious links and malicious
-// redirects a red one, each carrying a native title so hovering names what it is
-// (greens included). It runs in the page's DOM (anchors are real elements, so a
-// title is enough; no floating tooltip needed) and must be fully self-contained.
+// internal links get a subtle green outline, plain external links a teal one, and
+// suspicious links and malicious redirects a red one, each carrying a native
+// title so hovering names what it is. It runs in the page's DOM (anchors are real
+// elements, so a title is enough; no floating tooltip needed) and must be fully
+// self-contained.
 // It re-reads the anchors in the same document order extractPageLinks used, so
 // marks[i] lines up with the i-th <a href>. Safe to call repeatedly: each run
 // first undoes the previous run's marks, so re-scans don't stack and passing
 // all-"skip" marks clears the page.
 export function highlightPageLinks(marks: LinkMark[]): void {
   const ATTR = "data-riskradar-link";
-  const GREEN = "#4ade80"; // matches the popup's good green
-  const RED = "#f87171"; // matches the popup's danger red
+  // Per-verdict outline width, outline colour and tint. Colours mirror the
+  // popup's palette: green "good", the teal "Links" accent, red "danger". The
+  // reassuring buckets (internal, external) get a thin outline; the risky ones
+  // (suspicious, redirect) a thicker one.
+  const STYLE: Record<
+    "internal" | "external" | "suspicious" | "redirect",
+    { width: string; color: string; bg: string }
+  > = {
+    internal: { width: "1.5px", color: "#4ade80", bg: "rgba(74,222,128,.12)" },
+    external: { width: "1.5px", color: "#2dd4bf", bg: "rgba(45,212,191,.12)" },
+    suspicious: { width: "2px", color: "#f87171", bg: "rgba(248,113,113,.14)" },
+    redirect: { width: "2px", color: "#f87171", bg: "rgba(248,113,113,.14)" },
+  };
 
   // Undo a previous run, restoring any inline background / title we borrowed.
   for (const el of document.querySelectorAll<HTMLElement>(`[${ATTR}]`)) {
@@ -293,14 +305,13 @@ export function highlightPageLinks(marks: LinkMark[]): void {
     if (mark.verdict === "skip") continue;
     const el = anchors[i];
 
-    const internal = mark.verdict === "internal";
-    const color = internal ? GREEN : RED;
+    const style = STYLE[mark.verdict];
     // Outline doesn't affect layout, so it's a safe, reversible mark even on
     // inline links that wrap across lines.
-    el.style.outline = `${internal ? "1.5px" : "2px"} solid ${color}`;
+    el.style.outline = `${style.width} solid ${style.color}`;
     el.style.outlineOffset = "1px";
     if (el.style.backgroundColor) el.dataset.riskradarBgPrev = el.style.backgroundColor;
-    el.style.backgroundColor = internal ? "rgba(74,222,128,.12)" : "rgba(248,113,113,.14)";
+    el.style.backgroundColor = style.bg;
     el.setAttribute(ATTR, "");
 
     // Borrow the title for the hover label, remembering any the page had.

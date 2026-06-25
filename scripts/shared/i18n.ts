@@ -42,6 +42,7 @@ export const messages: Record<LangPref, Messages> = {
     det_form_crossOrigin: "Password posted to another domain",
     // Links: hover labels on the page and the reason behind a flagged link
     tip_link_internal: "Internal link (same domain)",
+    tip_link_external: "External link (different domain)",
     tip_link_suspicious: "Suspicious link",
     tip_link_redirect: "Malicious redirect",
     reason_link_ip: "host is an IP address",
@@ -177,6 +178,7 @@ export const messages: Record<LangPref, Messages> = {
     det_form_crossOrigin: "סיסמה נשלחת לדומיין אחר",
     // Links: hover labels on the page and the reason behind a flagged link
     tip_link_internal: "קישור פנימי (אותו דומיין)",
+    tip_link_external: "קישור חיצוני (דומיין אחר)",
     tip_link_suspicious: "קישור חשוד",
     tip_link_redirect: "הפניה זדונית",
     reason_link_ip: "היעד הוא כתובת IP",
