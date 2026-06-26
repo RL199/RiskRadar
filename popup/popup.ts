@@ -783,7 +783,7 @@ async function analyzeLinksView(tab: chrome.tabs.Tab | undefined, lang: LangPref
 
   setLinksVerdict(worst([total.status, external.status, suspicious.status, redirects.status]), dict);
 
-  // Mark the same links on the page (greens and teals included), each tagged
+  // Mark the same links on the page (greens and blues included), each tagged
   // with its hover label. marks line up with the page's anchors by document
   // order; only the "ignore" bucket stays unmarked.
   const marks: LinkMark[] = classified.map((link) =>

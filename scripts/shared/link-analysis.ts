@@ -6,7 +6,7 @@
 //
 // Every anchor is sorted into exactly one bucket:
 //  - internal:   same registrable domain as the page. Reassuring; marked green.
-//  - external:   a different domain with no risk traits. Counted; marked teal.
+//  - external:   a different domain with no risk traits. Counted; marked blue.
 //  - suspicious: an off-domain link whose destination itself looks dangerous (an
 //                IP-literal host, a punycode/IDN homograph, credentials embedded
 //                in the URL, a brand look-alike domain, a URL shortener, unusually
@@ -257,11 +257,11 @@ export interface LinkMark {
 }
 
 // Injected into the active tab to mark the classified links on the page itself:
-// internal links get a subtle green outline, plain external links a teal one, and
-// suspicious links and malicious redirects a red one, each carrying a native
-// title so hovering names what it is. It runs in the page's DOM (anchors are real
-// elements, so a title is enough; no floating tooltip needed) and must be fully
-// self-contained.
+// internal links get a subtle green outline, plain external links a light-blue
+// one, and suspicious links and malicious redirects a red one, each carrying a
+// native title so hovering names what it is. It runs in the page's DOM (anchors
+// are real elements, so a title is enough; no floating tooltip needed) and must
+// be fully self-contained.
 // It re-reads the anchors in the same document order extractPageLinks used, so
 // marks[i] lines up with the i-th <a href>. Safe to call repeatedly: each run
 // first undoes the previous run's marks, so re-scans don't stack and passing
@@ -269,15 +269,15 @@ export interface LinkMark {
 export function highlightPageLinks(marks: LinkMark[]): void {
   const ATTR = "data-riskradar-link";
   // Per-verdict outline width, outline colour and tint. Colours mirror the
-  // popup's palette: green "good", the teal "Links" accent, red "danger". The
-  // reassuring buckets (internal, external) get a thin outline; the risky ones
-  // (suspicious, redirect) a thicker one.
+  // popup's palette: green "good", light blue for plain external links, red
+  // "danger". The reassuring buckets (internal, external) get a thin outline;
+  // the risky ones (suspicious, redirect) a thicker one.
   const STYLE: Record<
     "internal" | "external" | "suspicious" | "redirect",
     { width: string; color: string; bg: string }
   > = {
     internal: { width: "1.5px", color: "#4ade80", bg: "rgba(74,222,128,.12)" },
-    external: { width: "1.5px", color: "#2dd4bf", bg: "rgba(45,212,191,.12)" },
+    external: { width: "1.5px", color: "#6ea8fe", bg: "rgba(110,168,254,.12)" },
     suspicious: { width: "2px", color: "#f87171", bg: "rgba(248,113,113,.14)" },
     redirect: { width: "2px", color: "#f87171", bg: "rgba(248,113,113,.14)" },
   };
