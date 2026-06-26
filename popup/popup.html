@@ -306,20 +306,31 @@
           </svg>
         </span>
         <div>
-          <p class="summary__verdict status--good" data-i18n="status_good">Good</p>
-          <p class="summary__sub" data-i18n="sum_ai">AI model did not find threats.</p>
+          <p class="summary__verdict status--muted" id="ai-verdict" data-i18n="ai_idle">Not run</p>
+          <p class="summary__sub" id="ai-summary" data-i18n="sum_ai_idle">Run AI analysis to check this page.</p>
         </div>
       </div>
 
+      <div class="ai-controls">
+        <label class="ai-controls__field">
+          <span class="ai-controls__label" data-i18n="lbl_aiProvider">AI provider</span>
+          <select id="ai-provider" class="control">
+            <option value="claude">Claude</option>
+            <option value="deepseek">DeepSeek</option>
+          </select>
+        </label>
+        <button id="ai-analyze" class="btn-primary" type="button" data-i18n="btn_analyze">Analyze this page</button>
+      </div>
+
       <ul class="rows">
-        <li class="row"><span class="row__label" data-i18n="lbl_phishingProbability">Phishing Probability</span><span class="row__value">12%</span><span class="ico-good" aria-hidden="true"></span></li>
-        <li class="row"><span class="row__label" data-i18n="lbl_socialEngineering">Social Engineering</span><span class="row__value" data-i18n="val_low">Low</span><span class="ico-good" aria-hidden="true"></span></li>
-        <li class="row"><span class="row__label" data-i18n="lbl_contentRiskScore">Content Risk Score</span><span class="row__value">18 / 100</span><span class="ico-good" aria-hidden="true"></span></li>
+        <li class="row" data-field="phishingProbability"><span class="row__label" data-i18n="lbl_phishingProbability">Phishing Probability</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
+        <li class="row" data-field="socialEngineering"><span class="row__label" data-i18n="lbl_socialEngineering">Social Engineering</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
+        <li class="row" data-field="contentRiskScore"><span class="row__label" data-i18n="lbl_contentRiskScore">Content Risk Score</span><span class="row__value">—</span><span class="row__icon" aria-hidden="true"></span></li>
       </ul>
 
       <div class="note">
         <p class="note__title" data-i18n="lbl_summary">Summary</p>
-        <p class="note__body" data-i18n="ai_summary_body">The content appears to be legitimate and safe.</p>
+        <p class="note__body" id="ai-note-body" data-i18n="ai_note_idle">Run the analysis to see the AI's notes.</p>
       </div>
     </section>
 

@@ -21,7 +21,7 @@ third-party reputation services, and an AI model to surface threats before they 
 - **Content scanning:** inspects the page DOM for suspicious patterns, and marks the matches on the page.
 - **Link scanning:** classifies the page's links into internal, external, suspicious, and malicious redirects, and marks them on the page.
 - **Reputation integration:** Google Safe Browsing, VirusTotal, Sucuri SiteCheck, threat-filtering DNS (Cloudflare, Quad9), and server-IP reputation (SANS ISC / DShield).
-- **AI analysis:** textual and behavioral analysis of page content via an API.
+- **AI analysis:** on-demand phishing / social-engineering assessment of the page by a large language model (Claude or DeepSeek, your choice).
 - **Clear results:** a trust score plus risk indicators, explained at varying levels of detail.
 
 ## How it works
@@ -276,6 +276,59 @@ to many legitimate sites (CDNs, social, references), so flagging every external 
 warnings; only off-site links with an actual phishing tell are marked. Each link bucket (Internal,
 External, Suspicious, and Malicious Redirects) can be **switched off individually** from the **Link
 highlights** section of the options page; a disabled bucket is left unmarked on the next scan.
+
+### AI
+
+Where the other four categories are heuristic and offline (URL, Content, Links) or query keyless
+reputation feeds (Reputation), this category asks a **large language model** to read the page and judge
+its intent. It reuses the same self-contained extractor as Content
+([`extractPageContent`](scripts/shared/content-analysis.ts)) to gather a small JSON summary (title, host,
+visible text capped at ~6,000 characters, password-field count, and a per-form leak note), sends it to the
+chosen provider, and renders the model's structured verdict. The risk logic and both API calls live in
+[`scripts/shared/ai-analysis.ts`](scripts/shared/ai-analysis.ts).
+
+| Check                     | How it's computed                                                                 | Risk logic                                                                           |
+| ------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| **Phishing Probability**  | The model returns a `0`–`100` likelihood that the page is a phishing attempt.      | `< 34` → good; `34`–`66` → warning; `≥ 67` → risky. Shown as a percentage.            |
+| **Social Engineering**    | The model rates the page's manipulation / pressure as `low` / `medium` / `high`.   | `low` → good; `medium` → warning; `high` → risky.                                     |
+| **Content Risk Score**    | The model returns an overall `0`–`100` content-risk score.                          | `< 34` → good; `34`–`66` → warning; `≥ 67` → risky. Shown as `score / 100`.           |
+| **Summary**               | One or two sentences from the model explaining its verdict.                         | Shown in the **Summary** note; the category verdict is the worst of the three rows.  |
+
+**On-demand, not automatic.** Unlike the other categories (which run for free on every popup open), an
+AI request costs money per scan, so this category never calls the API on its own. The view opens in an
+idle state and only contacts the model when you press **Analyze this page** (and **Re-analyze**
+afterwards). No page content is sent anywhere until you click.
+
+**Two providers, your choice.** A provider selector in the view chooses between **Claude** and
+**DeepSeek**; the choice is saved on-device (`aiProvider` in `chrome.storage.local`). Both keys live under
+**Settings → AI**; if the selected provider has no key yet, the button becomes **Add key** and opens the
+same inline key modal the Reputation view uses, then runs the analysis. Both are called directly from the
+popup with `fetch` (no SDK) — the `<all_urls>` host permission lets the extension reach
+`api.anthropic.com` and `api.deepseek.com` cross-origin.
+
+- **Claude** — Anthropic's [Messages API](https://docs.claude.com/en/api/messages) (`POST
+  https://api.anthropic.com/v1/messages`), model `claude-sonnet-4-6`. The response shape is pinned with
+  [structured outputs](https://docs.claude.com/en/docs/build-with-claude/structured-outputs)
+  (`output_config.format` + a JSON schema), and the
+  [`anthropic-dangerous-direct-browser-access`](https://docs.claude.com/en/api/client-sdks) header opts
+  the extension page into direct browser calls.
+- **DeepSeek** — the OpenAI-compatible
+  [chat completions](https://api-docs.deepseek.com/api/create-chat-completion) endpoint (`POST
+  https://api.deepseek.com/chat/completions`), model `deepseek-chat`, with
+  [JSON output mode](https://api-docs.deepseek.com/guides/json_mode)
+  (`response_format: { type: "json_object" }`). (DeepSeek deprecates `deepseek-chat` / `deepseek-reasoner`
+  on 2026-07-24 in favour of `deepseek-v4-flash` / `deepseek-v4-pro` — see the model constant in
+  `ai-analysis.ts`.)
+
+Whatever the model returns is treated defensively: the response is parsed tolerantly (code fences and
+stray prose are stripped before the first `{…}` is read) and every score is clamped into range, so a
+malformed answer degrades to an error row instead of breaking the popup. Any network, key, or parse
+failure shows an explanatory note and leaves the rest of the popup working.
+
+> **Privacy note.** This is the only category that sends page content off-device, and only when you
+> explicitly run it. The page summary above is transmitted to the provider you selected (Anthropic or
+> DeepSeek) under your own API key, subject to that provider's data-handling terms. See
+> [PRIVACY.md](PRIVACY.md).
 
 ## Localization
 

@@ -3,6 +3,9 @@
 
 export type ThemePref = "system" | "light" | "dark";
 export type LangPref = "en" | "he";
+// Which provider the AI Analysis view calls. Mirrors AiProvider in
+// ai-analysis.ts; kept inline so this leaf module stays dependency-free.
+export type AiProvider = "claude" | "deepseek";
 
 // Per-element toggles for the marks the popup draws on the page. Each flag gates
 // one kind of highlight so the user can turn any of them off individually from
@@ -27,6 +30,8 @@ export interface Settings {
   deepseekApiKey: string;
   safeBrowsingApiKey: string;
   virusTotalApiKey: string;
+  // Which provider AI Analysis uses when the user runs it.
+  aiProvider: AiProvider;
   highlights: HighlightSettings;
 }
 
@@ -50,6 +55,7 @@ export const DEFAULT_SETTINGS: Settings = {
   deepseekApiKey: "",
   safeBrowsingApiKey: "",
   virusTotalApiKey: "",
+  aiProvider: "claude",
   highlights: DEFAULT_HIGHLIGHTS,
 };
 

@@ -442,6 +442,39 @@ body {
   line-height: 1.4;
 }
 
+/* --------------------------- AI analysis controls --------------------------- */
+/* Provider picker + on-demand run button shown in the AI Analysis view. */
+.ai-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.ai-controls__field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ai-controls__label {
+  color: var(--text-muted);
+}
+
+.ai-controls__field .control {
+  flex: 1;
+}
+
+.ai-controls .btn-primary {
+  width: 100%;
+}
+
+.ai-controls .btn-primary:disabled {
+  opacity: 0.6;
+  cursor: default;
+  filter: none;
+}
+
 /* ------------------------------ Modal ------------------------------ */
 .modal[hidden] {
   display: none;

@@ -1,7 +1,7 @@
 // Popup entry point. Compiled to popup.js by esbuild and loaded from popup.html.
 // Applies the user's theme/language, then handles view navigation.
 
-import { loadSettings, saveSettings, type Settings } from "../scripts/shared/settings";
+import { loadSettings, saveSettings, type AiProvider, type Settings } from "../scripts/shared/settings";
 import { applyTheme } from "../scripts/shared/theme";
 import { applyI18n, loadMessages, type Dict } from "../scripts/shared/i18n";
 import {
@@ -41,6 +41,11 @@ import {
   type LinkMark,
   type PageLinks,
 } from "../scripts/shared/link-analysis";
+import {
+  analyzeWithAi,
+  type AiVerdict,
+  type SocialEngineeringLevel,
+} from "../scripts/shared/ai-analysis";
 
 const MAIN_VIEW = "view-main";
 
@@ -801,6 +806,202 @@ async function analyzeLinksView(tab: chrome.tabs.Tab | undefined, settings: Sett
   void markPageLinks(tab.id, marks);
 }
 
+// ----------------------- AI analysis ----------------------- //
+
+const AI_FIELDS = ["phishingProbability", "socialEngineering", "contentRiskScore"] as const;
+
+// Map a model 0–100 risk score to a row status, using the same warn/bad cutoffs
+// the other categories use for their thirds.
+function scoreStatus(n: number): RowStatus {
+  return n >= 67 ? "bad" : n >= 34 ? "warn" : "good";
+}
+
+function levelStatus(level: SocialEngineeringLevel): RowStatus {
+  return level === "high" ? "bad" : level === "medium" ? "warn" : "good";
+}
+
+const LEVEL_KEY: Record<SocialEngineeringLevel, string> = {
+  low: "val_low",
+  medium: "val_medium",
+  high: "val_high",
+};
+
+// Set the AI view's summary verdict + subtitle and the main-list chip, all from a
+// tone class and the verdict/subtitle keys to show.
+function setAiSummary(tone: string, vKey: string, sKey: string, dict: Dict): void {
+  const verdict = document.getElementById("ai-verdict");
+  if (verdict) {
+    verdict.className = `summary__verdict ${tone}`;
+    verdict.textContent = dict[vKey];
+  }
+  const summary = document.getElementById("ai-summary");
+  if (summary) summary.textContent = dict[sKey];
+
+  const chip = document.querySelector<HTMLElement>('.cat[data-target="view-ai"] .cat__status');
+  if (chip) {
+    chip.className = `cat__status ${tone}`;
+    chip.textContent = dict[vKey];
+  }
+}
+
+// A scannable page is an http(s) tab we can inject into; privileged pages
+// (chrome://, the new-tab page, …) aren't.
+function aiScannable(
+  tab: chrome.tabs.Tab | undefined,
+): tab is chrome.tabs.Tab & { id: number; url: string } {
+  if (!tab?.id || !tab.url) return false;
+  try {
+    const u = new URL(tab.url);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+// Render a finished verdict into the three rows + summary + note.
+function renderAiVerdict(verdict: AiVerdict): void {
+  const pStatus = scoreStatus(verdict.phishingProbability);
+  const sStatus = levelStatus(verdict.socialEngineering);
+  const cStatus = scoreStatus(verdict.contentRiskScore);
+
+  renderRow("phishingProbability", { text: `${verdict.phishingProbability}%`, status: pStatus }, dict, true);
+  renderRow("socialEngineering", { key: LEVEL_KEY[verdict.socialEngineering], status: sStatus }, dict, true);
+  renderRow("contentRiskScore", { text: `${verdict.contentRiskScore} / 100`, status: cStatus }, dict, true);
+
+  const overall = worst([pStatus, sStatus, cStatus]);
+  const tone = TONE_CLASS[overall] || "status--good";
+  const vKey = overall === "bad" ? "status_danger" : overall === "warn" ? "status_warning" : "status_good";
+  const sKey = overall === "bad" ? "sum_ai_bad" : overall === "warn" ? "sum_ai_warn" : "sum_ai";
+  setAiSummary(tone, vKey, sKey, dict);
+
+  const note = document.getElementById("ai-note-body");
+  if (note) note.textContent = verdict.summary || dict[sKey];
+}
+
+// Run the analysis with the chosen provider's key. Shows progress, then renders
+// the verdict or an error. Re-entrant: the key modal's save handler calls back
+// in once a key is supplied.
+async function runAiAnalysis(
+  tab: chrome.tabs.Tab & { id: number; url: string },
+  settings: Settings,
+): Promise<void> {
+  const provider = settings.aiProvider;
+  const key = provider === "deepseek" ? settings.deepseekApiKey : settings.apiKey;
+
+  const button = document.getElementById("ai-analyze") as HTMLButtonElement | null;
+  const note = document.getElementById("ai-note-body");
+
+  // No key for the chosen provider — prompt for it inline, then continue.
+  if (!key) {
+    openAiKeyModal(provider, tab, settings);
+    return;
+  }
+
+  // Progress state: disable the button, blank the rows, swap the subtitle.
+  if (button) {
+    button.disabled = true;
+    button.textContent = dict.ai_analyzing;
+  }
+  for (const field of AI_FIELDS) renderRow(field, { text: "…", status: "neutral" }, dict, false);
+  const summaryEl = document.getElementById("ai-summary");
+  if (summaryEl) summaryEl.textContent = dict.ai_analyzing;
+
+  const page = await getPageContent(tab.id);
+
+  const finish = (): void => {
+    if (button) {
+      button.disabled = false;
+      button.textContent = dict.btn_reanalyze;
+    }
+  };
+
+  // Page became unscriptable between popup open and the click.
+  if (!page) {
+    for (const field of AI_FIELDS) renderRow(field, { key: "val_unknown", status: "unknown" }, dict, true);
+    setAiSummary("status--muted", "val_unknown", "sum_ai_unknown", dict);
+    if (note) note.textContent = dict.sum_ai_unknown;
+    finish();
+    return;
+  }
+
+  const result = await analyzeWithAi(provider, key, {
+    url: tab.url,
+    host: new URL(tab.url).hostname,
+    page,
+  });
+  finish();
+
+  if (!result.ok) {
+    for (const field of AI_FIELDS) renderRow(field, { key: "val_unknown", status: "unknown" }, dict, true);
+    setAiSummary("status--muted", "val_unknown", "sum_ai_error", dict);
+    if (note) note.textContent = dict[result.error] ?? dict.sum_ai_error;
+    return;
+  }
+
+  renderAiVerdict(result.verdict);
+}
+
+// Prompt for the chosen provider's API key (reusing the shared modal), persist
+// it, then run the analysis.
+function openAiKeyModal(
+  provider: AiProvider,
+  tab: chrome.tabs.Tab & { id: number; url: string },
+  settings: Settings,
+): void {
+  const isClaude = provider === "claude";
+  openKeyModal({
+    title: isClaude ? dict.set_apikey : dict.set_deepseek_apikey,
+    help: isClaude ? dict.set_apikey_help : dict.set_deepseek_apikey_help,
+    placeholder: isClaude ? dict.set_apikey_placeholder : dict.set_deepseek_apikey_placeholder,
+    onSave: async (value) => {
+      if (isClaude) settings.apiKey = value;
+      else settings.deepseekApiKey = value;
+      await saveSettings(settings);
+      await runAiAnalysis(tab, settings);
+    },
+  });
+}
+
+// Set up the AI view without calling the API: render the idle state, bind the
+// provider selector, and wire the on-demand Analyze button. The model only runs
+// when the user clicks, so opening the popup never bills them.
+function setupAiView(tab: chrome.tabs.Tab | undefined, settings: Settings): void {
+  const select = document.getElementById("ai-provider") as HTMLSelectElement | null;
+  const button = document.getElementById("ai-analyze") as HTMLButtonElement | null;
+  const note = document.getElementById("ai-note-body");
+
+  if (select) {
+    select.value = settings.aiProvider;
+    select.addEventListener("change", async () => {
+      settings.aiProvider = select.value as AiProvider;
+      await saveSettings(settings);
+    });
+  }
+
+  // Privileged pages can't be scanned — show a muted, disabled state.
+  if (!aiScannable(tab)) {
+    for (const field of AI_FIELDS) renderRow(field, { key: "val_unknown", status: "neutral" }, dict, false);
+    setAiSummary("status--muted", "val_unknown", "sum_ai_unknown", dict);
+    if (note) note.textContent = dict.sum_ai_unknown;
+    if (button) {
+      button.disabled = true;
+      button.textContent = dict.btn_analyze;
+    }
+    return;
+  }
+
+  // Idle, ready-to-run state.
+  for (const field of AI_FIELDS) renderRow(field, { text: "—", status: "neutral" }, dict, false);
+  setAiSummary("status--muted", "ai_idle", "sum_ai_idle", dict);
+  if (note) note.textContent = dict.ai_note_idle;
+
+  if (button) {
+    button.disabled = false;
+    button.textContent = dict.btn_analyze;
+    button.addEventListener("click", () => void runAiAnalysis(tab, settings));
+  }
+}
+
 async function init(): Promise<void> {
   const settings = await loadSettings();
   dict = await loadMessages(settings.lang);
@@ -816,6 +1017,7 @@ async function init(): Promise<void> {
   void analyzeReputationView(url, settings);
   void analyzeContentView(tab, settings);
   void analyzeLinksView(tab, settings);
+  setupAiView(tab, settings);
 }
 
 void init();
