@@ -44,6 +44,21 @@
         <h2 class="card__title" data-i18n="set_ai">AI</h2>
 
         <div class="field">
+          <label class="field__label" for="ai-scan-mode" data-i18n="set_ai_scan_mode"
+            >When to scan with AI</label
+          >
+          <select id="ai-scan-mode" class="control">
+            <option value="auto" data-i18n="set_ai_scan_auto">Automatically when the popup opens</option>
+            <option value="manual" data-i18n="set_ai_scan_manual">When I click Analyze</option>
+          </select>
+          <p class="field__help" data-i18n="set_ai_scan_mode_help">
+            Automatic scans call the AI (and bill your provider) every time you open the popup on a
+            scannable page, and need a key for the selected provider. Manual scans only run when you
+            click Analyze.
+          </p>
+        </div>
+
+        <div class="field">
           <label class="field__label" for="apikey" data-i18n="set_apikey">Claude API key</label>
           <div class="apikey">
             <input

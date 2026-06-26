@@ -4,6 +4,7 @@
 import {
   loadSettings,
   saveSettings,
+  type AiScanMode,
   type HighlightSettings,
   type LangPref,
   type Settings,
@@ -19,6 +20,7 @@ import {
 
 const themeSelect = document.getElementById("theme") as HTMLSelectElement;
 const langSelect = document.getElementById("lang") as HTMLSelectElement;
+const aiScanModeSelect = document.getElementById("ai-scan-mode") as HTMLSelectElement;
 const apiKeyInput = document.getElementById("apikey") as HTMLInputElement;
 const toggleKeyBtn = document.getElementById("toggle-key") as HTMLButtonElement;
 const claudeModelSelect = document.getElementById("claude-model") as HTMLSelectElement;
@@ -96,6 +98,7 @@ async function init(): Promise<void> {
 
   themeSelect.value = settings.theme;
   langSelect.value = settings.lang;
+  aiScanModeSelect.value = settings.aiScanMode;
   apiKeyInput.value = settings.apiKey;
   deepseekKeyInput.value = settings.deepseekApiKey;
   safeBrowsingKeyInput.value = settings.safeBrowsingApiKey;
@@ -147,6 +150,13 @@ async function init(): Promise<void> {
 
   deepseekModelSelect.addEventListener("change", async () => {
     settings = { ...settings, deepseekModel: deepseekModelSelect.value };
+    await saveSettings(settings);
+    flashSaved();
+  });
+
+  // Scan timing saves immediately so the popup honours it the next time it opens.
+  aiScanModeSelect.addEventListener("change", async () => {
+    settings = { ...settings, aiScanMode: aiScanModeSelect.value as AiScanMode };
     await saveSettings(settings);
     flashSaved();
   });

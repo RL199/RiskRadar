@@ -9,6 +9,8 @@
   },
 
   "scannedJustNow": { "message": "Scanned just now" },
+  "scanning": { "message": "Scanning…" },
+  "cantScan": { "message": "Can't scan this page" },
   "verdict_safe": { "message": "Safe" },
   "rescan": { "message": "Rescan" },
   "virustotal": { "message": "VirusTotal" },
@@ -132,6 +134,12 @@
   "set_theme_dark": { "message": "Dark" },
   "set_language": { "message": "Language" },
   "set_ai": { "message": "AI" },
+  "set_ai_scan_mode": { "message": "When to scan with AI" },
+  "set_ai_scan_auto": { "message": "Automatically when the popup opens" },
+  "set_ai_scan_manual": { "message": "When I click Analyze" },
+  "set_ai_scan_mode_help": {
+    "message": "Automatic scans call the AI (and bill your provider) every time you open the popup on a scannable page, and need a key for the selected provider. Manual scans only run when you click Analyze."
+  },
   "set_apikey": { "message": "Claude API key" },
   "set_apikey_help": {
     "message": "Used for AI-based content analysis. Anthropic is pay as you go with no free tier: you buy prepaid credits and are billed per token, so a scan usually costs a fraction of a cent. Stored locally on your device."

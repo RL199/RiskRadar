@@ -114,7 +114,39 @@ body {
   width: 7px;
   height: 7px;
   border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.dot--good {
   background: var(--green);
+}
+
+.dot--warn {
+  background: var(--amber);
+}
+
+.dot--bad {
+  background: var(--red);
+}
+
+.dot--muted {
+  background: var(--text-muted);
+}
+
+/* A soft pulse while the auto-run categories are still scanning. */
+.dot--scanning {
+  background: var(--text-muted);
+  animation: dot-pulse 1s ease-in-out infinite;
+}
+
+@keyframes dot-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
 }
 
 /* ----------------------------- Score ----------------------------- */

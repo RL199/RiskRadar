@@ -67,6 +67,65 @@ const TONE_CLASS: Record<RowStatus, string> = {
 };
 const SEVERITY: Record<RowStatus, number> = { neutral: 0, unknown: 0, good: 1, warn: 2, bad: 3 };
 
+// The site header's dot colour per overall status.
+const DOT_CLASS: Record<RowStatus, string> = {
+  good: "dot dot--good",
+  warn: "dot dot--warn",
+  bad: "dot dot--bad",
+  unknown: "dot dot--muted",
+  neutral: "dot dot--muted",
+};
+
+// Each category reports its overall verdict here; the dot takes the worst of
+// them. The four heuristic/reputation categories scan automatically on open, so
+// they're always expected. AI only runs on demand, so it joins `expected` (via
+// expectAiInSiteStatus) only when a scan actually starts — auto mode on open or
+// the user pressing Analyze — and otherwise the header completes without it.
+type SiteCategory = "url" | "reputation" | "content" | "links" | "ai";
+const BASE_CATEGORIES: SiteCategory[] = ["url", "reputation", "content", "links"];
+const expectedCategories = new Set<SiteCategory>(BASE_CATEGORIES);
+const siteStatuses: Partial<Record<SiteCategory, RowStatus>> = {};
+
+// Fold the AI scan into the header status: mark it pending and repaint the dot
+// back to "scanning". Called when an AI analysis is about to run so the header
+// waits for its verdict alongside the automatic categories.
+function expectAiInSiteStatus(): void {
+  delete siteStatuses.ai;
+  expectedCategories.add("ai");
+  refreshSiteStatus();
+}
+
+// Repaint the header dot + caption from whatever categories have reported so
+// far: a muted pulse while scanning, then the worst verdict's colour once every
+// category is in (or a muted "can't scan" state when nothing was scannable).
+function refreshSiteStatus(): void {
+  const dot = document.getElementById("site-dot");
+  const caption = document.getElementById("site-caption");
+
+  const expected = [...expectedCategories];
+  const reported = expected
+    .map((c) => siteStatuses[c])
+    .filter((s): s is RowStatus => s !== undefined);
+
+  // Still scanning until every expected category has reported.
+  if (reported.length < expected.length) {
+    if (dot) dot.className = "dot dot--scanning";
+    if (caption) caption.textContent = dict.scanning;
+    return;
+  }
+
+  const determinate = reported.filter((s) => s === "good" || s === "warn" || s === "bad");
+  const overall: RowStatus = determinate.length ? worst(determinate) : "unknown";
+  if (dot) dot.className = DOT_CLASS[overall];
+  if (caption) caption.textContent = overall === "unknown" ? dict.cantScan : dict.scannedJustNow;
+}
+
+// Record one category's overall verdict, then repaint the header indicator.
+function reportSiteStatus(category: SiteCategory, status: RowStatus): void {
+  siteStatuses[category] = status;
+  refreshSiteStatus();
+}
+
 function showView(id: string): void {
   for (const view of document.querySelectorAll<HTMLElement>(".view")) {
     view.classList.toggle("is-active", view.id === id);
@@ -306,6 +365,8 @@ function setVerdict(status: RowStatus, ageUnknown: boolean, dict: Dict): void {
     chip.className = `cat__status ${tone}`;
     chip.textContent = dict[vKey];
   }
+
+  reportSiteStatus("url", status);
 }
 
 function setUnsupported(dict: Dict): void {
@@ -324,6 +385,8 @@ function setUnsupported(dict: Dict): void {
     chip.className = "cat__status status--muted";
     chip.textContent = dict.val_unknown;
   }
+
+  reportSiteStatus("url", "unknown");
 }
 
 async function analyzeUrlView(rawUrl: string | undefined): Promise<void> {
@@ -434,6 +497,8 @@ function setReputationVerdict(status: RowStatus, dict: Dict): void {
     chip.className = `cat__status ${tone}`;
     chip.textContent = dict[vKey];
   }
+
+  reportSiteStatus("reputation", status);
 }
 
 // Last computed status of each reputation row, plus the page context — kept so a
@@ -586,6 +651,8 @@ function setContentVerdict(status: RowStatus, dict: Dict): void {
     chip.className = `cat__status ${tone}`;
     chip.textContent = dict[vKey];
   }
+
+  reportSiteStatus("content", status);
 }
 
 // Inject the self-contained extractor into the active tab and read back its
@@ -714,6 +781,8 @@ function setLinksVerdict(status: RowStatus, dict: Dict): void {
     chip.className = `cat__status ${tone}`;
     chip.textContent = dict[vKey];
   }
+
+  reportSiteStatus("links", status);
 }
 
 // Inject the self-contained link extractor into the active tab and read back its
@@ -876,6 +945,8 @@ function renderAiVerdict(verdict: AiVerdict): void {
 
   const note = document.getElementById("ai-note-body");
   if (note) note.textContent = verdict.summary || dict[sKey];
+
+  reportSiteStatus("ai", overall);
 }
 
 // Run the analysis with the chosen provider's key. Shows progress, then renders
@@ -897,6 +968,10 @@ async function runAiAnalysis(
     openAiKeyModal(provider, tab, settings);
     return;
   }
+
+  // The scan is now actually going to run, so the header status should wait for
+  // and reflect its verdict too.
+  expectAiInSiteStatus();
 
   // Progress state: disable the button, blank the rows, swap the subtitle.
   if (button) {
@@ -921,6 +996,7 @@ async function runAiAnalysis(
     for (const field of AI_FIELDS) renderRow(field, { key: "val_unknown", status: "unknown" }, dict, true);
     setAiSummary("status--muted", "val_unknown", "sum_ai_unknown", dict);
     if (note) note.textContent = dict.sum_ai_unknown;
+    reportSiteStatus("ai", "unknown");
     finish();
     return;
   }
@@ -936,6 +1012,7 @@ async function runAiAnalysis(
     for (const field of AI_FIELDS) renderRow(field, { key: "val_unknown", status: "unknown" }, dict, true);
     setAiSummary("status--muted", "val_unknown", "sum_ai_error", dict);
     if (note) note.textContent = dict[result.error] ?? dict.sum_ai_error;
+    reportSiteStatus("ai", "unknown");
     return;
   }
 
@@ -1000,6 +1077,14 @@ function setupAiView(tab: chrome.tabs.Tab | undefined, settings: Settings): void
     button.disabled = false;
     button.textContent = dict.btn_analyze;
     button.addEventListener("click", () => void runAiAnalysis(tab, settings));
+  }
+
+  // When the user chose to scan on open, run it now — but only if a key for the
+  // chosen provider is already set, so opening the popup never pops the key modal
+  // unprompted. Without a key it stays idle until the user clicks Analyze.
+  if (settings.aiScanMode === "auto") {
+    const key = settings.aiProvider === "deepseek" ? settings.deepseekApiKey : settings.apiKey;
+    if (key) void runAiAnalysis(tab, settings);
   }
 }
 

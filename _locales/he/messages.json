@@ -9,6 +9,8 @@
   },
 
   "scannedJustNow": { "message": "נסרק זה עתה" },
+  "scanning": { "message": "סורק…" },
+  "cantScan": { "message": "לא ניתן לסרוק דף זה" },
   "verdict_safe": { "message": "בטוח" },
   "rescan": { "message": "סריקה מחדש" },
   "virustotal": { "message": "VirusTotal" },
@@ -132,6 +134,12 @@
   "set_theme_dark": { "message": "כהה" },
   "set_language": { "message": "שפה" },
   "set_ai": { "message": "בינה מלאכותית" },
+  "set_ai_scan_mode": { "message": "מתי לסרוק עם בינה מלאכותית" },
+  "set_ai_scan_auto": { "message": "אוטומטית עם פתיחת החלון הקופץ" },
+  "set_ai_scan_manual": { "message": "כשאני לוחץ על נתח" },
+  "set_ai_scan_mode_help": {
+    "message": "סריקה אוטומטית פונה לבינה המלאכותית (ומחייבת את הספק שלך) בכל פעם שפותחים את החלון הקופץ בדף שניתן לסרוק, ודורשת מפתח לספק הנבחר. סריקה ידנית מתבצעת רק בלחיצה על נתח."
+  },
   "set_apikey": { "message": "מפתח API של Claude" },
   "set_apikey_help": {
     "message": "משמש לניתוח תוכן מבוסס AI. ל-Anthropic אין תוכנית חינמית: רוכשים קרדיט מראש והחיוב הוא לפי טוקנים, כך שסריקה עולה בדרך כלל שבריר סנט. נשמר מקומית במכשיר שלך."

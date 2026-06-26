@@ -6,6 +6,10 @@ export type LangPref = "en" | "he";
 // Which provider the AI Analysis view calls. Mirrors AiProvider in
 // ai-analysis.ts; kept inline so this leaf module stays dependency-free.
 export type AiProvider = "claude" | "deepseek";
+// When the popup runs the AI Analysis. "manual" waits for the Analyze button
+// (the default, so opening the popup never bills the user); "auto" runs it as
+// soon as the popup opens on a scannable page.
+export type AiScanMode = "auto" | "manual";
 
 // Per-element toggles for the marks the popup draws on the page. Each flag gates
 // one kind of highlight so the user can turn any of them off individually from
@@ -32,6 +36,9 @@ export interface Settings {
   virusTotalApiKey: string;
   // Which provider AI Analysis uses when the user runs it.
   aiProvider: AiProvider;
+  // When the AI Analysis runs: on popup open ("auto") or on the Analyze button
+  // ("manual").
+  aiScanMode: AiScanMode;
   // Which model each provider uses. Values match the option ids in
   // ai-analysis.ts (CLAUDE_MODELS / DEEPSEEK_MODELS); the defaults below pick the
   // balanced/cheap option from each list, kept inline so this leaf module stays
@@ -62,6 +69,7 @@ export const DEFAULT_SETTINGS: Settings = {
   safeBrowsingApiKey: "",
   virusTotalApiKey: "",
   aiProvider: "claude",
+  aiScanMode: "manual",
   claudeModel: "claude-sonnet-4-6",
   deepseekModel: "deepseek-v4-flash",
   highlights: DEFAULT_HIGHLIGHTS,

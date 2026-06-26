@@ -37,7 +37,14 @@ third-party reputation services, and an AI model to surface threats before they 
 ## Risk logic
 
 Each check produces a status, either **good** (✓), **warning** (!), or **risky** (✕), and the
-category's overall verdict reflects its worst finding.
+category's overall verdict reflects its worst finding. The dot beside the site name in the popup
+header rolls this up one level further: it shows a muted pulse while the automatic categories scan,
+then takes the colour of the worst verdict across them once they finish (or stays muted with a
+"Can't scan this page" note on pages with no scannable content, such as `chrome://` pages). AI
+analysis is on demand, so it feeds this header dot only when a scan actually runs (auto mode on open,
+or when you press Analyze): the dot returns to its scanning pulse and folds the AI verdict into the
+roll-up once it finishes. In manual mode without a scan, the dot settles on the four automatic
+categories alone.
 
 ### URL & Domain
 
@@ -294,10 +301,18 @@ chosen provider, and renders the model's structured verdict. The risk logic and 
 | **Content Risk Score**    | The model returns an overall `0`–`100` content-risk score.                          | `< 34` → good; `34`–`66` → warning; `≥ 67` → risky. Shown as `score / 100`.           |
 | **Summary**               | One or two sentences from the model explaining its verdict.                         | Shown in the **Summary** note; the category verdict is the worst of the three rows.  |
 
-**On-demand, not automatic.** Unlike the other categories (which run for free on every popup open), an
-AI request costs money per scan, so this category never calls the API on its own. The view opens in an
-idle state and only contacts the model when you press **Analyze this page** (and **Re-analyze**
-afterwards). No page content is sent anywhere until you click.
+**On-demand by default.** Unlike the other categories (which run for free on every popup open), an
+AI request costs money per scan, so by default this category never calls the API on its own: the view
+opens in an idle state and only contacts the model when you press **Analyze this page** (and
+**Re-analyze** afterwards). No page content is sent anywhere until you click.
+
+**When to scan with AI.** A **Settings → AI** dropdown (`aiScanMode` in `chrome.storage.local`,
+default `manual`) chooses when the scan runs: **When I click Analyze** keeps the on-demand behaviour
+above, while **Automatically when the popup opens** runs the analysis as soon as the popup opens on a
+scannable page. Automatic mode only fires when a key for the selected provider is already set, so
+opening the popup never pops the key modal unprompted; without a key it falls back to the idle state
+until you click. Because automatic mode bills your provider on every popup open, the dropdown's help
+text spells that out.
 
 **Two providers, your choice.** A provider selector in the view chooses between **Claude** and
 **DeepSeek**; the choice is saved on-device (`aiProvider` in `chrome.storage.local`). Both keys live under
