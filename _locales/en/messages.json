@@ -24,6 +24,7 @@
   "status_good": { "message": "Good" },
   "status_warning": { "message": "Warning" },
   "status_danger": { "message": "Risky" },
+  "status_loading": { "message": "Loading" },
 
   "sum_url": { "message": "This URL looks safe." },
   "sum_url_warn": { "message": "This URL has some warning signs." },

@@ -126,6 +126,16 @@ function reportSiteStatus(category: SiteCategory, status: RowStatus): void {
   refreshSiteStatus();
 }
 
+// Paint a category's main-list chip as a muted "Loading" while its scan is in
+// flight, so the chip never shows a stale or default verdict (e.g. the markup's
+// "Good") until the real status lands. The data-target maps to view-<category>.
+function setCategoryLoading(category: SiteCategory): void {
+  const chip = document.querySelector<HTMLElement>(`.cat[data-target="view-${category}"] .cat__status`);
+  if (!chip) return;
+  chip.className = "cat__status status--muted";
+  chip.textContent = dict.status_loading;
+}
+
 function showView(id: string): void {
   for (const view of document.querySelectorAll<HTMLElement>(".view")) {
     view.classList.toggle("is-active", view.id === id);
@@ -973,11 +983,13 @@ async function runAiAnalysis(
   // and reflect its verdict too.
   expectAiInSiteStatus();
 
-  // Progress state: disable the button, blank the rows, swap the subtitle.
+  // Progress state: disable the button, blank the rows, swap the subtitle, and
+  // show the main-list chip as "Loading" instead of its prior verdict.
   if (button) {
     button.disabled = true;
     button.textContent = dict.ai_analyzing;
   }
+  setCategoryLoading("ai");
   for (const field of AI_FIELDS) renderRow(field, { text: "…", status: "neutral" }, dict, false);
   const summaryEl = document.getElementById("ai-summary");
   if (summaryEl) summaryEl.textContent = dict.ai_analyzing;
@@ -1040,14 +1052,12 @@ function openAiKeyModal(
   });
 }
 
-// Set up the AI view without calling the API: render the idle state, bind the
-// provider selector, and wire the on-demand Analyze button. The model only runs
-// when the user clicks, so opening the popup never bills them.
+// Bind the AI view's persistent controls once: the provider selector and the
+// on-demand Analyze button. Kept separate from scanAiView so a rescan re-renders
+// the view without stacking a second listener on each control. Binding alone
+// never calls the API, so opening the popup never bills the user.
 function setupAiView(tab: chrome.tabs.Tab | undefined, settings: Settings): void {
   const select = document.getElementById("ai-provider") as HTMLSelectElement | null;
-  const button = document.getElementById("ai-analyze") as HTMLButtonElement | null;
-  const note = document.getElementById("ai-note-body");
-
   if (select) {
     select.value = settings.aiProvider;
     select.addEventListener("change", async () => {
@@ -1055,6 +1065,20 @@ function setupAiView(tab: chrome.tabs.Tab | undefined, settings: Settings): void
       await saveSettings(settings);
     });
   }
+
+  // The Analyze button only makes sense on a scannable page; on privileged pages
+  // scanAiView leaves it disabled, so there's nothing to run.
+  if (!aiScannable(tab)) return;
+  const button = document.getElementById("ai-analyze") as HTMLButtonElement | null;
+  button?.addEventListener("click", () => void runAiAnalysis(tab, settings));
+}
+
+// Render the AI view's pre-scan state and, when the user opted to scan on open,
+// kick the analysis off. Called on initial open and on every rescan, so it owns
+// only render/run state, never listener binding.
+function scanAiView(tab: chrome.tabs.Tab | undefined, settings: Settings): void {
+  const button = document.getElementById("ai-analyze") as HTMLButtonElement | null;
+  const note = document.getElementById("ai-note-body");
 
   // Privileged pages can't be scanned — show a muted, disabled state.
   if (!aiScannable(tab)) {
@@ -1072,20 +1096,47 @@ function setupAiView(tab: chrome.tabs.Tab | undefined, settings: Settings): void
   for (const field of AI_FIELDS) renderRow(field, { text: "—", status: "neutral" }, dict, false);
   setAiSummary("status--muted", "ai_idle", "sum_ai_idle", dict);
   if (note) note.textContent = dict.ai_note_idle;
-
   if (button) {
     button.disabled = false;
     button.textContent = dict.btn_analyze;
-    button.addEventListener("click", () => void runAiAnalysis(tab, settings));
   }
 
   // When the user chose to scan on open, run it now — but only if a key for the
-  // chosen provider is already set, so opening the popup never pops the key modal
+  // chosen provider is already set, so a (re)scan never pops the key modal
   // unprompted. Without a key it stays idle until the user clicks Analyze.
   if (settings.aiScanMode === "auto") {
     const key = settings.aiProvider === "deepseek" ? settings.deepseekApiKey : settings.apiKey;
     if (key) void runAiAnalysis(tab, settings);
   }
+}
+
+// Run every category's scan from a clean slate: the four automatic checks plus,
+// when configured, the on-demand AI scan. Used for the initial open and again
+// each time the user presses Rescan.
+function runAllScans(tab: chrome.tabs.Tab | undefined, settings: Settings): void {
+  // Reset the header accumulator so the dot returns to "scanning" and recomputes
+  // from scratch, and stop expecting AI until a scan actually starts again.
+  for (const category of Object.keys(siteStatuses) as SiteCategory[]) delete siteStatuses[category];
+  expectedCategories.clear();
+  for (const category of BASE_CATEGORIES) expectedCategories.add(category);
+  refreshSiteStatus();
+
+  // Show each automatic category as "Loading" until its scan reports a verdict.
+  for (const category of BASE_CATEGORIES) setCategoryLoading(category);
+
+  const url = tab?.url ?? undefined;
+  void analyzeUrlView(url);
+  void analyzeReputationView(url, settings);
+  void analyzeContentView(tab, settings);
+  void analyzeLinksView(tab, settings);
+  scanAiView(tab, settings);
+}
+
+// Wire the footer's Rescan button to re-run every category against the same tab.
+function setupRescan(tab: chrome.tabs.Tab | undefined, settings: Settings): void {
+  document
+    .getElementById("btn-rescan")
+    ?.addEventListener("click", () => runAllScans(tab, settings));
 }
 
 async function init(): Promise<void> {
@@ -1099,11 +1150,9 @@ async function init(): Promise<void> {
   const url = tab?.url ?? undefined;
   showActiveHost(url);
   setupVirusTotal(url);
-  void analyzeUrlView(url);
-  void analyzeReputationView(url, settings);
-  void analyzeContentView(tab, settings);
-  void analyzeLinksView(tab, settings);
   setupAiView(tab, settings);
+  setupRescan(tab, settings);
+  runAllScans(tab, settings);
 }
 
 void init();

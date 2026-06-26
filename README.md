@@ -37,14 +37,22 @@ third-party reputation services, and an AI model to surface threats before they 
 ## Risk logic
 
 Each check produces a status, either **good** (✓), **warning** (!), or **risky** (✕), and the
-category's overall verdict reflects its worst finding. The dot beside the site name in the popup
-header rolls this up one level further: it shows a muted pulse while the automatic categories scan,
+category's overall verdict reflects its worst finding. While a category is still scanning, its chip on
+the main list reads a muted **Loading** rather than a verdict, so a stale or default "Good" is never
+shown mid-scan; it switches to the real verdict once that category finishes (the AI chip instead reads
+**Not run** until a scan starts, then **Loading** while it runs). The dot beside the site name in the
+popup header rolls this up one level further: it shows a muted pulse while the automatic categories scan,
 then takes the colour of the worst verdict across them once they finish (or stays muted with a
 "Can't scan this page" note on pages with no scannable content, such as `chrome://` pages). AI
 analysis is on demand, so it feeds this header dot only when a scan actually runs (auto mode on open,
 or when you press Analyze): the dot returns to its scanning pulse and folds the AI verdict into the
 roll-up once it finishes. In manual mode without a scan, the dot settles on the four automatic
 categories alone.
+
+The footer's **Rescan** button re-runs every category against the current tab from a clean slate: it
+clears the header roll-up back to its scanning pulse, re-runs the four automatic categories, and resets
+the AI view to idle (re-running it too only in automatic mode with a key already set, so a rescan never
+bills you unprompted or pops the key modal).
 
 ### URL & Domain
 

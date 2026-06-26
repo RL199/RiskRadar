@@ -24,6 +24,7 @@
   "status_good": { "message": "תקין" },
   "status_warning": { "message": "אזהרה" },
   "status_danger": { "message": "מסוכן" },
+  "status_loading": { "message": "טוען…" },
 
   "sum_url": { "message": "הכתובת נראית בטוחה." },
   "sum_url_warn": { "message": "בכתובת יש סימני אזהרה מסוימים." },
