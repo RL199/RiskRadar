@@ -4,6 +4,7 @@
 import {
   loadSettings,
   saveSettings,
+  type HighlightSettings,
   type LangPref,
   type Settings,
   type ThemePref,
@@ -23,6 +24,19 @@ const virusTotalKeyInput = document.getElementById("virustotal-apikey") as HTMLI
 const toggleVirusTotalKeyBtn = document.getElementById("toggle-virustotal-key") as HTMLButtonElement;
 const saveBtn = document.getElementById("save") as HTMLButtonElement;
 const statusEl = document.getElementById("status") as HTMLElement;
+
+// Each on-page highlight toggle, paired with the checkbox that drives it. The id
+// is `hl-<key>`, matching the keys of HighlightSettings.
+const HIGHLIGHT_KEYS: (keyof HighlightSettings)[] = [
+  "phishingIndicators",
+  "urgentLanguage",
+  "brandImpersonation",
+  "suspiciousForms",
+  "internalLinks",
+  "externalLinks",
+  "suspiciousLinks",
+  "maliciousRedirects",
+];
 
 let settings: Settings;
 let statusTimer: number | undefined;
@@ -60,6 +74,19 @@ async function init(): Promise<void> {
   deepseekKeyInput.value = settings.deepseekApiKey;
   safeBrowsingKeyInput.value = settings.safeBrowsingApiKey;
   virusTotalKeyInput.value = settings.virusTotalApiKey;
+
+  // The highlight toggles save immediately (like theme/language) so the choice
+  // is in storage before the popup next reads it.
+  for (const key of HIGHLIGHT_KEYS) {
+    const input = document.getElementById(`hl-${key}`) as HTMLInputElement | null;
+    if (!input) continue;
+    input.checked = settings.highlights[key];
+    input.addEventListener("change", async () => {
+      settings = { ...settings, highlights: { ...settings.highlights, [key]: input.checked } };
+      await saveSettings(settings);
+      flashSaved();
+    });
+  }
 
   applyTheme(settings.theme);
   applyI18n(settings.lang);

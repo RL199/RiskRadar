@@ -165,6 +165,58 @@
 
       </section>
 
+      <section class="card">
+        <h2 class="card__title" data-i18n="set_highlights_content">Content highlights</h2>
+        <p class="field__help highlights__help" data-i18n="set_highlights_content_help">
+          Choose which content findings get highlighted on the page. Changes apply the next time the
+          popup scans a page.
+        </p>
+        <div class="toggles">
+          <label class="toggle">
+            <span class="toggle__label" data-i18n="lbl_phishingIndicators">Phishing Indicators</span>
+            <input id="hl-phishingIndicators" class="toggle__input" type="checkbox" />
+          </label>
+          <label class="toggle">
+            <span class="toggle__label" data-i18n="lbl_urgentLanguage">Urgent Language</span>
+            <input id="hl-urgentLanguage" class="toggle__input" type="checkbox" />
+          </label>
+          <label class="toggle">
+            <span class="toggle__label" data-i18n="lbl_brandImpersonation">Brand Impersonation</span>
+            <input id="hl-brandImpersonation" class="toggle__input" type="checkbox" />
+          </label>
+          <label class="toggle">
+            <span class="toggle__label" data-i18n="lbl_suspiciousForms">Suspicious Forms</span>
+            <input id="hl-suspiciousForms" class="toggle__input" type="checkbox" />
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="card__title" data-i18n="set_highlights_links">Link highlights</h2>
+        <p class="field__help highlights__help" data-i18n="set_highlights_links_help">
+          Choose which links get outlined on the page. Changes apply the next time the popup scans a
+          page.
+        </p>
+        <div class="toggles">
+          <label class="toggle">
+            <span class="toggle__label" data-i18n="lbl_internalLinks">Internal Links</span>
+            <input id="hl-internalLinks" class="toggle__input" type="checkbox" />
+          </label>
+          <label class="toggle">
+            <span class="toggle__label" data-i18n="lbl_externalLinks">External Links</span>
+            <input id="hl-externalLinks" class="toggle__input" type="checkbox" />
+          </label>
+          <label class="toggle">
+            <span class="toggle__label" data-i18n="lbl_suspiciousLinks">Suspicious Links</span>
+            <input id="hl-suspiciousLinks" class="toggle__input" type="checkbox" />
+          </label>
+          <label class="toggle">
+            <span class="toggle__label" data-i18n="lbl_maliciousRedirects">Malicious Redirects</span>
+            <input id="hl-maliciousRedirects" class="toggle__input" type="checkbox" />
+          </label>
+        </div>
+      </section>
+
       <footer class="settings__foot">
         <button id="save" class="btn-primary" type="button" data-i18n="set_save">Save</button>
         <span id="status" class="status-msg" role="status"></span>

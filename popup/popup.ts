@@ -603,25 +603,31 @@ async function getPageContent(tabId: number): Promise<PageContent | null> {
   }
 }
 
-// Mark the flagged phrases (and outline leaky password forms) on the page itself,
-// each labelled with its category for the in-page hover tooltip. Runs in the MAIN
-// world so the highlighter shares the page's CSS highlight registry. Passing
-// empty groups clears any marks from a prior scan.
-async function markPageMatches(tabId: number, groups: HighlightGroup[], formLabel: string): Promise<void> {
+// Mark the flagged phrases (and, when enabled, outline leaky password forms) on
+// the page itself, each labelled with its category for the in-page hover tooltip.
+// Runs in the MAIN world so the highlighter shares the page's CSS highlight
+// registry. Passing empty groups with outlineForms=false clears any marks from a
+// prior scan.
+async function markPageMatches(
+  tabId: number,
+  groups: HighlightGroup[],
+  formLabel: string,
+  outlineForms: boolean,
+): Promise<void> {
   try {
     await chrome.scripting.executeScript({
       target: { tabId },
       world: "MAIN",
       func: highlightPageMatches,
-      args: [groups, formLabel],
+      args: [groups, formLabel, outlineForms],
     });
   } catch {
     // Page isn't scriptable (privileged page, no host access) — nothing to mark.
   }
 }
 
-async function analyzeContentView(tab: chrome.tabs.Tab | undefined, lang: LangPref): Promise<void> {
-  const dict = messages[lang];
+async function analyzeContentView(tab: chrome.tabs.Tab | undefined, settings: Settings): Promise<void> {
+  const dict = messages[settings.lang];
 
   let url: URL | undefined;
   try {
@@ -660,14 +666,17 @@ async function analyzeContentView(tab: chrome.tabs.Tab | undefined, lang: LangPr
   setContentVerdict(worst([phishing.status, forms.status, urgent.status, brand.status]), dict);
 
   // Mark those same matches on the page, each tagged with its category so the
-  // in-page hover tooltip can name it. The form outlines are re-detected in the
-  // page, so only the matched phrases need to cross over.
+  // in-page hover tooltip can name it, but only for the categories the user left
+  // enabled (a disabled one crosses over with no phrases, so it isn't marked).
+  // The form outlines are re-detected in the page, so only the matched phrases
+  // need to cross over.
+  const hl = settings.highlights;
   const groups: HighlightGroup[] = [
-    { label: dict.lbl_phishingIndicators, phrases: phishing.detail ?? [] },
-    { label: dict.lbl_urgentLanguage, phrases: urgent.detail ?? [] },
-    { label: dict.lbl_brandImpersonation, phrases: brand.detail ?? [] },
+    { label: dict.lbl_phishingIndicators, phrases: hl.phishingIndicators ? phishing.detail ?? [] : [] },
+    { label: dict.lbl_urgentLanguage, phrases: hl.urgentLanguage ? urgent.detail ?? [] : [] },
+    { label: dict.lbl_brandImpersonation, phrases: hl.brandImpersonation ? brand.detail ?? [] : [] },
   ];
-  void markPageMatches(tab.id, groups, dict.lbl_suspiciousForms);
+  void markPageMatches(tab.id, groups, dict.lbl_suspiciousForms, hl.suspiciousForms);
 }
 
 // ----------------------- Links analysis ----------------------- //
@@ -747,8 +756,8 @@ function linkTitle(link: ClassifiedLink, dict: Dict): string {
   return reason ? `${head}: ${reason}` : head;
 }
 
-async function analyzeLinksView(tab: chrome.tabs.Tab | undefined, lang: LangPref): Promise<void> {
-  const dict = messages[lang];
+async function analyzeLinksView(tab: chrome.tabs.Tab | undefined, settings: Settings): Promise<void> {
+  const dict = messages[settings.lang];
 
   let url: URL | undefined;
   try {
@@ -785,12 +794,17 @@ async function analyzeLinksView(tab: chrome.tabs.Tab | undefined, lang: LangPref
 
   // Mark the same links on the page (greens and blues included), each tagged
   // with its hover label. marks line up with the page's anchors by document
-  // order; only the "ignore" bucket stays unmarked.
+  // order; the "ignore" bucket and any verdict the user disabled stay unmarked.
+  const hl = settings.highlights;
+  const enabled: Record<ClassifiedLink["verdict"], boolean> = {
+    internal: hl.internalLinks,
+    external: hl.externalLinks,
+    suspicious: hl.suspiciousLinks,
+    redirect: hl.maliciousRedirects,
+    ignore: false,
+  };
   const marks: LinkMark[] = classified.map((link) =>
-    link.verdict === "internal" ||
-    link.verdict === "external" ||
-    link.verdict === "suspicious" ||
-    link.verdict === "redirect"
+    enabled[link.verdict] && link.verdict !== "ignore"
       ? { verdict: link.verdict, title: linkTitle(link, dict) }
       : { verdict: "skip", title: "" },
   );
@@ -810,8 +824,8 @@ async function init(): Promise<void> {
   setupVirusTotal(url);
   void analyzeUrlView(url, settings.lang);
   void analyzeReputationView(url, settings);
-  void analyzeContentView(tab, settings.lang);
-  void analyzeLinksView(tab, settings.lang);
+  void analyzeContentView(tab, settings);
+  void analyzeLinksView(tab, settings);
 }
 
 void init();

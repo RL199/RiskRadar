@@ -71,6 +71,7 @@ export const messages: Record<LangPref, Messages> = {
     lbl_urgentLanguage: "Urgent Language",
     lbl_brandImpersonation: "Brand Impersonation",
     lbl_totalLinks: "Total Links",
+    lbl_internalLinks: "Internal Links",
     lbl_externalLinks: "External Links",
     lbl_suspiciousLinks: "Suspicious Links",
     lbl_maliciousRedirects: "Malicious Redirects",
@@ -138,6 +139,13 @@ export const messages: Record<LangPref, Messages> = {
     set_hide: "Hide",
     set_save: "Save",
     set_saved: "Saved",
+    // Settings page — on-page highlight toggles
+    set_highlights_content: "Content highlights",
+    set_highlights_content_help:
+      "Choose which content findings get highlighted on the page. Changes apply the next time the popup scans a page.",
+    set_highlights_links: "Link highlights",
+    set_highlights_links_help:
+      "Choose which links get outlined on the page. Changes apply the next time the popup scans a page.",
   },
   he: {
     // Popup chrome
@@ -207,6 +215,7 @@ export const messages: Record<LangPref, Messages> = {
     lbl_urgentLanguage: "שפה דחופה",
     lbl_brandImpersonation: "התחזות למותג",
     lbl_totalLinks: "סך הקישורים",
+    lbl_internalLinks: "קישורים פנימיים",
     lbl_externalLinks: "קישורים חיצוניים",
     lbl_suspiciousLinks: "קישורים חשודים",
     lbl_maliciousRedirects: "הפניות זדוניות",
@@ -274,6 +283,13 @@ export const messages: Record<LangPref, Messages> = {
     set_hide: "הסתר",
     set_save: "שמור",
     set_saved: "נשמר",
+    // Settings page — on-page highlight toggles
+    set_highlights_content: "הדגשות תוכן",
+    set_highlights_content_help:
+      "בחרו אילו ממצאי תוכן יודגשו בדף. השינויים חלים בסריקה הבאה של הפופאפ.",
+    set_highlights_links: "הדגשות קישורים",
+    set_highlights_links_help:
+      "בחרו אילו קישורים יקבלו מסגרת בדף. השינויים חלים בסריקה הבאה של הפופאפ.",
   },
 };
 

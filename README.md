@@ -200,7 +200,10 @@ because a painted highlight can't carry a tooltip, the popup hit-tests the curso
 on hover and shows a small floating label, while a form (a real element) uses a native `title`. The marks
 are non-destructive and reversible (the form outline and any borrowed `title` are restored on the next
 scan), the highlighter runs in the page's **main world** so it shares the page's CSS highlight registry,
-and re-running clears the previous pass so a now-clean page is left unmarked.
+and re-running clears the previous pass so a now-clean page is left unmarked. Each of these marks
+(Phishing Indicators, Urgent Language, Brand Impersonation, and Suspicious Forms) can be **switched off
+individually** from the **Content highlights** section of the options page; a disabled category is simply
+left unmarked on the next scan.
 
 > **A note on false positives.** Several of these signals also show up on perfectly legitimate pages: your
 > bank's real login genuinely says "verify your account", a real promotion genuinely says "limited time
@@ -270,7 +273,9 @@ or _"Malicious redirect: link text shows a different domain than it opens"_. The
 (an `outline` plus a borrowed `title`, both restored on the next scan) and re-running clears the previous
 pass. **Benign external links are counted but deliberately not painted red:** an ordinary page links out
 to many legitimate sites (CDNs, social, references), so flagging every external link would bury the real
-warnings; only off-site links with an actual phishing tell are marked.
+warnings; only off-site links with an actual phishing tell are marked. Each link bucket (Internal,
+External, Suspicious, and Malicious Redirects) can be **switched off individually** from the **Link
+highlights** section of the options page; a disabled bucket is left unmarked on the next scan.
 
 ## Tech stack
 

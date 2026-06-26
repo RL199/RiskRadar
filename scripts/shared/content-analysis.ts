@@ -165,14 +165,21 @@ export interface HighlightGroup {
 
 // Injected into the active tab to visually mark the risky matches the Content
 // Analysis view found: the flagged phrases get a non-destructive highlight that
-// names its category on hover, and password forms that leak credentials get a red
-// outline (whose category shows on hover via a native title). Like
-// extractPageContent it must be fully self-contained — it runs in the page via
-// chrome.scripting.executeScript (in the MAIN world, so it shares the page's CSS
-// highlight registry). Safe to call repeatedly: each run tears down the previous
-// run's marks and hover handler first, so re-scans don't stack and a now-clean
-// page is un-marked when called with empty groups.
-export function highlightPageMatches(groups: HighlightGroup[], formLabel: string): void {
+// names its category on hover, and (when `outlineForms` is set) password forms
+// that leak credentials get a red outline whose category shows on hover via a
+// native title. `outlineForms` lets the caller honour the user's per-element
+// highlight toggles; the phrase categories are gated by simply passing empty
+// `phrases` for a disabled category. Like extractPageContent it must be fully
+// self-contained — it runs in the page via chrome.scripting.executeScript (in the
+// MAIN world, so it shares the page's CSS highlight registry). Safe to call
+// repeatedly: each run tears down the previous run's marks and hover handler
+// first, so re-scans don't stack and a now-clean page is un-marked when called
+// with empty groups.
+export function highlightPageMatches(
+  groups: HighlightGroup[],
+  formLabel: string,
+  outlineForms: boolean,
+): void {
   const HIGHLIGHT = "riskradar-risk";
   const STYLE_ID = "riskradar-highlight-style";
   const TOOLTIP_ID = "riskradar-tooltip";
@@ -213,7 +220,9 @@ export function highlightPageMatches(groups: HighlightGroup[], formLabel: string
   };
   const pageReg = reg(location.hostname);
   const pageInsecure = location.protocol === "http:";
-  for (const form of document.querySelectorAll("form")) {
+  // The teardown above already removed any prior form outlines; only draw new
+  // ones when the user has this highlight enabled.
+  for (const form of outlineForms ? document.querySelectorAll("form") : []) {
     if (form.querySelector('input[type="password"]') === null) continue;
     let suspicious: boolean;
     try {
