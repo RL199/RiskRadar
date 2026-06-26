@@ -22,6 +22,7 @@ third-party reputation services, and an AI model to surface threats before they 
 - **Link scanning:** classifies the page's links into internal, external, suspicious, and malicious redirects, and marks them on the page.
 - **Reputation integration:** Google Safe Browsing, VirusTotal, Sucuri SiteCheck, threat-filtering DNS (Cloudflare, Quad9), and server-IP reputation (SANS ISC / DShield).
 - **AI analysis:** on-demand phishing / social-engineering assessment of the page by a large language model (Claude or DeepSeek, your choice).
+- **Automatic scanning (optional):** scan every page as you browse without opening the popup, surfacing the verdict as a colour-coded badge on the toolbar icon and applying the on-page highlights.
 - **Clear results:** a trust score plus risk indicators, explained at varying levels of detail.
 
 ## How it works
@@ -359,6 +360,31 @@ failure shows an explanatory note and leaves the rest of the popup working.
 > DeepSeek) under your own API key, subject to that provider's data-handling terms. See
 > [PRIVACY.md](PRIVACY.md).
 
+## Automatic scanning
+
+By default the extension only scans when you open the popup. **Settings → Scanning → Scan pages
+automatically** (`autoScan` in `chrome.storage.local`) flips this on: the **background service worker**
+then scans each page on its own, with the popup never opened.
+
+It hooks Chrome's tab events
+([`chrome.tabs.onUpdated`](https://developer.chrome.com/docs/extensions/reference/api/tabs#event-onUpdated)
+when a page finishes loading in the active tab, and
+[`chrome.tabs.onActivated`](https://developer.chrome.com/docs/extensions/reference/api/tabs#event-onActivated)
+when you switch tabs), then runs the same URL, reputation, content, and link checks the popup runs —
+injecting the same self-contained extractors and highlighters via
+[`chrome.scripting.executeScript`](https://developer.chrome.com/docs/extensions/reference/api/scripting#method-executeScript)
+and honouring your per-element highlight toggles. The four categories are folded into one overall
+verdict (worst determinate finding wins) and painted onto the toolbar icon as a colour-coded badge via
+the [`chrome.action`](https://developer.chrome.com/docs/extensions/reference/api/action#method-setBadgeText)
+badge API: **✓** green (good), **!** amber (warning), **✕** red (risky), and a muted **…** while a scan
+is in flight. A page no verdict is possible for — a `chrome://` page, the new-tab page, or one where
+every category comes back unknown — shows a grey **?**, the popup's "Can't scan this page" state.
+
+The **AI analysis is never run automatically here** — it bills your provider, so it stays governed by
+the [**When to scan with AI**](#ai) dropdown and only ever runs from the popup. To keep network load and
+third-party rate limits in check, the worker scans only the tab you are actually looking at and skips a
+tab whose current URL it has already scanned. Turning the option off clears every badge.
+
 ## Localization
 
 The interface ships in **English** and **Hebrew**, built on Chrome's official
@@ -390,7 +416,7 @@ Language selector.
 ## Tech stack
 
 - **Languages:** TypeScript, HTML, CSS
-- **Platform:** Chrome Extension API (Manifest V3), including a background service worker (IndexedDB + `chrome.alarms`)
+- **Platform:** Chrome Extension API (Manifest V3), including a background service worker (IndexedDB + `chrome.alarms`, plus optional auto-scan via `chrome.tabs` / `chrome.scripting` / `chrome.action` badges)
 - **Localization:** `chrome.i18n` with `_locales/` message files (English and Hebrew, RTL-aware)
 - **External services:** AI and reputation APIs
 - **CI/CD:** GitHub Actions

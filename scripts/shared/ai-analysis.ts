@@ -139,7 +139,6 @@ async function callClaude(apiKey: string, model: string, input: AiInput): Promis
       output_config: {
         format: {
           type: "json_schema",
-          name: "phishing_verdict",
           schema: VERDICT_SCHEMA,
         },
       },

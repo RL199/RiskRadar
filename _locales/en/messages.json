@@ -134,6 +134,11 @@
   "set_theme_light": { "message": "Light" },
   "set_theme_dark": { "message": "Dark" },
   "set_language": { "message": "Language" },
+  "set_scanning": { "message": "Scanning" },
+  "set_autoscan": { "message": "Scan pages automatically" },
+  "set_autoscan_help": {
+    "message": "When on, Risk Radar scans every page you visit on its own, without opening the popup: it shows a colour-coded risk badge on the toolbar icon and highlights findings on the page. It runs the same URL, reputation, content, and link checks the popup does; the AI analysis is never run automatically."
+  },
   "set_ai": { "message": "AI" },
   "set_ai_scan_mode": { "message": "When to scan with AI" },
   "set_ai_scan_auto": { "message": "Automatically when the popup opens" },

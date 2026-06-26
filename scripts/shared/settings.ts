@@ -30,6 +30,11 @@ export interface HighlightSettings {
 export interface Settings {
   theme: ThemePref;
   lang: LangPref;
+  // When on, the background worker scans each page as you browse, without you
+  // opening the popup: it sets a colour-coded risk badge on the toolbar icon and
+  // applies the in-page highlights. The AI scan never runs automatically here
+  // (it bills the user); it stays governed by aiScanMode in the popup.
+  autoScan: boolean;
   apiKey: string;
   deepseekApiKey: string;
   safeBrowsingApiKey: string;
@@ -64,6 +69,7 @@ export const DEFAULT_HIGHLIGHTS: HighlightSettings = {
 export const DEFAULT_SETTINGS: Settings = {
   theme: "dark",
   lang: "en",
+  autoScan: false,
   apiKey: "",
   deepseekApiKey: "",
   safeBrowsingApiKey: "",

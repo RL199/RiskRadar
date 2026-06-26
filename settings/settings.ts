@@ -20,6 +20,7 @@ import {
 
 const themeSelect = document.getElementById("theme") as HTMLSelectElement;
 const langSelect = document.getElementById("lang") as HTMLSelectElement;
+const autoScanInput = document.getElementById("autoscan") as HTMLInputElement;
 const aiScanModeSelect = document.getElementById("ai-scan-mode") as HTMLSelectElement;
 const apiKeyInput = document.getElementById("apikey") as HTMLInputElement;
 const toggleKeyBtn = document.getElementById("toggle-key") as HTMLButtonElement;
@@ -98,6 +99,7 @@ async function init(): Promise<void> {
 
   themeSelect.value = settings.theme;
   langSelect.value = settings.lang;
+  autoScanInput.checked = settings.autoScan;
   aiScanModeSelect.value = settings.aiScanMode;
   apiKeyInput.value = settings.apiKey;
   deepseekKeyInput.value = settings.deepseekApiKey;
@@ -150,6 +152,14 @@ async function init(): Promise<void> {
 
   deepseekModelSelect.addEventListener("change", async () => {
     settings = { ...settings, deepseekModel: deepseekModelSelect.value };
+    await saveSettings(settings);
+    flashSaved();
+  });
+
+  // Auto-scan saves immediately (like the highlight toggles) so the background
+  // worker, which watches storage, picks the change up right away.
+  autoScanInput.addEventListener("change", async () => {
+    settings = { ...settings, autoScan: autoScanInput.checked };
     await saveSettings(settings);
     flashSaved();
   });
