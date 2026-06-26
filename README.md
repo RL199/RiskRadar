@@ -277,10 +277,39 @@ warnings; only off-site links with an actual phishing tell are marked. Each link
 External, Suspicious, and Malicious Redirects) can be **switched off individually** from the **Link
 highlights** section of the options page; a disabled bucket is left unmarked on the next scan.
 
+## Localization
+
+The interface ships in **English** and **Hebrew**, built on Chrome's official
+[`chrome.i18n`](https://developer.chrome.com/docs/extensions/reference/api/i18n) infrastructure. Every
+user-visible string lives in a per-language
+[`messages.json`](https://developer.chrome.com/docs/extensions/develop/ui/i18n) under
+[`_locales/`](_locales/): [`_locales/en/messages.json`](_locales/en/messages.json) and
+[`_locales/he/messages.json`](_locales/he/messages.json). These files are the single source of truth for
+both paths below. The locale codes follow Chrome's
+[supported list](https://developer.chrome.com/docs/extensions/reference/api/i18n#locales) (`en`, `he`).
+
+**Store listing (browser-driven).** The extension name and description in
+[`manifest.json`](manifest.json) use `__MSG_appName__` / `__MSG_appDesc__` placeholders resolved by
+`chrome.i18n` against the browser's UI language, with
+[`default_locale`](https://developer.chrome.com/docs/extensions/reference/manifest/default-locale) set to
+`en` as the fallback. This is what Chrome and the Web Store show.
+
+**In-app UI (user-driven).** `chrome.i18n.getMessage` only ever returns strings in the single browser UI
+language and [cannot be switched at runtime](https://developer.chrome.com/docs/extensions/reference/api/i18n#concepts_and_usage),
+but the popup and options page offer a **Language** toggle. To honor it, those pages read the very same
+`_locales/<lang>/messages.json` files directly with `fetch(chrome.runtime.getURL(...))` and resolve keys
+from the chosen language ([`scripts/shared/i18n.ts`](scripts/shared/i18n.ts)). Markup carries `data-i18n`
+(text) and `data-i18n-placeholder` (input placeholders) attributes that are filled from the loaded
+dictionary. Hebrew is **right-to-left**, so applying it also sets `<html lang="he" dir="rtl">`.
+
+To add a language, drop a new `_locales/<code>/messages.json`, mirror the keys, and add its option to the
+Language selector.
+
 ## Tech stack
 
 - **Languages:** TypeScript, HTML, CSS
 - **Platform:** Chrome Extension API (Manifest V3), including a background service worker (IndexedDB + `chrome.alarms`)
+- **Localization:** `chrome.i18n` with `_locales/` message files (English and Hebrew, RTL-aware)
 - **External services:** AI and reputation APIs
 - **CI/CD:** GitHub Actions
 - **Version control:** Git / GitHub

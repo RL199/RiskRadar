@@ -20,6 +20,7 @@ const entryPoints = [
 // so the manifest's references keep resolving.
 const staticPaths = [
   "manifest.json",
+  "_locales",
   "styles/theme.css",
   "popup/popup.html",
   "popup/popup.css",

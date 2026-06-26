@@ -1,302 +1,55 @@
+// Runtime i18n backed by the official Chrome _locales/ message files.
+//
+// The Web Store listing (extension name/description in manifest.json) is
+// localized the standard way, via __MSG_*__ placeholders resolved by chrome.i18n
+// against the browser's UI language. chrome.i18n.getMessage, however, only ever
+// returns strings in that single UI language and cannot be switched at runtime,
+// which the in-app Language toggle needs. So for the popup/options UI we read the
+// very same _locales/<lang>/messages.json files ourselves with fetch and resolve
+// keys from the chosen language. The _locales files stay the single source of
+// truth for both paths.
+// See https://developer.chrome.com/docs/extensions/reference/api/i18n
+
 import type { LangPref } from "./settings";
 
-type Messages = Record<string, string>;
+export type Dict = Record<string, string>;
 
-export const messages: Record<LangPref, Messages> = {
-  en: {
-    // Popup chrome
-    scannedJustNow: "Scanned just now",
-    verdict_safe: "Safe",
-    rescan: "Rescan",
-    virustotal: "VirusTotal",
-    // Categories
-    cat_url: "URL & Domain",
-    cat_reputation: "Reputation",
-    cat_content: "Content Analysis",
-    cat_links: "Links",
-    cat_ai: "AI Analysis",
-    // Statuses
-    status_good: "Good",
-    status_warning: "Warning",
-    status_danger: "Risky",
-    // Detail summaries
-    sum_url: "This URL looks safe.",
-    sum_url_warn: "This URL has some warning signs.",
-    sum_url_bad: "This URL looks risky.",
-    sum_url_unknown: "Couldn't fully analyze this URL.",
-    sum_reputation: "This site has a good reputation.",
-    sum_reputation_warn: "This site has some reputation warnings.",
-    sum_reputation_bad: "This site has a bad reputation.",
-    sum_reputation_unknown: "Couldn't check this site's reputation.",
-    sum_content: "No suspicious content found.",
-    sum_content_warn: "Some content looks suspicious.",
-    sum_content_bad: "This page shows signs of phishing.",
-    sum_content_unknown: "Couldn't analyze this page's content.",
-    sum_links: "No suspicious links found.",
-    sum_links_warn: "Some links look suspicious.",
-    sum_links_bad: "This page has dangerous links.",
-    sum_links_unknown: "Couldn't analyze this page's links.",
-    sum_ai: "AI model did not find threats.",
-    // Content-analysis finding details (chips shown under a row)
-    det_form_insecure: "Password sent over HTTP",
-    det_form_crossOrigin: "Password posted to another domain",
-    // Links: hover labels on the page and the reason behind a flagged link
-    tip_link_internal: "Internal link (same domain)",
-    tip_link_external: "External link (different domain)",
-    tip_link_suspicious: "Suspicious link",
-    tip_link_redirect: "Malicious redirect",
-    reason_link_ip: "host is an IP address",
-    reason_link_punycode: "punycode or IDN homograph domain",
-    reason_link_credentials: "credentials embedded in the URL",
-    reason_link_lookalike: "domain imitates a known brand",
-    reason_link_shortener: "shortened link hides its destination",
-    reason_link_manySub: "unusually deep subdomains",
-    reason_link_keyword: "phishing keywords in the domain",
-    reason_link_redirectParam: "redirects elsewhere through a URL parameter",
-    reason_link_textMismatch: "link text shows a different domain than it opens",
-    // Row labels
-    lbl_protocol: "Protocol",
-    lbl_domainAge: "Domain Age",
-    lbl_subdomain: "Subdomain",
-    lbl_urlLength: "URL Length",
-    lbl_suspiciousKeywords: "Suspicious Keywords",
-    lbl_safeBrowsing: "Google Safe Browsing",
-    lbl_virusTotal: "VirusTotal",
-    lbl_sucuri: "Sucuri SiteCheck",
-    lbl_phishingDb: "Phishing Database",
-    lbl_blacklist: "Blacklist Status",
-    lbl_ipReputation: "Server IP Reputation",
-    lbl_phishingIndicators: "Phishing Indicators",
-    lbl_suspiciousForms: "Suspicious Forms",
-    lbl_urgentLanguage: "Urgent Language",
-    lbl_brandImpersonation: "Brand Impersonation",
-    lbl_totalLinks: "Total Links",
-    lbl_internalLinks: "Internal Links",
-    lbl_externalLinks: "External Links",
-    lbl_suspiciousLinks: "Suspicious Links",
-    lbl_maliciousRedirects: "Malicious Redirects",
-    lbl_phishingProbability: "Phishing Probability",
-    lbl_socialEngineering: "Social Engineering",
-    lbl_contentRiskScore: "Content Risk Score",
-    lbl_summary: "Summary",
-    // Row values
-    val_short: "Short",
-    val_medium: "Medium",
-    val_long: "Long",
-    val_noneFound: "None found",
-    val_clean: "Clean",
-    val_notListed: "Not listed",
-    val_listed: "Listed",
-    val_blacklisted: "Blacklisted",
-    val_unsafe: "Unsafe",
-    val_notChecked: "Not checked",
-    val_reported: "Reported",
-    val_sharedCdn: "Shared CDN",
-    val_updating: "Updating…",
-    val_keyNeeded: "Key needed",
-    btn_addKey: "Add key",
-    btn_cancel: "Cancel",
-    val_none: "None",
-    val_low: "Low",
-    val_unknown: "Unknown",
-    // Domain-age units
-    unit_years: "years",
-    unit_months: "months",
-    unit_days: "days",
-    ai_summary_body: "The content appears to be legitimate and safe.",
-    // Settings page
-    set_title: "Settings",
-    set_subtitle: "Configure Risk Radar.",
-    set_appearance: "Appearance",
-    set_theme: "Theme",
-    set_theme_system: "System",
-    set_theme_light: "Light",
-    set_theme_dark: "Dark",
-    set_language: "Language",
-    set_ai: "AI",
-    set_apikey: "Claude API key",
-    set_apikey_help:
-      "Used for AI-based content analysis. Anthropic is pay as you go with no free tier: you buy prepaid credits and are billed per token, so a scan usually costs a fraction of a cent. Stored locally on your device.",
-    set_apikey_link: "Get a key at the Anthropic Console",
-    set_apikey_placeholder: "sk-ant-...",
-    set_deepseek_apikey: "DeepSeek API key",
-    set_deepseek_apikey_help:
-      "A lower cost alternative for AI content analysis. DeepSeek is pay as you go and needs a small prepaid balance, billed per token at a few cents per million tokens. Stored locally on your device.",
-    set_deepseek_apikey_link: "Get a key at the DeepSeek Platform",
-    set_deepseek_apikey_placeholder: "sk-...",
-    set_reputation: "Reputation",
-    set_safebrowsing_apikey: "Google Safe Browsing API key",
-    set_safebrowsing_apikey_help:
-      "Optional. Safe Browsing already works without a key via Google's public Transparency Report; a key upgrades it to the official Lookup API. The key is free: create a project in Google Cloud and enable the Safe Browsing API. Stored locally on your device.",
-    set_safebrowsing_apikey_link: "Get a key in the Google Cloud Console",
-    set_safebrowsing_apikey_placeholder: "AIza...",
-    set_virustotal_apikey: "VirusTotal API key",
-    set_virustotal_apikey_help:
-      "Needed for the VirusTotal check. With a key the row shows an inline malicious/total verdict; without one the popup shows a 'Key needed' prompt. A free public key is enough for personal use but is rate limited (about 4 lookups per minute); paid plans raise the limits. Stored locally on your device.",
-    set_virustotal_apikey_link: "Get a key at VirusTotal",
-    set_virustotal_apikey_placeholder: "VirusTotal API key",
-    set_show: "Show",
-    set_hide: "Hide",
-    set_save: "Save",
-    set_saved: "Saved",
-    // Settings page — on-page highlight toggles
-    set_highlights_content: "Content highlights",
-    set_highlights_content_help:
-      "Choose which content findings get highlighted on the page. Changes apply the next time the popup scans a page.",
-    set_highlights_links: "Link highlights",
-    set_highlights_links_help:
-      "Choose which links get outlined on the page. Changes apply the next time the popup scans a page.",
-  },
-  he: {
-    // Popup chrome
-    scannedJustNow: "נסרק זה עתה",
-    verdict_safe: "בטוח",
-    rescan: "סריקה מחדש",
-    virustotal: "VirusTotal",
-    // Categories
-    cat_url: "כתובת ודומיין",
-    cat_reputation: "מוניטין",
-    cat_content: "ניתוח תוכן",
-    cat_links: "קישורים",
-    cat_ai: "ניתוח AI",
-    // Statuses
-    status_good: "תקין",
-    status_warning: "אזהרה",
-    status_danger: "מסוכן",
-    // Detail summaries
-    sum_url: "הכתובת נראית בטוחה.",
-    sum_url_warn: "בכתובת יש סימני אזהרה מסוימים.",
-    sum_url_bad: "הכתובת נראית מסוכנת.",
-    sum_url_unknown: "לא ניתן היה לנתח את הכתובת במלואה.",
-    sum_reputation: "לאתר יש מוניטין טוב.",
-    sum_reputation_warn: "לאתר יש סימני אזהרה במוניטין.",
-    sum_reputation_bad: "לאתר יש מוניטין רע.",
-    sum_reputation_unknown: "לא ניתן היה לבדוק את המוניטין של האתר.",
-    sum_content: "לא נמצא תוכן חשוד.",
-    sum_content_warn: "חלק מהתוכן נראה חשוד.",
-    sum_content_bad: "בדף יש סימנים לפישינג.",
-    sum_content_unknown: "לא ניתן היה לנתח את תוכן הדף.",
-    sum_links: "לא נמצאו קישורים חשודים.",
-    sum_links_warn: "חלק מהקישורים נראים חשודים.",
-    sum_links_bad: "בדף יש קישורים מסוכנים.",
-    sum_links_unknown: "לא ניתן היה לנתח את הקישורים בדף.",
-    sum_ai: "מודל ה-AI לא מצא איומים.",
-    // Content-analysis finding details (chips shown under a row)
-    det_form_insecure: "סיסמה נשלחת דרך HTTP",
-    det_form_crossOrigin: "סיסמה נשלחת לדומיין אחר",
-    // Links: hover labels on the page and the reason behind a flagged link
-    tip_link_internal: "קישור פנימי (אותו דומיין)",
-    tip_link_external: "קישור חיצוני (דומיין אחר)",
-    tip_link_suspicious: "קישור חשוד",
-    tip_link_redirect: "הפניה זדונית",
-    reason_link_ip: "היעד הוא כתובת IP",
-    reason_link_punycode: "דומיין דמוי punycode או IDN",
-    reason_link_credentials: "פרטי התחברות מוטמעים בכתובת",
-    reason_link_lookalike: "הדומיין מתחזה למותג מוכר",
-    reason_link_shortener: "קישור מקוצר שמסתיר את היעד",
-    reason_link_manySub: "ריבוי תת-דומיינים חריג",
-    reason_link_keyword: "מילות פישינג בדומיין",
-    reason_link_redirectParam: "מפנה לאתר אחר דרך פרמטר בכתובת",
-    reason_link_textMismatch: "טקסט הקישור מציג דומיין שונה מזה שייפתח",
-    // Row labels
-    lbl_protocol: "פרוטוקול",
-    lbl_domainAge: "גיל הדומיין",
-    lbl_subdomain: "תת-דומיין",
-    lbl_urlLength: "אורך הכתובת",
-    lbl_suspiciousKeywords: "מילות מפתח חשודות",
-    lbl_safeBrowsing: "Google Safe Browsing",
-    lbl_virusTotal: "VirusTotal",
-    lbl_sucuri: "Sucuri SiteCheck",
-    lbl_phishingDb: "מאגר פישינג",
-    lbl_blacklist: "סטטוס רשימה שחורה",
-    lbl_ipReputation: "מוניטין IP של השרת",
-    lbl_phishingIndicators: "אינדיקטורים לפישינג",
-    lbl_suspiciousForms: "טפסים חשודים",
-    lbl_urgentLanguage: "שפה דחופה",
-    lbl_brandImpersonation: "התחזות למותג",
-    lbl_totalLinks: "סך הקישורים",
-    lbl_internalLinks: "קישורים פנימיים",
-    lbl_externalLinks: "קישורים חיצוניים",
-    lbl_suspiciousLinks: "קישורים חשודים",
-    lbl_maliciousRedirects: "הפניות זדוניות",
-    lbl_phishingProbability: "הסתברות לפישינג",
-    lbl_socialEngineering: "הנדסה חברתית",
-    lbl_contentRiskScore: "ציון סיכון תוכן",
-    lbl_summary: "סיכום",
-    // Row values
-    val_short: "קצרה",
-    val_medium: "בינונית",
-    val_long: "ארוכה",
-    val_noneFound: "לא נמצאו",
-    val_clean: "נקי",
-    val_notListed: "לא רשום",
-    val_listed: "רשום",
-    val_blacklisted: "ברשימה שחורה",
-    val_unsafe: "לא בטוח",
-    val_notChecked: "לא נבדק",
-    val_reported: "דווח",
-    val_sharedCdn: "CDN משותף",
-    val_updating: "מתעדכן…",
-    val_keyNeeded: "נדרש מפתח",
-    btn_addKey: "הוסף מפתח",
-    btn_cancel: "ביטול",
-    val_none: "אין",
-    val_low: "נמוכה",
-    val_unknown: "לא ידוע",
-    // Domain-age units
-    unit_years: "שנים",
-    unit_months: "חודשים",
-    unit_days: "ימים",
-    ai_summary_body: "התוכן נראה לגיטימי ובטוח.",
-    // Settings page
-    set_title: "הגדרות",
-    set_subtitle: "הגדרת Risk Radar.",
-    set_appearance: "מראה",
-    set_theme: "ערכת נושא",
-    set_theme_system: "מערכת",
-    set_theme_light: "בהיר",
-    set_theme_dark: "כהה",
-    set_language: "שפה",
-    set_ai: "בינה מלאכותית",
-    set_apikey: "מפתח API של Claude",
-    set_apikey_help:
-      "משמש לניתוח תוכן מבוסס AI. ל-Anthropic אין תוכנית חינמית: רוכשים קרדיט מראש והחיוב הוא לפי טוקנים, כך שסריקה עולה בדרך כלל שבריר סנט. נשמר מקומית במכשיר שלך.",
-    set_apikey_link: "קבלת מפתח ב-Anthropic Console",
-    set_apikey_placeholder: "sk-ant-...",
-    set_deepseek_apikey: "מפתח API של DeepSeek",
-    set_deepseek_apikey_help:
-      "חלופה זולה יותר לניתוח תוכן מבוסס AI. ל-DeepSeek חיוב לפי שימוש ונדרשת יתרה קטנה ששולמה מראש, בעלות של כמה סנטים למיליון טוקנים. נשמר מקומית במכשיר שלך.",
-    set_deepseek_apikey_link: "קבלת מפתח ב-DeepSeek Platform",
-    set_deepseek_apikey_placeholder: "sk-...",
-    set_reputation: "מוניטין",
-    set_safebrowsing_apikey: "מפתח API של Google Safe Browsing",
-    set_safebrowsing_apikey_help:
-      "אופציונלי. בדיקת Safe Browsing פועלת כבר ללא מפתח דרך דוח השקיפות הציבורי של Google; מפתח משדרג אותה ל-Lookup API הרשמי. המפתח חינמי: צרו פרויקט ב-Google Cloud והפעילו את Safe Browsing API. נשמר מקומית במכשיר שלך.",
-    set_safebrowsing_apikey_link: "קבלת מפתח ב-Google Cloud Console",
-    set_safebrowsing_apikey_placeholder: "AIza...",
-    set_virustotal_apikey: "מפתח API של VirusTotal",
-    set_virustotal_apikey_help:
-      "נדרש לבדיקת VirusTotal. עם מפתח השורה מציגה ציון inline של malicious/total; בלעדיו הפופאפ מציג בקשת 'נדרש מפתח'. מפתח ציבורי חינמי מספיק לשימוש אישי אך מוגבל בקצב (כ-4 בדיקות לדקה); תוכניות בתשלום מסירות את ההגבלה. נשמר מקומית במכשיר שלך.",
-    set_virustotal_apikey_link: "קבלת מפתח ב-VirusTotal",
-    set_virustotal_apikey_placeholder: "מפתח API של VirusTotal",
-    set_show: "הצג",
-    set_hide: "הסתר",
-    set_save: "שמור",
-    set_saved: "נשמר",
-    // Settings page — on-page highlight toggles
-    set_highlights_content: "הדגשות תוכן",
-    set_highlights_content_help:
-      "בחרו אילו ממצאי תוכן יודגשו בדף. השינויים חלים בסריקה הבאה של הפופאפ.",
-    set_highlights_links: "הדגשות קישורים",
-    set_highlights_links_help:
-      "בחרו אילו קישורים יקבלו מסגרת בדף. השינויים חלים בסריקה הבאה של הפופאפ.",
-  },
-};
+// The on-disk format: { key: { message, description? } }. We only need message.
+type RawMessages = Record<string, { message: string }>;
 
-// Applies the language: sets <html lang/dir> and fills any element carrying a
-// data-i18n (textContent) or data-i18n-placeholder (placeholder) attribute.
-export function applyI18n(lang: LangPref): void {
-  const dict = messages[lang];
+// Loaded dictionaries are cached so reopening a view or re-resolving a key never
+// refetches the same file.
+const cache = new Map<LangPref, Dict>();
+
+async function fetchDict(lang: LangPref): Promise<Dict> {
+  const url = chrome.runtime.getURL(`_locales/${lang}/messages.json`);
+  const raw = (await (await fetch(url)).json()) as RawMessages;
+  const dict: Dict = {};
+  for (const [key, entry] of Object.entries(raw)) dict[key] = entry.message;
+  return dict;
+}
+
+// Load (and cache) the message dictionary for a language. Falls back to English
+// if the requested file can't be read, and to an empty dict if even that fails,
+// in which case the HTML's built-in English text is left in place.
+export async function loadMessages(lang: LangPref): Promise<Dict> {
+  const cached = cache.get(lang);
+  if (cached) return cached;
+
+  try {
+    const dict = await fetchDict(lang);
+    cache.set(lang, dict);
+    return dict;
+  } catch {
+    if (lang !== "en") return loadMessages("en");
+    return {};
+  }
+}
+
+// Apply a loaded dictionary to the current document: set <html lang/dir> and fill
+// any element carrying a data-i18n (textContent) or data-i18n-placeholder
+// (placeholder) attribute.
+export function applyI18n(lang: LangPref, dict: Dict): void {
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === "he" ? "rtl" : "ltr";
 

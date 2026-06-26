@@ -10,7 +10,7 @@ import {
   type ThemePref,
 } from "../scripts/shared/settings";
 import { applyTheme } from "../scripts/shared/theme";
-import { applyI18n, messages } from "../scripts/shared/i18n";
+import { applyI18n, loadMessages, type Dict } from "../scripts/shared/i18n";
 
 const themeSelect = document.getElementById("theme") as HTMLSelectElement;
 const langSelect = document.getElementById("lang") as HTMLSelectElement;
@@ -39,10 +39,12 @@ const HIGHLIGHT_KEYS: (keyof HighlightSettings)[] = [
 ];
 
 let settings: Settings;
+// The loaded message dictionary for the user's language, filled by init().
+let dict: Dict = {};
 let statusTimer: number | undefined;
 
 function flashSaved(): void {
-  statusEl.textContent = messages[settings.lang].set_saved;
+  statusEl.textContent = dict.set_saved;
   if (statusTimer) clearTimeout(statusTimer);
   statusTimer = window.setTimeout(() => (statusEl.textContent = ""), 1500);
 }
@@ -50,7 +52,6 @@ function flashSaved(): void {
 // The Show/Hide label is state-dependent, so it's managed here rather than
 // through a static data-i18n attribute.
 function updateToggleLabel(): void {
-  const dict = messages[settings.lang];
   const label = (input: HTMLInputElement): string =>
     input.type === "text" ? dict.set_hide : dict.set_show;
   toggleKeyBtn.textContent = label(apiKeyInput);
@@ -67,6 +68,7 @@ function toggleVisibility(input: HTMLInputElement): void {
 
 async function init(): Promise<void> {
   settings = await loadSettings();
+  dict = await loadMessages(settings.lang);
 
   themeSelect.value = settings.theme;
   langSelect.value = settings.lang;
@@ -89,7 +91,7 @@ async function init(): Promise<void> {
   }
 
   applyTheme(settings.theme);
-  applyI18n(settings.lang);
+  applyI18n(settings.lang, dict);
   updateToggleLabel();
 
   themeSelect.addEventListener("change", async () => {
@@ -101,7 +103,8 @@ async function init(): Promise<void> {
 
   langSelect.addEventListener("change", async () => {
     settings = { ...settings, lang: langSelect.value as LangPref };
-    applyI18n(settings.lang);
+    dict = await loadMessages(settings.lang);
+    applyI18n(settings.lang, dict);
     updateToggleLabel();
     await saveSettings(settings);
     flashSaved();

@@ -1,0 +1,158 @@
+{
+  "appName": {
+    "message": "Risk Radar",
+    "description": "Extension name shown in Chrome and the Web Store."
+  },
+  "appDesc": {
+    "message": "מנתחת את מהימנות האתר ואת רמת הסיכון בזמן הגלישה, ומזהה פישינג, הנדסה חברתית ותוכן מניפולטיבי.",
+    "description": "Extension description shown in Chrome and the Web Store."
+  },
+
+  "scannedJustNow": { "message": "נסרק זה עתה" },
+  "verdict_safe": { "message": "בטוח" },
+  "rescan": { "message": "סריקה מחדש" },
+  "virustotal": { "message": "VirusTotal" },
+
+  "cat_url": { "message": "כתובת ודומיין" },
+  "cat_reputation": { "message": "מוניטין" },
+  "cat_content": { "message": "ניתוח תוכן" },
+  "cat_links": { "message": "קישורים" },
+  "cat_ai": { "message": "ניתוח AI" },
+
+  "status_good": { "message": "תקין" },
+  "status_warning": { "message": "אזהרה" },
+  "status_danger": { "message": "מסוכן" },
+
+  "sum_url": { "message": "הכתובת נראית בטוחה." },
+  "sum_url_warn": { "message": "בכתובת יש סימני אזהרה מסוימים." },
+  "sum_url_bad": { "message": "הכתובת נראית מסוכנת." },
+  "sum_url_unknown": { "message": "לא ניתן היה לנתח את הכתובת במלואה." },
+  "sum_reputation": { "message": "לאתר יש מוניטין טוב." },
+  "sum_reputation_warn": { "message": "לאתר יש סימני אזהרה במוניטין." },
+  "sum_reputation_bad": { "message": "לאתר יש מוניטין רע." },
+  "sum_reputation_unknown": { "message": "לא ניתן היה לבדוק את המוניטין של האתר." },
+  "sum_content": { "message": "לא נמצא תוכן חשוד." },
+  "sum_content_warn": { "message": "חלק מהתוכן נראה חשוד." },
+  "sum_content_bad": { "message": "בדף יש סימנים לפישינג." },
+  "sum_content_unknown": { "message": "לא ניתן היה לנתח את תוכן הדף." },
+  "sum_links": { "message": "לא נמצאו קישורים חשודים." },
+  "sum_links_warn": { "message": "חלק מהקישורים נראים חשודים." },
+  "sum_links_bad": { "message": "בדף יש קישורים מסוכנים." },
+  "sum_links_unknown": { "message": "לא ניתן היה לנתח את הקישורים בדף." },
+  "sum_ai": { "message": "מודל ה-AI לא מצא איומים." },
+
+  "det_form_insecure": { "message": "סיסמה נשלחת דרך HTTP" },
+  "det_form_crossOrigin": { "message": "סיסמה נשלחת לדומיין אחר" },
+
+  "tip_link_internal": { "message": "קישור פנימי (אותו דומיין)" },
+  "tip_link_external": { "message": "קישור חיצוני (דומיין אחר)" },
+  "tip_link_suspicious": { "message": "קישור חשוד" },
+  "tip_link_redirect": { "message": "הפניה זדונית" },
+  "reason_link_ip": { "message": "היעד הוא כתובת IP" },
+  "reason_link_punycode": { "message": "דומיין דמוי punycode או IDN" },
+  "reason_link_credentials": { "message": "פרטי התחברות מוטמעים בכתובת" },
+  "reason_link_lookalike": { "message": "הדומיין מתחזה למותג מוכר" },
+  "reason_link_shortener": { "message": "קישור מקוצר שמסתיר את היעד" },
+  "reason_link_manySub": { "message": "ריבוי תת-דומיינים חריג" },
+  "reason_link_keyword": { "message": "מילות פישינג בדומיין" },
+  "reason_link_redirectParam": { "message": "מפנה לאתר אחר דרך פרמטר בכתובת" },
+  "reason_link_textMismatch": { "message": "טקסט הקישור מציג דומיין שונה מזה שייפתח" },
+
+  "lbl_protocol": { "message": "פרוטוקול" },
+  "lbl_domainAge": { "message": "גיל הדומיין" },
+  "lbl_subdomain": { "message": "תת-דומיין" },
+  "lbl_urlLength": { "message": "אורך הכתובת" },
+  "lbl_suspiciousKeywords": { "message": "מילות מפתח חשודות" },
+  "lbl_safeBrowsing": { "message": "Google Safe Browsing" },
+  "lbl_virusTotal": { "message": "VirusTotal" },
+  "lbl_sucuri": { "message": "Sucuri SiteCheck" },
+  "lbl_phishingDb": { "message": "מאגר פישינג" },
+  "lbl_blacklist": { "message": "סטטוס רשימה שחורה" },
+  "lbl_ipReputation": { "message": "מוניטין IP של השרת" },
+  "lbl_phishingIndicators": { "message": "אינדיקטורים לפישינג" },
+  "lbl_suspiciousForms": { "message": "טפסים חשודים" },
+  "lbl_urgentLanguage": { "message": "שפה דחופה" },
+  "lbl_brandImpersonation": { "message": "התחזות למותג" },
+  "lbl_totalLinks": { "message": "סך הקישורים" },
+  "lbl_internalLinks": { "message": "קישורים פנימיים" },
+  "lbl_externalLinks": { "message": "קישורים חיצוניים" },
+  "lbl_suspiciousLinks": { "message": "קישורים חשודים" },
+  "lbl_maliciousRedirects": { "message": "הפניות זדוניות" },
+  "lbl_phishingProbability": { "message": "הסתברות לפישינג" },
+  "lbl_socialEngineering": { "message": "הנדסה חברתית" },
+  "lbl_contentRiskScore": { "message": "ציון סיכון תוכן" },
+  "lbl_summary": { "message": "סיכום" },
+
+  "val_short": { "message": "קצרה" },
+  "val_medium": { "message": "בינונית" },
+  "val_long": { "message": "ארוכה" },
+  "val_noneFound": { "message": "לא נמצאו" },
+  "val_clean": { "message": "נקי" },
+  "val_notListed": { "message": "לא רשום" },
+  "val_listed": { "message": "רשום" },
+  "val_blacklisted": { "message": "ברשימה שחורה" },
+  "val_unsafe": { "message": "לא בטוח" },
+  "val_notChecked": { "message": "לא נבדק" },
+  "val_reported": { "message": "דווח" },
+  "val_sharedCdn": { "message": "CDN משותף" },
+  "val_updating": { "message": "מתעדכן…" },
+  "val_keyNeeded": { "message": "נדרש מפתח" },
+  "btn_addKey": { "message": "הוסף מפתח" },
+  "btn_cancel": { "message": "ביטול" },
+  "val_none": { "message": "אין" },
+  "val_low": { "message": "נמוכה" },
+  "val_unknown": { "message": "לא ידוע" },
+
+  "unit_years": { "message": "שנים" },
+  "unit_months": { "message": "חודשים" },
+  "unit_days": { "message": "ימים" },
+  "ai_summary_body": { "message": "התוכן נראה לגיטימי ובטוח." },
+
+  "set_title": { "message": "הגדרות" },
+  "set_subtitle": { "message": "הגדרת Risk Radar." },
+  "set_appearance": { "message": "מראה" },
+  "set_theme": { "message": "ערכת נושא" },
+  "set_theme_system": { "message": "מערכת" },
+  "set_theme_light": { "message": "בהיר" },
+  "set_theme_dark": { "message": "כהה" },
+  "set_language": { "message": "שפה" },
+  "set_ai": { "message": "בינה מלאכותית" },
+  "set_apikey": { "message": "מפתח API של Claude" },
+  "set_apikey_help": {
+    "message": "משמש לניתוח תוכן מבוסס AI. ל-Anthropic אין תוכנית חינמית: רוכשים קרדיט מראש והחיוב הוא לפי טוקנים, כך שסריקה עולה בדרך כלל שבריר סנט. נשמר מקומית במכשיר שלך."
+  },
+  "set_apikey_link": { "message": "קבלת מפתח ב-Anthropic Console" },
+  "set_apikey_placeholder": { "message": "sk-ant-..." },
+  "set_deepseek_apikey": { "message": "מפתח API של DeepSeek" },
+  "set_deepseek_apikey_help": {
+    "message": "חלופה זולה יותר לניתוח תוכן מבוסס AI. ל-DeepSeek חיוב לפי שימוש ונדרשת יתרה קטנה ששולמה מראש, בעלות של כמה סנטים למיליון טוקנים. נשמר מקומית במכשיר שלך."
+  },
+  "set_deepseek_apikey_link": { "message": "קבלת מפתח ב-DeepSeek Platform" },
+  "set_deepseek_apikey_placeholder": { "message": "sk-..." },
+  "set_reputation": { "message": "מוניטין" },
+  "set_safebrowsing_apikey": { "message": "מפתח API של Google Safe Browsing" },
+  "set_safebrowsing_apikey_help": {
+    "message": "אופציונלי. בדיקת Safe Browsing פועלת כבר ללא מפתח דרך דוח השקיפות הציבורי של Google; מפתח משדרג אותה ל-Lookup API הרשמי. המפתח חינמי: צרו פרויקט ב-Google Cloud והפעילו את Safe Browsing API. נשמר מקומית במכשיר שלך."
+  },
+  "set_safebrowsing_apikey_link": { "message": "קבלת מפתח ב-Google Cloud Console" },
+  "set_safebrowsing_apikey_placeholder": { "message": "AIza..." },
+  "set_virustotal_apikey": { "message": "מפתח API של VirusTotal" },
+  "set_virustotal_apikey_help": {
+    "message": "נדרש לבדיקת VirusTotal. עם מפתח השורה מציגה ציון inline של malicious/total; בלעדיו הפופאפ מציג בקשת 'נדרש מפתח'. מפתח ציבורי חינמי מספיק לשימוש אישי אך מוגבל בקצב (כ-4 בדיקות לדקה); תוכניות בתשלום מסירות את ההגבלה. נשמר מקומית במכשיר שלך."
+  },
+  "set_virustotal_apikey_link": { "message": "קבלת מפתח ב-VirusTotal" },
+  "set_virustotal_apikey_placeholder": { "message": "מפתח API של VirusTotal" },
+  "set_show": { "message": "הצג" },
+  "set_hide": { "message": "הסתר" },
+  "set_save": { "message": "שמור" },
+  "set_saved": { "message": "נשמר" },
+
+  "set_highlights_content": { "message": "הדגשות תוכן" },
+  "set_highlights_content_help": {
+    "message": "בחרו אילו ממצאי תוכן יודגשו בדף. השינויים חלים בסריקה הבאה של הפופאפ."
+  },
+  "set_highlights_links": { "message": "הדגשות קישורים" },
+  "set_highlights_links_help": {
+    "message": "בחרו אילו קישורים יקבלו מסגרת בדף. השינויים חלים בסריקה הבאה של הפופאפ."
+  }
+}

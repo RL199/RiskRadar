@@ -1,9 +1,9 @@
 // Popup entry point. Compiled to popup.js by esbuild and loaded from popup.html.
 // Applies the user's theme/language, then handles view navigation.
 
-import { loadSettings, saveSettings, type LangPref, type Settings } from "../scripts/shared/settings";
+import { loadSettings, saveSettings, type Settings } from "../scripts/shared/settings";
 import { applyTheme } from "../scripts/shared/theme";
-import { applyI18n, messages } from "../scripts/shared/i18n";
+import { applyI18n, loadMessages, type Dict } from "../scripts/shared/i18n";
 import {
   analyzeProtocol,
   analyzeSubdomain,
@@ -43,8 +43,6 @@ import {
 } from "../scripts/shared/link-analysis";
 
 const MAIN_VIEW = "view-main";
-
-type Dict = Record<string, string>;
 
 // Status → presentation. The icon span gets a state class; the value text is
 // tinted with the matching status colour.
@@ -132,7 +130,9 @@ function setupVirusTotal(url: string | undefined): void {
 
 // ----------------------- API key modal ----------------------- //
 
-let currentLang: LangPref = "en";
+// The loaded message dictionary for the user's language, filled by init() before
+// any view renders so the synchronous render helpers below can read from it.
+let dict: Dict = {};
 let modalOnSave: ((key: string) => void | Promise<void>) | null = null;
 
 function closeKeyModal(): void {
@@ -161,7 +161,7 @@ function openKeyModal(opts: {
   const toggle = document.getElementById("key-modal-toggle");
   if (title) title.textContent = opts.title;
   if (help) help.textContent = opts.help;
-  if (toggle) toggle.textContent = messages[currentLang].set_show;
+  if (toggle) toggle.textContent = dict.set_show;
   input.placeholder = opts.placeholder;
   input.value = "";
   input.type = "password";
@@ -172,8 +172,7 @@ function openKeyModal(opts: {
 
 // Wire the modal's static controls once. The save button delegates to whatever
 // callback the opener registered.
-function setupKeyModal(lang: LangPref): void {
-  const dict = messages[lang];
+function setupKeyModal(): void {
   const input = document.getElementById("key-modal-input") as HTMLInputElement | null;
   const toggle = document.getElementById("key-modal-toggle");
   const cancel = document.getElementById("key-modal-cancel");
@@ -322,9 +321,7 @@ function setUnsupported(dict: Dict): void {
   }
 }
 
-async function analyzeUrlView(rawUrl: string | undefined, lang: LangPref): Promise<void> {
-  const dict = messages[lang];
-
+async function analyzeUrlView(rawUrl: string | undefined): Promise<void> {
   let url: URL | undefined;
   try {
     if (rawUrl) url = new URL(rawUrl);
@@ -473,7 +470,6 @@ function renderKeyNeeded(field: string, dict: Dict, onAdd: () => void): void {
 function openVirusTotalKeyModal(): void {
   if (!repContext) return;
   const { host, settings } = repContext;
-  const dict = messages[settings.lang];
 
   openKeyModal({
     title: dict.set_virustotal_apikey,
@@ -492,8 +488,6 @@ function openVirusTotalKeyModal(): void {
 }
 
 async function analyzeReputationView(rawUrl: string | undefined, settings: Settings): Promise<void> {
-  const dict = messages[settings.lang];
-
   let url: URL | undefined;
   try {
     if (rawUrl) url = new URL(rawUrl);
@@ -627,8 +621,6 @@ async function markPageMatches(
 }
 
 async function analyzeContentView(tab: chrome.tabs.Tab | undefined, settings: Settings): Promise<void> {
-  const dict = messages[settings.lang];
-
   let url: URL | undefined;
   try {
     if (tab?.url) url = new URL(tab.url);
@@ -757,8 +749,6 @@ function linkTitle(link: ClassifiedLink, dict: Dict): string {
 }
 
 async function analyzeLinksView(tab: chrome.tabs.Tab | undefined, settings: Settings): Promise<void> {
-  const dict = messages[settings.lang];
-
   let url: URL | undefined;
   try {
     if (tab?.url) url = new URL(tab.url);
@@ -813,16 +803,16 @@ async function analyzeLinksView(tab: chrome.tabs.Tab | undefined, settings: Sett
 
 async function init(): Promise<void> {
   const settings = await loadSettings();
-  currentLang = settings.lang;
+  dict = await loadMessages(settings.lang);
   applyTheme(settings.theme);
-  applyI18n(settings.lang);
+  applyI18n(settings.lang, dict);
   setupNavigation();
-  setupKeyModal(settings.lang);
+  setupKeyModal();
   const tab = await getActiveTab();
   const url = tab?.url ?? undefined;
   showActiveHost(url);
   setupVirusTotal(url);
-  void analyzeUrlView(url, settings.lang);
+  void analyzeUrlView(url);
   void analyzeReputationView(url, settings);
   void analyzeContentView(tab, settings);
   void analyzeLinksView(tab, settings);
