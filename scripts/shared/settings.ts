@@ -32,6 +32,12 @@ export interface Settings {
   virusTotalApiKey: string;
   // Which provider AI Analysis uses when the user runs it.
   aiProvider: AiProvider;
+  // Which model each provider uses. Values match the option ids in
+  // ai-analysis.ts (CLAUDE_MODELS / DEEPSEEK_MODELS); the defaults below pick the
+  // balanced/cheap option from each list, kept inline so this leaf module stays
+  // dependency-free.
+  claudeModel: string;
+  deepseekModel: string;
   highlights: HighlightSettings;
 }
 
@@ -56,6 +62,8 @@ export const DEFAULT_SETTINGS: Settings = {
   safeBrowsingApiKey: "",
   virusTotalApiKey: "",
   aiProvider: "claude",
+  claudeModel: "claude-sonnet-4-6",
+  deepseekModel: "deepseek-v4-flash",
   highlights: DEFAULT_HIGHLIGHTS,
 };
 

@@ -138,12 +138,14 @@
   },
   "set_apikey_link": { "message": "Get a key at the Anthropic Console" },
   "set_apikey_placeholder": { "message": "sk-ant-..." },
+  "set_claude_model": { "message": "Claude model" },
   "set_deepseek_apikey": { "message": "DeepSeek API key" },
   "set_deepseek_apikey_help": {
     "message": "A lower cost alternative for AI content analysis. DeepSeek is pay as you go and needs a small prepaid balance, billed per token at a few cents per million tokens. Stored locally on your device."
   },
   "set_deepseek_apikey_link": { "message": "Get a key at the DeepSeek Platform" },
   "set_deepseek_apikey_placeholder": { "message": "sk-..." },
+  "set_deepseek_model": { "message": "DeepSeek model" },
   "set_reputation": { "message": "Reputation" },
   "set_safebrowsing_apikey": { "message": "Google Safe Browsing API key" },
   "set_safebrowsing_apikey_help": {

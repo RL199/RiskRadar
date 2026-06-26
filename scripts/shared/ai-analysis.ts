@@ -16,13 +16,29 @@
 
 import type { PageContent } from "./content-analysis";
 
-// Which model each provider uses. Kept as one-line constants so they're trivial
-// to change.
-const CLAUDE_MODEL = "claude-sonnet-4-6";
-// DeepSeek's stable alias for its general chat model. Note: DeepSeek deprecates
-// `deepseek-chat` and `deepseek-reasoner` on 2026-07-24 in favour of
-// `deepseek-v4-flash` / `deepseek-v4-pro` — swap the string here when migrating.
-const DEEPSEEK_MODEL = "deepseek-chat";
+// The models the user can pick per provider. The options page renders these as
+// dropdowns; the `id` is the exact string each API expects and the `label` is
+// what the dropdown shows. Order the list with the most capable model first.
+export interface AiModelOption {
+  id: string;
+  label: string;
+}
+
+// Anthropic's current tiers: Opus (most capable), Sonnet (balanced), Haiku
+// (fastest and cheapest). https://docs.claude.com/en/docs/about-claude/models/overview
+export const CLAUDE_MODELS: readonly AiModelOption[] = [
+  { id: "claude-opus-4-8", label: "Claude Opus 4.8" },
+  { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
+  { id: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
+];
+
+// DeepSeek V4: Flash (fast and cheap) and Pro (most capable). These replace the
+// legacy `deepseek-chat` / `deepseek-reasoner` aliases, which DeepSeek
+// deprecates on 2026-07-24. https://api-docs.deepseek.com/quick_start/pricing
+export const DEEPSEEK_MODELS: readonly AiModelOption[] = [
+  { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
+  { id: "deepseek-v4-pro", label: "DeepSeek V4 Pro" },
+];
 
 // Cap the visible text we send so a huge page can't run up the token bill. A few
 // thousand characters is plenty for the model to judge intent.
@@ -106,7 +122,7 @@ function buildUserContent(input: AiInput): string {
 // anthropic-dangerous-direct-browser-access header opts into browser-origin
 // requests (the popup is an extension page, not a server). Returns the raw text
 // of the first content block, or null on any HTTP error.
-async function callClaude(apiKey: string, input: AiInput): Promise<string | null> {
+async function callClaude(apiKey: string, model: string, input: AiInput): Promise<string | null> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -116,7 +132,7 @@ async function callClaude(apiKey: string, input: AiInput): Promise<string | null
       "anthropic-dangerous-direct-browser-access": "true",
     },
     body: JSON.stringify({
-      model: CLAUDE_MODEL,
+      model,
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: buildUserContent(input) }],
@@ -139,7 +155,7 @@ async function callClaude(apiKey: string, input: AiInput): Promise<string | null
 // json_object enables JSON mode (the prompt already contains "json" + an
 // example, as that mode requires). Returns the message content, or null on any
 // HTTP error.
-async function callDeepseek(apiKey: string, input: AiInput): Promise<string | null> {
+async function callDeepseek(apiKey: string, model: string, input: AiInput): Promise<string | null> {
   const res = await fetch("https://api.deepseek.com/chat/completions", {
     method: "POST",
     headers: {
@@ -147,7 +163,7 @@ async function callDeepseek(apiKey: string, input: AiInput): Promise<string | nu
       authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: DEEPSEEK_MODEL,
+      model,
       max_tokens: 1024,
       response_format: { type: "json_object" },
       messages: [
@@ -224,19 +240,23 @@ function parseVerdict(text: string | null): AiVerdict | null {
 
 // -------------------------------- Entry ----------------------------------- //
 
-// Analyze a page with the chosen provider. Resolves to a verdict on success or a
-// message-key on failure ("ai_err_noKey" / "ai_err_request" / "ai_err_parse"),
-// never throwing.
+// Analyze a page with the chosen provider and model. Resolves to a verdict on
+// success or a message-key on failure ("ai_err_noKey" / "ai_err_request" /
+// "ai_err_parse"), never throwing.
 export async function analyzeWithAi(
   provider: AiProvider,
   apiKey: string,
+  model: string,
   input: AiInput,
 ): Promise<AiResult> {
   if (!apiKey) return { ok: false, error: "ai_err_noKey" };
 
   let text: string | null;
   try {
-    text = provider === "deepseek" ? await callDeepseek(apiKey, input) : await callClaude(apiKey, input);
+    text =
+      provider === "deepseek"
+        ? await callDeepseek(apiKey, model, input)
+        : await callClaude(apiKey, model, input);
   } catch {
     // Network failure, DNS, CORS, aborted request, etc.
     return { ok: false, error: "ai_err_request" };

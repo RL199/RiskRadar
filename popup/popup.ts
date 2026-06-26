@@ -887,6 +887,7 @@ async function runAiAnalysis(
 ): Promise<void> {
   const provider = settings.aiProvider;
   const key = provider === "deepseek" ? settings.deepseekApiKey : settings.apiKey;
+  const model = provider === "deepseek" ? settings.deepseekModel : settings.claudeModel;
 
   const button = document.getElementById("ai-analyze") as HTMLButtonElement | null;
   const note = document.getElementById("ai-note-body");
@@ -924,7 +925,7 @@ async function runAiAnalysis(
     return;
   }
 
-  const result = await analyzeWithAi(provider, key, {
+  const result = await analyzeWithAi(provider, key, model, {
     url: tab.url,
     host: new URL(tab.url).hostname,
     page,

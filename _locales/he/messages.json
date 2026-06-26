@@ -138,12 +138,14 @@
   },
   "set_apikey_link": { "message": "קבלת מפתח ב-Anthropic Console" },
   "set_apikey_placeholder": { "message": "sk-ant-..." },
+  "set_claude_model": { "message": "מודל Claude" },
   "set_deepseek_apikey": { "message": "מפתח API של DeepSeek" },
   "set_deepseek_apikey_help": {
     "message": "חלופה זולה יותר לניתוח תוכן מבוסס AI. ל-DeepSeek חיוב לפי שימוש ונדרשת יתרה קטנה ששולמה מראש, בעלות של כמה סנטים למיליון טוקנים. נשמר מקומית במכשיר שלך."
   },
   "set_deepseek_apikey_link": { "message": "קבלת מפתח ב-DeepSeek Platform" },
   "set_deepseek_apikey_placeholder": { "message": "sk-..." },
+  "set_deepseek_model": { "message": "מודל DeepSeek" },
   "set_reputation": { "message": "מוניטין" },
   "set_safebrowsing_apikey": { "message": "מפתח API של Google Safe Browsing" },
   "set_safebrowsing_apikey_help": {

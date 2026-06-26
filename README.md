@@ -306,19 +306,25 @@ same inline key modal the Reputation view uses, then runs the analysis. Both are
 popup with `fetch` (no SDK) — the `<all_urls>` host permission lets the extension reach
 `api.anthropic.com` and `api.deepseek.com` cross-origin.
 
+**Pick the model.** Each provider has a model dropdown under **Settings → AI**, saved on-device
+(`claudeModel` / `deepseekModel` in `chrome.storage.local`). The available options live in `CLAUDE_MODELS`
+and `DEEPSEEK_MODELS` in `ai-analysis.ts`, so adding or removing a model is a one-line change there:
+
 - **Claude** — Anthropic's [Messages API](https://docs.claude.com/en/api/messages) (`POST
-  https://api.anthropic.com/v1/messages`), model `claude-sonnet-4-6`. The response shape is pinned with
+  https://api.anthropic.com/v1/messages`), choosing between
+  [Opus 4.8, Sonnet 4.6, and Haiku 4.5](https://docs.claude.com/en/docs/about-claude/models/overview)
+  (default **Sonnet 4.6**). The response shape is pinned with
   [structured outputs](https://docs.claude.com/en/docs/build-with-claude/structured-outputs)
   (`output_config.format` + a JSON schema), and the
   [`anthropic-dangerous-direct-browser-access`](https://docs.claude.com/en/api/client-sdks) header opts
   the extension page into direct browser calls.
 - **DeepSeek** — the OpenAI-compatible
   [chat completions](https://api-docs.deepseek.com/api/create-chat-completion) endpoint (`POST
-  https://api.deepseek.com/chat/completions`), model `deepseek-chat`, with
+  https://api.deepseek.com/chat/completions`), choosing between
+  [V4 Flash and V4 Pro](https://api-docs.deepseek.com/quick_start/pricing) (default **V4 Flash**), with
   [JSON output mode](https://api-docs.deepseek.com/guides/json_mode)
-  (`response_format: { type: "json_object" }`). (DeepSeek deprecates `deepseek-chat` / `deepseek-reasoner`
-  on 2026-07-24 in favour of `deepseek-v4-flash` / `deepseek-v4-pro` — see the model constant in
-  `ai-analysis.ts`.)
+  (`response_format: { type: "json_object" }`). These V4 models replace the legacy `deepseek-chat` /
+  `deepseek-reasoner` aliases, which DeepSeek deprecates on 2026-07-24.
 
 Whatever the model returns is treated defensively: the response is parsed tolerantly (code fences and
 stray prose are stripped before the first `{…}` is read) and every score is clamped into range, so a

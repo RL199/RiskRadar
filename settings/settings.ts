@@ -11,13 +11,20 @@ import {
 } from "../scripts/shared/settings";
 import { applyTheme } from "../scripts/shared/theme";
 import { applyI18n, loadMessages, type Dict } from "../scripts/shared/i18n";
+import {
+  CLAUDE_MODELS,
+  DEEPSEEK_MODELS,
+  type AiModelOption,
+} from "../scripts/shared/ai-analysis";
 
 const themeSelect = document.getElementById("theme") as HTMLSelectElement;
 const langSelect = document.getElementById("lang") as HTMLSelectElement;
 const apiKeyInput = document.getElementById("apikey") as HTMLInputElement;
 const toggleKeyBtn = document.getElementById("toggle-key") as HTMLButtonElement;
+const claudeModelSelect = document.getElementById("claude-model") as HTMLSelectElement;
 const deepseekKeyInput = document.getElementById("deepseek-apikey") as HTMLInputElement;
 const toggleDeepseekKeyBtn = document.getElementById("toggle-deepseek-key") as HTMLButtonElement;
+const deepseekModelSelect = document.getElementById("deepseek-model") as HTMLSelectElement;
 const safeBrowsingKeyInput = document.getElementById("safebrowsing-apikey") as HTMLInputElement;
 const toggleSafeBrowsingKeyBtn = document.getElementById("toggle-safebrowsing-key") as HTMLButtonElement;
 const virusTotalKeyInput = document.getElementById("virustotal-apikey") as HTMLInputElement;
@@ -66,6 +73,23 @@ function toggleVisibility(input: HTMLInputElement): void {
   updateToggleLabel();
 }
 
+// Fill a model dropdown from the provider's option list and select the saved
+// value. The labels are brand names, so they're not run through i18n.
+function fillModelOptions(
+  select: HTMLSelectElement,
+  models: readonly AiModelOption[],
+  selected: string,
+): void {
+  select.replaceChildren();
+  for (const model of models) {
+    const option = document.createElement("option");
+    option.value = model.id;
+    option.textContent = model.label;
+    select.append(option);
+  }
+  select.value = selected;
+}
+
 async function init(): Promise<void> {
   settings = await loadSettings();
   dict = await loadMessages(settings.lang);
@@ -76,6 +100,9 @@ async function init(): Promise<void> {
   deepseekKeyInput.value = settings.deepseekApiKey;
   safeBrowsingKeyInput.value = settings.safeBrowsingApiKey;
   virusTotalKeyInput.value = settings.virusTotalApiKey;
+
+  fillModelOptions(claudeModelSelect, CLAUDE_MODELS, settings.claudeModel);
+  fillModelOptions(deepseekModelSelect, DEEPSEEK_MODELS, settings.deepseekModel);
 
   // The highlight toggles save immediately (like theme/language) so the choice
   // is in storage before the popup next reads it.
@@ -106,6 +133,20 @@ async function init(): Promise<void> {
     dict = await loadMessages(settings.lang);
     applyI18n(settings.lang, dict);
     updateToggleLabel();
+    await saveSettings(settings);
+    flashSaved();
+  });
+
+  // Model choices save immediately (like theme/language) so the popup reads the
+  // latest selection the next time it runs an analysis.
+  claudeModelSelect.addEventListener("change", async () => {
+    settings = { ...settings, claudeModel: claudeModelSelect.value };
+    await saveSettings(settings);
+    flashSaved();
+  });
+
+  deepseekModelSelect.addEventListener("change", async () => {
+    settings = { ...settings, deepseekModel: deepseekModelSelect.value };
     await saveSettings(settings);
     flashSaved();
   });
