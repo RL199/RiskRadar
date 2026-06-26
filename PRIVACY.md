@@ -1,7 +1,5 @@
 # Risk Radar Privacy Policy
 
-_Last updated: 2026-06-26 (extension version 0.0.1)_
-
 Risk Radar is a Chromium browser extension that analyzes the trustworthiness of the
 sites you visit. This policy explains exactly what data the extension touches, what
 stays on your device, and what is sent to third parties (and only then, when and why).
