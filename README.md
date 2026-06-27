@@ -429,7 +429,11 @@ shield's shading and the radar sweep are preserved and only the hue changes. PNG
 `createImageBitmap` works in both the popup and the background service worker (SVG decoding does not work
 off the main thread), so [`scripts/shared/icon.ts`](scripts/shared/icon.ts) serves both: opening the popup
 tints the active tab's icon from the same trust score it shows in the ring, and the auto-scan worker tints
-each tab as it scans.
+each tab as it scans. The packaged green PNGs are referenced by **absolute extension URL** via
+[`chrome.runtime.getURL`](https://developer.chrome.com/docs/extensions/reference/api/runtime#method-getURL)
+rather than a bare relative path, because `setIcon` resolves a relative `path` against the calling context
+(the extension root from the worker, but the `popup/` directory from the popup document, where the relative
+path would not exist) — an absolute URL resolves the same way from either caller.
 
 The **AI analysis is never run automatically here** — it bills your provider, so it stays governed by
 the [**When to scan with AI**](#ai) dropdown and only ever runs from the popup. To keep network load and
