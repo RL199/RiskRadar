@@ -18,9 +18,15 @@ export type IconBand = "good" | "warn" | "bad";
 // crisp across display densities.
 const SIZES = [16, 32, 48, 128] as const;
 
-// Path to each packaged green icon, also used to restore the default appearance.
+// Absolute extension URL to each packaged green icon, also used to restore the
+// default appearance. getURL() is used rather than a bare relative path because
+// chrome.action.setIcon resolves a relative `path` against the calling context:
+// from the service worker that is the extension root (correct), but from the
+// popup document it is the popup/ directory, so "assets/icons/icon-16.png" would
+// resolve to the non-existent popup/assets/icons/icon-16.png and fail to load.
+// An absolute chrome-extension:// URL resolves the same way from either caller.
 const DEFAULT_PATHS: Record<number, string> = Object.fromEntries(
-  SIZES.map((size) => [size, `assets/icons/icon-${size}.png`]),
+  SIZES.map((size) => [size, chrome.runtime.getURL(`assets/icons/icon-${size}.png`)]),
 );
 
 // Target hue (HSL degrees) for the bands that differ from the native green. Amber
@@ -87,7 +93,7 @@ async function recolouredIcon(band: "warn" | "bad"): Promise<Record<number, Imag
 
   const set: Record<number, ImageData> = {};
   for (const size of SIZES) {
-    const res = await fetch(chrome.runtime.getURL(DEFAULT_PATHS[size]));
+    const res = await fetch(DEFAULT_PATHS[size]);
     const bitmap = await createImageBitmap(await res.blob());
     const canvas = new OffscreenCanvas(size, size);
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
