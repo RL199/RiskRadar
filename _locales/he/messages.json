@@ -12,6 +12,8 @@
   "scanning": { "message": "סורק…" },
   "cantScan": { "message": "לא ניתן לסרוק דף זה" },
   "verdict_safe": { "message": "בטוח" },
+  "verdict_caution": { "message": "זהירות" },
+  "verdict_danger": { "message": "מסוכן" },
   "rescan": { "message": "סריקה מחדש" },
   "virustotal": { "message": "VirusTotal" },
 
@@ -65,6 +67,10 @@
   "reason_link_keyword": { "message": "מילות פישינג בדומיין" },
   "reason_link_redirectParam": { "message": "מפנה לאתר אחר דרך פרמטר בכתובת" },
   "reason_link_textMismatch": { "message": "טקסט הקישור מציג דומיין שונה מזה שייפתח" },
+
+  "warn_link_heading": { "message": "אזהרת בטיחות של Risk Radar" },
+  "warn_link_destination": { "message": "יעד" },
+  "warn_link_continue": { "message": "להמשיך לקישור הזה בכל זאת?" },
 
   "lbl_protocol": { "message": "פרוטוקול" },
   "lbl_domainAge": { "message": "גיל הדומיין" },

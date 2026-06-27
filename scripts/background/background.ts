@@ -41,6 +41,8 @@ import {
   type LinkMark,
   type PageLinks,
 } from "../shared/link-analysis";
+import { setActionIcon } from "../shared/icon";
+import { computeTrustScore, type ScoreInput, type SiteCategory } from "../shared/score";
 
 const ACTIVE_URL =
   "https://raw.githubusercontent.com/Phishing-Database/Phishing.Database/master/phishing-domains-ACTIVE.txt";
@@ -189,9 +191,10 @@ async function isListed(host: string): Promise<LookupStatus> {
 // When the user turns on "Scan pages automatically" (settings.autoScan), the
 // worker scans each page as it finishes loading in the active tab, without the
 // popup ever being opened. It runs the same offline + reputation + page checks
-// the popup runs (everything except the paid AI analysis), folds them into one
-// overall verdict shown as a colour-coded badge on the toolbar icon, and applies
-// the same in-page highlights the popup would, honouring the user's per-element
+// the popup runs (everything except the paid AI analysis), folds them into the
+// same weighted trust score the popup shows, and presents that score's band as a
+// colour-coded badge plus a matching tint on the toolbar icon, while applying the
+// same in-page highlights the popup would, honouring the user's per-element
 // highlight toggles.
 
 const SEVERITY: Record<RowStatus, number> = { neutral: 0, unknown: 0, good: 1, warn: 2, bad: 3 };
@@ -215,27 +218,35 @@ const lastScanned = new Map<number, string>();
 const scanning = new Set<number>();
 
 // URL & Domain category: the synchronous checks plus the RDAP domain-age lookup.
-async function scanUrlCategory(url: URL): Promise<RowStatus> {
+// A raw-IP host or a brand-new domain (< 30 days) is a strong phishing heuristic
+// that caps the trust score, mirroring the popup's URL view.
+async function scanUrlCategory(url: URL): Promise<ScoreInput> {
+  const subdomain = analyzeSubdomain(url.hostname);
   const statuses: RowStatus[] = [
     analyzeProtocol(url).status,
-    analyzeSubdomain(url.hostname).status,
+    subdomain.status,
     analyzeUrlLength(url).status,
     analyzeSuspiciousKeywords(url).status,
   ];
+  let ageStatus: RowStatus = "neutral";
   if (isLookupableDomain(url.hostname)) {
     const date = await fetchRegistrationDate(splitDomain(url.hostname).registrable);
     if (date) {
       const days = (Date.now() - date.getTime()) / 86_400_000;
-      statuses.push(days < 30 ? "bad" : days < 180 ? "warn" : "good");
+      ageStatus = days < 30 ? "bad" : days < 180 ? "warn" : "good";
+      statuses.push(ageStatus);
     }
   }
-  return overallOf(statuses);
+  return {
+    status: overallOf(statuses),
+    flags: { strong: subdomain.status === "bad" || ageStatus === "bad" },
+  };
 }
 
 // Reputation category: the same lookups the popup runs. The Phishing.Database
 // row reads this worker's own cached list directly (isListed) instead of the
 // message round-trip the popup uses, since a worker can't message itself.
-async function scanReputationCategory(url: URL, settings: Settings): Promise<RowStatus> {
+async function scanReputationCategory(url: URL, settings: Settings): Promise<ScoreInput> {
   const phishingStatus = async (): Promise<RowStatus> => {
     const s = await isListed(url.hostname);
     return s === "listed" ? "bad" : s === "clean" ? "good" : "unknown";
@@ -250,7 +261,10 @@ async function scanReputationCategory(url: URL, settings: Settings): Promise<Row
     checkDnsBlacklist(url.hostname).then((r) => r.status),
     checkIpReputation(url.hostname).then((r) => r.status),
   ]);
-  return overallOf(statuses);
+  // A "bad" reputation only ever comes from an authoritative blocklist/malware
+  // hit, so it definitively caps the trust score, mirroring the popup.
+  const status = overallOf(statuses);
+  return { status, flags: { definitive: status === "bad" } };
 }
 
 // Inject the page-content extractor and read back its summary. Returns null on
@@ -281,9 +295,9 @@ async function scanContentCategory(
   url: URL,
   settings: Settings,
   dict: Dict,
-): Promise<RowStatus> {
+): Promise<ScoreInput> {
   const page = await getPageContent(tabId);
-  if (!page) return "unknown";
+  if (!page) return { status: "unknown" };
 
   const phishing = analyzePhishingIndicators(page);
   const forms = analyzeSuspiciousForms(page);
@@ -310,7 +324,15 @@ async function scanContentCategory(
     // Page stopped being scriptable between read and mark; nothing to do.
   }
 
-  return overallOf([phishing.status, forms.status, urgent.status, brand.status]);
+  // A cleartext credential form definitively caps the score; brand impersonation
+  // or heavy phishing wording are strong heuristics. Mirrors the popup.
+  return {
+    status: overallOf([phishing.status, forms.status, urgent.status, brand.status]),
+    flags: {
+      definitive: forms.status === "bad",
+      strong: brand.status === "bad" || phishing.status === "bad",
+    },
+  };
 }
 
 // The hover label for a flagged link: the bucket name plus its specific reason.
@@ -323,11 +345,22 @@ function linkTitle(link: ClassifiedLink, dict: Dict): string {
   return reason ? `${head}: ${reason}` : head;
 }
 
+// The click-confirmation for a red link, mirroring the popup's linkWarning so
+// auto-scan guards read the same. Only the two risky buckets get one.
+function linkWarning(link: ClassifiedLink, dict: Dict): string | undefined {
+  if (link.verdict !== "suspicious" && link.verdict !== "redirect") return undefined;
+  const heading = dict.warn_link_heading ?? "Risk Radar safety warning";
+  const destLabel = dict.warn_link_destination ?? "Destination";
+  const cont = dict.warn_link_continue ?? "Continue to this link anyway?";
+  const dest = link.host ? `${destLabel}: ${link.host}\n\n` : "";
+  return `${heading}\n\n${linkTitle(link, dict)}\n\n${dest}${cont}`;
+}
+
 // Links category: read the page, classify its links, and outline them on the
 // page for the verdict buckets the user left enabled.
-async function scanLinksCategory(tabId: number, settings: Settings, dict: Dict): Promise<RowStatus> {
+async function scanLinksCategory(tabId: number, settings: Settings, dict: Dict): Promise<ScoreInput> {
   const page = await getPageLinks(tabId);
-  if (!page) return "unknown";
+  if (!page) return { status: "unknown" };
 
   const { classified, total, external, suspicious, redirects } = analyzeLinks(page);
 
@@ -341,7 +374,7 @@ async function scanLinksCategory(tabId: number, settings: Settings, dict: Dict):
   };
   const marks: LinkMark[] = classified.map((link) =>
     enabled[link.verdict] && link.verdict !== "ignore"
-      ? { verdict: link.verdict, title: linkTitle(link, dict) }
+      ? { verdict: link.verdict, title: linkTitle(link, dict), warn: linkWarning(link, dict) }
       : { verdict: "skip", title: "" },
   );
   try {
@@ -350,12 +383,12 @@ async function scanLinksCategory(tabId: number, settings: Settings, dict: Dict):
     // Page stopped being scriptable between read and mark; nothing to do.
   }
 
-  return overallOf([total.status, external.status, suspicious.status, redirects.status]);
+  return { status: overallOf([total.status, external.status, suspicious.status, redirects.status]) };
 }
 
-// Toolbar-badge presentation per overall verdict. The colours mirror the popup's
-// status palette: a determinate verdict shows its glyph; "unknown" is the popup's
-// muted "Can't scan this page" state, shown as a grey "?" beside the icon.
+// Toolbar-badge presentation per trust-score band. The colours mirror the popup's
+// status palette: a scored band shows its glyph; "unknown" is the popup's muted
+// "Can't scan this page" state, shown as a grey "?" beside the icon.
 const BADGE: Record<"good" | "warn" | "bad" | "unknown", { text: string; color: string }> = {
   good: { text: "✓", color: "#16a34a" },
   warn: { text: "!", color: "#d97706" },
@@ -365,8 +398,10 @@ const BADGE: Record<"good" | "warn" | "bad" | "unknown", { text: string; color: 
 
 // Badge for a page we couldn't produce a verdict for (a privileged page, or one
 // where every category came back unknown): the popup's "Can't scan this page".
+// The toolbar icon returns to its default green, since there is no verdict colour.
 async function markUnscannable(tabId: number): Promise<void> {
   await setBadge(tabId, BADGE.unknown.text, BADGE.unknown.color);
+  await setActionIcon(tabId, null);
 }
 
 async function clearBadge(tabId: number): Promise<void> {
@@ -375,6 +410,7 @@ async function clearBadge(tabId: number): Promise<void> {
   } catch {
     // Tab closed mid-scan.
   }
+  await setActionIcon(tabId, null); // restore the default green icon
 }
 
 async function setBadge(tabId: number, text: string, color: string): Promise<void> {
@@ -387,7 +423,8 @@ async function setBadge(tabId: number, text: string, color: string): Promise<voi
   }
 }
 
-// Run every category for one tab and paint the overall verdict onto its badge.
+// Run every category for one tab, fold them into a trust score, and paint that
+// score's band onto the tab's badge and toolbar icon.
 async function scanTab(tab: chrome.tabs.Tab, settings: Settings): Promise<void> {
   const tabId = tab.id;
   if (typeof tabId !== "number") return;
@@ -410,16 +447,26 @@ async function scanTab(tab: chrome.tabs.Tab, settings: Settings): Promise<void> 
     const dict = await loadMessages(settings.lang);
     await setBadge(tabId, "…", "#6b7280"); // muted "scanning" badge while checks run
 
-    const statuses = await Promise.all([
+    const [urlInput, reputationInput, contentInput, linksInput] = await Promise.all([
       scanUrlCategory(url),
       scanReputationCategory(url, settings),
       scanContentCategory(tabId, url, settings, dict),
       scanLinksCategory(tabId, settings, dict),
     ]);
 
-    const overall = overallOf(statuses);
-    if (overall === "good" || overall === "warn" || overall === "bad") {
-      await setBadge(tabId, BADGE[overall].text, BADGE[overall].color);
+    // Fold the four categories into the same weighted trust score the popup
+    // computes (AI is never run automatically here, so it's left out). The badge
+    // and icon take that score's band, so they always agree with the popup's ring.
+    const inputs: Partial<Record<SiteCategory, ScoreInput>> = {
+      url: urlInput,
+      reputation: reputationInput,
+      content: contentInput,
+      links: linksInput,
+    };
+    const trust = computeTrustScore(inputs);
+    if (trust) {
+      await setBadge(tabId, BADGE[trust.band].text, BADGE[trust.band].color);
+      await setActionIcon(tabId, trust.band); // tint the toolbar icon to the score
     } else {
       await markUnscannable(tabId); // nothing could be judged — grey "?"
     }

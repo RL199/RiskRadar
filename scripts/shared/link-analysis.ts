@@ -254,6 +254,10 @@ export function analyzeLinks(page: PageLinks): {
 export interface LinkMark {
   verdict: "internal" | "external" | "suspicious" | "redirect" | "skip";
   title: string;
+  // For the red buckets (suspicious / redirect) only: a ready-to-show
+  // confirmation message. When present, clicking the link is intercepted and the
+  // user must confirm before the browser navigates. Safe links leave this unset.
+  warn?: string;
 }
 
 // Injected into the active tab to mark the classified links on the page itself:
@@ -266,8 +270,14 @@ export interface LinkMark {
 // marks[i] lines up with the i-th <a href>. Safe to call repeatedly: each run
 // first undoes the previous run's marks, so re-scans don't stack and passing
 // all-"skip" marks clears the page.
+// A red link (suspicious / redirect) whose mark carries a `warn` message is also
+// guarded: clicking it pops a confirm() so the user can back out before the
+// browser navigates. One capture-phase listener on the document drives every
+// guarded link, so re-scans never add a second.
 export function highlightPageLinks(marks: LinkMark[]): void {
   const ATTR = "data-riskradar-link";
+  // Holds the per-link confirmation message; the click guard below reads it.
+  const WARN_ATTR = "data-riskradar-warn";
   // Per-verdict outline width, outline colour and tint. Colours mirror the
   // popup's palette: green "good", light blue for plain external links, red
   // "danger". The reassuring buckets (internal, external) get a thin outline;
@@ -288,6 +298,7 @@ export function highlightPageLinks(marks: LinkMark[]): void {
     el.style.outlineOffset = "";
     el.style.backgroundColor = el.dataset.riskradarBgPrev ?? "";
     el.removeAttribute(ATTR);
+    el.removeAttribute(WARN_ATTR);
     delete el.dataset.riskradarBgPrev;
     const prevTitle = el.dataset.riskradarTitlePrev;
     if (prevTitle !== undefined) {
@@ -317,6 +328,38 @@ export function highlightPageLinks(marks: LinkMark[]): void {
     // Borrow the title for the hover label, remembering any the page had.
     if (el.title) el.dataset.riskradarTitlePrev = el.title;
     el.title = mark.title;
+
+    // Red links carry a confirmation message; clicking one is intercepted by the
+    // document guard installed below.
+    if (mark.warn) el.setAttribute(WARN_ATTR, mark.warn);
+  }
+
+  // Guard clicks on the red links: one capture-phase listener on the document
+  // checks whether the clicked target sits inside a link carrying WARN_ATTR and,
+  // if so, asks the user to confirm before letting the navigation through. The
+  // "already installed" flag is kept on a DOM attribute rather than a closure
+  // because each scan re-injects this function fresh, yet the attribute (and the
+  // listener) persist with the page, so the guard is wired exactly once.
+  const GUARD_FLAG = "data-riskradar-link-guard";
+  if (!document.documentElement.hasAttribute(GUARD_FLAG)) {
+    document.documentElement.setAttribute(GUARD_FLAG, "");
+    const guard = (event: Event): void => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const message = target.closest(`[${WARN_ATTR}]`)?.getAttribute(WARN_ATTR);
+      if (!message) return;
+      // confirm() blocks synchronously, so a declined prompt can still cancel the
+      // click before the browser acts on it. Confirming lets the event continue
+      // untouched so the page's own handlers and the navigation still run.
+      if (!window.confirm(message)) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    // click covers left- and modifier-clicks; auxclick covers a middle-click
+    // (open in new tab), which does not fire a click event.
+    document.addEventListener("click", guard, true);
+    document.addEventListener("auxclick", guard, true);
   }
 }
 

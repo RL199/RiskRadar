@@ -117,23 +117,8 @@ body {
   background: var(--text-muted);
 }
 
-.dot--good {
-  background: var(--green);
-}
-
-.dot--warn {
-  background: var(--amber);
-}
-
-.dot--bad {
-  background: var(--red);
-}
-
-.dot--muted {
-  background: var(--text-muted);
-}
-
-/* A soft pulse while the auto-run categories are still scanning. */
+/* A soft pulse while the auto-run categories are still scanning. The dot is
+   shown only during a scan; settled states hide it via the [hidden] attribute. */
 .dot--scanning {
   background: var(--text-muted);
   animation: dot-pulse 1s ease-in-out infinite;
@@ -180,6 +165,32 @@ body {
   filter: drop-shadow(0 0 3px rgba(74, 222, 128, 0.7))
     drop-shadow(0 0 6px rgba(74, 222, 128, 0.4));
   transition: stroke-dasharray 0.6s ease;
+}
+
+/* Per-band arc colour + glow, set by the popup once the trust score is known.
+   The glows are hardcoded rgba to match each status colour's tint. */
+.score__value--good {
+  stroke: var(--green);
+  filter: drop-shadow(0 0 3px rgba(74, 222, 128, 0.7))
+    drop-shadow(0 0 6px rgba(74, 222, 128, 0.4));
+}
+
+.score__value--warn {
+  stroke: var(--amber);
+  filter: drop-shadow(0 0 3px rgba(245, 177, 61, 0.7))
+    drop-shadow(0 0 6px rgba(245, 177, 61, 0.4));
+}
+
+.score__value--bad {
+  stroke: var(--red);
+  filter: drop-shadow(0 0 3px rgba(248, 113, 113, 0.7))
+    drop-shadow(0 0 6px rgba(248, 113, 113, 0.4));
+}
+
+/* While scanning / when the page can't be scored: a flat, glow-less grey arc. */
+.score__value--muted {
+  stroke: var(--text-muted);
+  filter: none;
 }
 
 .score__label {

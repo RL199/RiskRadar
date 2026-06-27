@@ -19,10 +19,10 @@ third-party reputation services, and an AI model to surface threats before they 
 
 - **URL analysis:** protocol, domain, and structure checks (e.g. HTTP vs. HTTPS).
 - **Content scanning:** inspects the page DOM for suspicious patterns, and marks the matches on the page.
-- **Link scanning:** classifies the page's links into internal, external, suspicious, and malicious redirects, and marks them on the page.
+- **Link scanning:** classifies the page's links into internal, external, suspicious, and malicious redirects, marks them on the page, and warns before following a red (suspicious or malicious-redirect) link.
 - **Reputation integration:** Google Safe Browsing, VirusTotal, Sucuri SiteCheck, threat-filtering DNS (Cloudflare, Quad9), and server-IP reputation (SANS ISC / DShield).
 - **AI analysis:** on-demand phishing / social-engineering assessment of the page by a large language model (Claude or DeepSeek, your choice).
-- **Automatic scanning (optional):** scan every page as you browse without opening the popup, surfacing the verdict as a colour-coded badge on the toolbar icon and applying the on-page highlights.
+- **Automatic scanning (optional):** scan every page as you browse without opening the popup, surfacing the verdict as a colour-coded badge and a matching tint on the toolbar icon, and applying the on-page highlights.
 - **Clear results:** a trust score plus risk indicators, explained at varying levels of detail.
 
 ## How it works
@@ -41,19 +41,42 @@ Each check produces a status, either **good** (✓), **warning** (!), or **risky
 category's overall verdict reflects its worst finding. While a category is still scanning, its chip on
 the main list reads a muted **Loading** rather than a verdict, so a stale or default "Good" is never
 shown mid-scan; it switches to the real verdict once that category finishes (the AI chip instead reads
-**Not run** until a scan starts, then **Loading** while it runs). The dot beside the site name in the
-popup header rolls this up one level further: it shows a muted pulse while the automatic categories scan,
-then takes the colour of the worst verdict across them once they finish (or stays muted with a
-"Can't scan this page" note on pages with no scannable content, such as `chrome://` pages). AI
-analysis is on demand, so it feeds this header dot only when a scan actually runs (auto mode on open,
-or when you press Analyze): the dot returns to its scanning pulse and folds the AI verdict into the
-roll-up once it finishes. In manual mode without a scan, the dot settles on the four automatic
-categories alone.
+**Not run** until a scan starts, then **Loading** while it runs). The five category verdicts roll up
+into a single **trust score (1 to 100)** shown in the header ring (see [Trust score](#trust-score)
+below); the dot beside the site name, and the extension's **toolbar icon**, both take the colour of that
+score's band (green / amber / red), so the icon in the toolbar reflects the verdict even after the popup
+is closed. Both the ring and the dot show a muted pulse
+while the automatic categories scan, then settle once every expected category is in (or stay muted with
+a "Can't scan this page" note on pages with no scannable content, such as `chrome://` pages). AI
+analysis is on demand, so it feeds the score only when a scan actually runs (auto mode on open, or when
+you press Analyze): the header returns to its scanning pulse and folds the AI verdict into the score once
+it finishes. In manual mode without a scan, the score is computed from the four automatic categories alone.
 
 The footer's **Rescan** button re-runs every category against the current tab from a clean slate: it
-clears the header roll-up back to its scanning pulse, re-runs the four automatic categories, and resets
+clears the header score back to its scanning pulse, re-runs the four automatic categories, and resets
 the AI view to idle (re-running it too only in automatic mode with a key already set, so a rescan never
 bills you unprompted or pops the key modal).
+
+### Trust score
+
+The header number is a weighted average of the category verdicts with hard caps, so a broadly clean
+site scores high while a single authoritative red flag can never be averaged away into a green score.
+
+1. **Weighted average.** Each determinate category verdict maps to points (good = 100, warning = 55,
+   risky = 10) and is combined by weight: **Reputation 0.40, AI 0.20, Content 0.20, URL 0.15, Links
+   0.05**. Reputation leads because it is the only category backed by authoritative threat intelligence;
+   outbound links are the lightest signal. Categories that come back _Unknown_ (or the AI when it hasn't
+   run) are left out and the remaining weights are renormalized, so a missing check never skews the score.
+2. **Hard caps.** A **confirmed-malicious** signal caps the score at **15** (deep red): an authoritative
+   blocklist/malware hit (Safe Browsing, VirusTotal _malicious_, Sucuri, Phishing Database, or a DNS
+   sinkhole) or a password form that submits credentials in cleartext. Failing that, a **strong phishing
+   heuristic** caps it at **49** (no higher than the warning band): a raw-IP host, a brand-new domain
+   (< 30 days), brand impersonation on a credential page, or the AI rating the page high-risk. Softer
+   signals (a long URL, urgent wording, a cross-origin login form, suspicious outbound links) only lower
+   the average; they never cap.
+3. **Bands.** The final 1-100 score is coloured by the same thirds the rows use: **67-100** safe (green),
+   **34-66** caution (amber), **1-33** dangerous (red). A page with nothing determinate to score shows a
+   muted "Can't scan this page" instead of a number.
 
 ### URL & Domain
 
@@ -293,6 +316,17 @@ warnings; only off-site links with an actual phishing tell are marked. Each link
 External, Suspicious, and Malicious Redirects) can be **switched off individually** from the **Link
 highlights** section of the options page; a disabled bucket is left unmarked on the next scan.
 
+**Warning before following a red link.** Marking alone is passive, so the highlighter also **guards clicks
+on the red links**: clicking a suspicious link or a malicious redirect pops a
+[`confirm()`](https://developer.mozilla.org/en-US/docs/Web/API/Window/confirm) naming what was flagged,
+its reason, and the real destination host, and the page only navigates if the user chooses to continue.
+A single capture-phase listener on the document drives every guarded link (it reads a per-anchor
+`data-riskradar-warn` attribute holding the message, set from the same dictionary as the hover label), so
+re-scans never stack listeners; the guard covers `click` (left- and modifier-clicks) and `auxclick`
+(middle-click open-in-new-tab). Only the red buckets are guarded, so the green/blue internal and external
+links navigate untouched, and a bucket switched off in the **Link highlights** options is neither marked
+nor guarded.
+
 ### AI
 
 Where the other four categories are heuristic and offline (URL, Content, Links) or query keyless
@@ -373,17 +407,35 @@ when a page finishes loading in the active tab, and
 when you switch tabs), then runs the same URL, reputation, content, and link checks the popup runs —
 injecting the same self-contained extractors and highlighters via
 [`chrome.scripting.executeScript`](https://developer.chrome.com/docs/extensions/reference/api/scripting#method-executeScript)
-and honouring your per-element highlight toggles. The four categories are folded into one overall
-verdict (worst determinate finding wins) and painted onto the toolbar icon as a colour-coded badge via
-the [`chrome.action`](https://developer.chrome.com/docs/extensions/reference/api/action#method-setBadgeText)
-badge API: **✓** green (good), **!** amber (warning), **✕** red (risky), and a muted **…** while a scan
-is in flight. A page no verdict is possible for — a `chrome://` page, the new-tab page, or one where
-every category comes back unknown — shows a grey **?**, the popup's "Can't scan this page" state.
+and honouring your per-element highlight toggles. The four categories are folded into the **same weighted
+trust score the popup shows** (see [Trust score](#trust-score); AI is never run automatically, so it is
+left out), and that score's band is shown two ways on the toolbar icon: a colour-coded **badge** via the
+[`chrome.action`](https://developer.chrome.com/docs/extensions/reference/api/action#method-setBadgeText)
+badge API (**✓** green for a safe score, **!** amber for caution, **✕** red for dangerous, and a muted
+**…** while a scan is in flight), and a **matching tint of the icon itself** via
+[`chrome.action.setIcon`](https://developer.chrome.com/docs/extensions/reference/api/action#method-setIcon).
+Because both come from the trust score rather than a worst-of category verdict, the badge and icon always
+agree with the popup's ring (a single category warning on an otherwise clean site stays green, as the
+score does). A page no verdict is possible for — a `chrome://` page, the new-tab page, or one where every
+category comes back unknown — shows a grey **?** and the default green icon, the popup's "Can't scan this
+page" state.
+
+**How the icon is tinted.** The packaged icon is the green radar shield, so the amber/red variants are
+produced at runtime rather than shipped as extra files: the green PNG is decoded with
+[`createImageBitmap`](https://developer.mozilla.org/en-US/docs/Web/API/Window/createImageBitmap), drawn to
+an [`OffscreenCanvas`](https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvas), and each opaque
+pixel is hue-shifted to the band's hue while keeping its saturation, lightness and transparency, so the
+shield's shading and the radar sweep are preserved and only the hue changes. PNG decoding via
+`createImageBitmap` works in both the popup and the background service worker (SVG decoding does not work
+off the main thread), so [`scripts/shared/icon.ts`](scripts/shared/icon.ts) serves both: opening the popup
+tints the active tab's icon from the same trust score it shows in the ring, and the auto-scan worker tints
+each tab as it scans.
 
 The **AI analysis is never run automatically here** — it bills your provider, so it stays governed by
 the [**When to scan with AI**](#ai) dropdown and only ever runs from the popup. To keep network load and
 third-party rate limits in check, the worker scans only the tab you are actually looking at and skips a
-tab whose current URL it has already scanned. Turning the option off clears every badge.
+tab whose current URL it has already scanned. Turning the option off clears every badge and restores the
+default green icon.
 
 ## Localization
 
@@ -416,7 +468,7 @@ Language selector.
 ## Tech stack
 
 - **Languages:** TypeScript, HTML, CSS
-- **Platform:** Chrome Extension API (Manifest V3), including a background service worker (IndexedDB + `chrome.alarms`, plus optional auto-scan via `chrome.tabs` / `chrome.scripting` / `chrome.action` badges)
+- **Platform:** Chrome Extension API (Manifest V3), including a background service worker (IndexedDB + `chrome.alarms`, plus optional auto-scan via `chrome.tabs` / `chrome.scripting` / `chrome.action` badge + icon tinting)
 - **Localization:** `chrome.i18n` with `_locales/` message files (English and Hebrew, RTL-aware)
 - **External services:** AI and reputation APIs
 - **CI/CD:** GitHub Actions

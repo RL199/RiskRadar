@@ -1,7 +1,7 @@
 // Popup entry point. Compiled to popup.js by esbuild and loaded from popup.html.
 // Applies the user's theme/language, then handles view navigation.
 
-import { loadSettings, saveSettings, type AiProvider, type Settings } from "../scripts/shared/settings";
+import { loadSettings, saveSettings, type AiProvider, type LangPref, type Settings } from "../scripts/shared/settings";
 import { applyTheme } from "../scripts/shared/theme";
 import { applyI18n, loadMessages, type Dict } from "../scripts/shared/i18n";
 import {
@@ -46,6 +46,14 @@ import {
   type AiVerdict,
   type SocialEngineeringLevel,
 } from "../scripts/shared/ai-analysis";
+import {
+  computeTrustScore,
+  type ScoreBand,
+  type ScoreFlags,
+  type ScoreInput,
+  type SiteCategory,
+} from "../scripts/shared/score";
+import { setActionIcon, type IconBand } from "../scripts/shared/icon";
 
 const MAIN_VIEW = "view-main";
 
@@ -67,62 +75,177 @@ const TONE_CLASS: Record<RowStatus, string> = {
 };
 const SEVERITY: Record<RowStatus, number> = { neutral: 0, unknown: 0, good: 1, warn: 2, bad: 3 };
 
-// The site header's dot colour per overall status.
-const DOT_CLASS: Record<RowStatus, string> = {
-  good: "dot dot--good",
-  warn: "dot dot--warn",
-  bad: "dot dot--bad",
-  unknown: "dot dot--muted",
-  neutral: "dot dot--muted",
-};
-
-// Each category reports its overall verdict here; the dot takes the worst of
-// them. The four heuristic/reputation categories scan automatically on open, so
-// they're always expected. AI only runs on demand, so it joins `expected` (via
-// expectAiInSiteStatus) only when a scan actually starts — auto mode on open or
-// the user pressing Analyze — and otherwise the header completes without it.
-type SiteCategory = "url" | "reputation" | "content" | "links" | "ai";
+// Each category reports its overall verdict (and any tiered score flags) here;
+// the header trust score is computed from them. The four heuristic/reputation
+// categories scan automatically on open, so they're always expected. AI only
+// runs on demand, so it joins `expected` (via expectAiInSiteStatus) only when a
+// scan actually starts — auto mode on open or the user pressing Analyze — and
+// otherwise the header completes without it.
 const BASE_CATEGORIES: SiteCategory[] = ["url", "reputation", "content", "links"];
 const expectedCategories = new Set<SiteCategory>(BASE_CATEGORIES);
 const siteStatuses: Partial<Record<SiteCategory, RowStatus>> = {};
+const siteFlags: Partial<Record<SiteCategory, ScoreFlags>> = {};
 
-// Fold the AI scan into the header status: mark it pending and repaint the dot
+// The tab the popup is inspecting, captured in init(). Its toolbar icon is tinted
+// to match the trust score (see paintActionIcon).
+let activeTabId: number | undefined;
+// The band last painted onto the toolbar icon, so the repeated header repaints
+// during a scan don't re-issue an identical setIcon.
+let paintedIconBand: IconBand | null | undefined;
+
+// Tint the active tab's toolbar icon to match the header verdict: amber for a
+// caution score, red for danger, and the packaged green icon for a good score or
+// while scanning / when the page can't be scored (band null). Deduped so a scan
+// only repaints when the band changes.
+function paintActionIcon(band: IconBand | null): void {
+  if (typeof activeTabId !== "number" || band === paintedIconBand) return;
+  paintedIconBand = band;
+  void setActionIcon(activeTabId, band);
+}
+
+// Fold the AI scan into the header status: mark it pending and repaint the score
 // back to "scanning". Called when an AI analysis is about to run so the header
 // waits for its verdict alongside the automatic categories.
 function expectAiInSiteStatus(): void {
   delete siteStatuses.ai;
+  delete siteFlags.ai;
   expectedCategories.add("ai");
   refreshSiteStatus();
 }
 
-// Repaint the header dot + caption from whatever categories have reported so
-// far: a muted pulse while scanning, then the worst verdict's colour once every
-// category is in (or a muted "can't scan" state when nothing was scannable).
+// The SVG ring's circumference (r=52), used to turn a 0-100 score into the arc
+// length of the filled portion. The band classes recolour the arc per verdict.
+const RING_CIRCUMFERENCE = 2 * Math.PI * 52;
+const RING_BAND_CLASSES = [
+  "score__value--good",
+  "score__value--warn",
+  "score__value--bad",
+  "score__value--muted",
+];
+const RING_BAND_CLASS: Record<ScoreBand, string> = {
+  good: "score__value--good",
+  warn: "score__value--warn",
+  bad: "score__value--bad",
+};
+
+// Paint the score ring: the headline number, the arc fill (0-1), the arc colour
+// class, and the verdict word with its tone.
+function paintScoreRing(opts: {
+  num: string;
+  fraction: number;
+  ringClass: string;
+  verdictText: string;
+  verdictTone: string;
+}): void {
+  const ring = document.querySelector<SVGCircleElement>(".score__value");
+  if (ring) {
+    ring.classList.remove(...RING_BAND_CLASSES);
+    ring.classList.add(opts.ringClass);
+    const filled = RING_CIRCUMFERENCE * Math.max(0, Math.min(1, opts.fraction));
+    ring.style.strokeDasharray = `${filled.toFixed(1)} ${RING_CIRCUMFERENCE.toFixed(1)}`;
+  }
+  const num = document.querySelector<HTMLElement>(".score__num");
+  if (num) num.textContent = opts.num;
+  const verdict = document.querySelector<HTMLElement>(".score__verdict");
+  if (verdict) {
+    verdict.className = `score__verdict ${opts.verdictTone}`;
+    verdict.textContent = opts.verdictText;
+  }
+}
+
+// The UI language, captured in init(), used to format the scan time in the
+// header caption to match the rest of the popup's locale.
+let lang: LangPref = "en";
+
+// The current local time as a short "Scanned just now · 14:32" suffix.
+function formatScanTime(): string {
+  return new Date().toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit" });
+}
+
+// Repaint the header (score ring + dot + caption) from whatever categories have
+// reported so far: a pulsing dot while scanning, then the computed trust score
+// and its band colour once every category is in (or a muted "can't scan" state
+// when nothing was scannable). The dot shows only during the scan; settled
+// states replace it with the time the scan finished.
 function refreshSiteStatus(): void {
   const dot = document.getElementById("site-dot");
   const caption = document.getElementById("site-caption");
+  // The pulsing dot only marks an in-flight scan; settled states show no dot,
+  // just the caption.
+  const showScanningDot = (): void => {
+    if (dot) {
+      dot.className = "dot dot--scanning";
+      dot.hidden = false;
+    }
+  };
+  const hideDot = (): void => {
+    if (dot) dot.hidden = true;
+  };
+  const paintCaption = (text: string): void => {
+    if (caption) caption.textContent = text;
+  };
 
   const expected = [...expectedCategories];
-  const reported = expected
-    .map((c) => siteStatuses[c])
-    .filter((s): s is RowStatus => s !== undefined);
+  const reportedCats = expected.filter((c) => siteStatuses[c] !== undefined);
 
   // Still scanning until every expected category has reported.
-  if (reported.length < expected.length) {
-    if (dot) dot.className = "dot dot--scanning";
-    if (caption) caption.textContent = dict.scanning;
+  if (reportedCats.length < expected.length) {
+    showScanningDot();
+    paintCaption(dict.scanning);
+    paintScoreRing({
+      num: "…",
+      fraction: 0,
+      ringClass: "score__value--muted",
+      // The caption above the ring already reads "Scanning…", so the ring's
+      // verdict word stays blank rather than repeating it inside the dial.
+      verdictText: "",
+      verdictTone: "status--muted",
+    });
+    paintActionIcon(null);
     return;
   }
 
-  const determinate = reported.filter((s) => s === "good" || s === "warn" || s === "bad");
-  const overall: RowStatus = determinate.length ? worst(determinate) : "unknown";
-  if (dot) dot.className = DOT_CLASS[overall];
-  if (caption) caption.textContent = overall === "unknown" ? dict.cantScan : dict.scannedJustNow;
+  const inputs: Partial<Record<SiteCategory, ScoreInput>> = {};
+  for (const c of reportedCats) inputs[c] = { status: siteStatuses[c]!, flags: siteFlags[c] };
+  const trust = computeTrustScore(inputs);
+
+  // Nothing determinate to score (every category came back unknown) — the
+  // popup's muted "can't scan this page" state.
+  if (!trust) {
+    hideDot();
+    paintCaption(dict.cantScan);
+    paintScoreRing({
+      num: "—",
+      fraction: 0,
+      ringClass: "score__value--muted",
+      verdictText: dict.val_unknown,
+      verdictTone: "status--muted",
+    });
+    paintActionIcon(null);
+    return;
+  }
+
+  const verdictText =
+    trust.band === "bad" ? dict.verdict_danger : trust.band === "warn" ? dict.verdict_caution : dict.verdict_safe;
+  hideDot();
+  paintCaption(`${dict.scannedJustNow} · ${formatScanTime()}`);
+  paintScoreRing({
+    num: String(trust.score),
+    fraction: trust.score / 100,
+    ringClass: RING_BAND_CLASS[trust.band],
+    verdictText,
+    verdictTone: TONE_CLASS[trust.band],
+  });
+  paintActionIcon(trust.band);
 }
 
-// Record one category's overall verdict, then repaint the header indicator.
-function reportSiteStatus(category: SiteCategory, status: RowStatus): void {
+// Record one category's overall verdict (and any tiered score flags), then
+// repaint the header. Passing no flags clears any flags a prior scan left for
+// that category, so a re-run that comes back clean drops its old cap.
+function reportSiteStatus(category: SiteCategory, status: RowStatus, flags?: ScoreFlags): void {
   siteStatuses[category] = status;
+  if (flags) siteFlags[category] = flags;
+  else delete siteFlags[category];
   refreshSiteStatus();
 }
 
@@ -355,8 +478,9 @@ function formatAge(date: Date, dict: Dict): AnalyzedRow {
 }
 
 // Set the view's summary verdict + subtitle and the matching chip on the main
-// list, all from the overall (worst) status.
-function setVerdict(status: RowStatus, ageUnknown: boolean, dict: Dict): void {
+// list, all from the overall (worst) status. `flags` carries any strong-heuristic
+// signal (raw-IP host, brand-new domain) on to the header trust score.
+function setVerdict(status: RowStatus, ageUnknown: boolean, dict: Dict, flags: ScoreFlags = {}): void {
   const tone = TONE_CLASS[status] || "status--good";
   const vKey = status === "bad" ? "status_danger" : status === "warn" ? "status_warning" : "status_good";
   const sKey =
@@ -376,7 +500,7 @@ function setVerdict(status: RowStatus, ageUnknown: boolean, dict: Dict): void {
     chip.textContent = dict[vKey];
   }
 
-  reportSiteStatus("url", status);
+  reportSiteStatus("url", status, flags);
 }
 
 function setUnsupported(dict: Dict): void {
@@ -424,10 +548,14 @@ async function analyzeUrlView(rawUrl: string | undefined): Promise<void> {
   renderRow("urlLength", length, dict, length.status !== "good");
   renderRow("suspiciousKeywords", keywords, dict, keywords.status !== "good");
 
+  // A raw-IP host is a strong phishing heuristic (analyzeSubdomain only ever
+  // returns "bad" for an IP literal), so it caps the header trust score.
+  const ipHost = subdomain.status === "bad";
+
   // Show a provisional verdict immediately, then refine once the domain age
   // (a network lookup) resolves.
   const syncWorst = worst([protocol.status, subdomain.status, length.status, keywords.status]);
-  setVerdict(syncWorst, true, dict);
+  setVerdict(syncWorst, true, dict, { strong: ipHost });
 
   // Domain age via RDAP. Show a placeholder while the request is in flight.
   renderRow("domainAge", { text: "…", status: "neutral" }, dict, false);
@@ -448,10 +576,12 @@ async function analyzeUrlView(rawUrl: string | undefined): Promise<void> {
     renderRow("domainAge", { key: "val_unknown", status: "neutral" }, dict, false);
   }
 
+  // A brand-new domain (< 30 days, "bad") is the other strong URL heuristic.
   setVerdict(
     worst([protocol.status, subdomain.status, length.status, keywords.status, ageStatus]),
     ageUnknown,
     dict,
+    { strong: ipHost || ageStatus === "bad" },
   );
 }
 
@@ -508,7 +638,10 @@ function setReputationVerdict(status: RowStatus, dict: Dict): void {
     chip.textContent = dict[vKey];
   }
 
-  reportSiteStatus("reputation", status);
+  // A "bad" reputation only ever comes from an authoritative blocklist/malware
+  // hit (Safe Browsing, VirusTotal malicious, Sucuri, Phishing Database, a DNS
+  // sinkhole) — the soft signals top out at "warn" — so it's a definitive cap.
+  reportSiteStatus("reputation", status, { definitive: status === "bad" });
 }
 
 // Last computed status of each reputation row, plus the page context — kept so a
@@ -628,8 +761,10 @@ const CONTENT_FIELDS = [
 ] as const;
 
 // Set the Content view's summary verdict + subtitle and the matching chip on the
-// main list, all from the overall (worst) status.
-function setContentVerdict(status: RowStatus, dict: Dict): void {
+// main list, all from the overall (worst) status. `flags` carries a cleartext
+// credential form (definitive) or brand impersonation / heavy phishing wording
+// (strong) on to the header trust score.
+function setContentVerdict(status: RowStatus, dict: Dict, flags: ScoreFlags = {}): void {
   const tone = status === "unknown" ? "status--muted" : TONE_CLASS[status] || "status--good";
   const vKey =
     status === "bad"
@@ -662,7 +797,7 @@ function setContentVerdict(status: RowStatus, dict: Dict): void {
     chip.textContent = dict[vKey];
   }
 
-  reportSiteStatus("content", status);
+  reportSiteStatus("content", status, flags);
 }
 
 // Inject the self-contained extractor into the active tab and read back its
@@ -737,7 +872,14 @@ async function analyzeContentView(tab: chrome.tabs.Tab | undefined, settings: Se
   renderRow("urgentLanguage", urgent, dict, urgent.status !== "good");
   renderRow("brandImpersonation", brand, dict, brand.status !== "good");
 
-  setContentVerdict(worst([phishing.status, forms.status, urgent.status, brand.status]), dict);
+  // A cleartext credential form ("bad" from a leaking password form) is a
+  // confirmed-malicious cap; brand impersonation or 3+ phishing phrases are
+  // strong heuristics. Cross-origin-only forms and urgent wording stay soft, so
+  // they only nudge the averaged score rather than capping it.
+  setContentVerdict(worst([phishing.status, forms.status, urgent.status, brand.status]), dict, {
+    definitive: forms.status === "bad",
+    strong: brand.status === "bad" || phishing.status === "bad",
+  });
 
   // Mark those same matches on the page, each tagged with its category so the
   // in-page hover tooltip can name it, but only for the categories the user left
@@ -832,6 +974,16 @@ function linkTitle(link: ClassifiedLink, dict: Dict): string {
   return reason ? `${head}: ${reason}` : head;
 }
 
+// The confirmation shown when the user clicks a red link on the page: the bucket
+// name and reason (the same wording as the hover label), the destination host,
+// and a continue prompt. Only the two risky buckets get one; safe links navigate
+// without interruption.
+function linkWarning(link: ClassifiedLink, dict: Dict): string | undefined {
+  if (link.verdict !== "suspicious" && link.verdict !== "redirect") return undefined;
+  const dest = link.host ? `${dict.warn_link_destination}: ${link.host}\n\n` : "";
+  return `${dict.warn_link_heading}\n\n${linkTitle(link, dict)}\n\n${dest}${dict.warn_link_continue}`;
+}
+
 async function analyzeLinksView(tab: chrome.tabs.Tab | undefined, settings: Settings): Promise<void> {
   let url: URL | undefined;
   try {
@@ -879,7 +1031,7 @@ async function analyzeLinksView(tab: chrome.tabs.Tab | undefined, settings: Sett
   };
   const marks: LinkMark[] = classified.map((link) =>
     enabled[link.verdict] && link.verdict !== "ignore"
-      ? { verdict: link.verdict, title: linkTitle(link, dict) }
+      ? { verdict: link.verdict, title: linkTitle(link, dict), warn: linkWarning(link, dict) }
       : { verdict: "skip", title: "" },
   );
   void markPageLinks(tab.id, marks);
@@ -956,7 +1108,9 @@ function renderAiVerdict(verdict: AiVerdict): void {
   const note = document.getElementById("ai-note-body");
   if (note) note.textContent = verdict.summary || dict[sKey];
 
-  reportSiteStatus("ai", overall);
+  // The model rating the page high-risk is a strong heuristic (it caps the score
+  // at the warning band) but not a definitive blocklist hit.
+  reportSiteStatus("ai", overall, { strong: overall === "bad" });
 }
 
 // Run the analysis with the chosen provider's key. Shows progress, then renders
@@ -1141,12 +1295,14 @@ function setupRescan(tab: chrome.tabs.Tab | undefined, settings: Settings): void
 
 async function init(): Promise<void> {
   const settings = await loadSettings();
+  lang = settings.lang;
   dict = await loadMessages(settings.lang);
   applyTheme(settings.theme);
   applyI18n(settings.lang, dict);
   setupNavigation();
   setupKeyModal();
   const tab = await getActiveTab();
+  activeTabId = tab?.id;
   const url = tab?.url ?? undefined;
   showActiveHost(url);
   setupVirusTotal(url);

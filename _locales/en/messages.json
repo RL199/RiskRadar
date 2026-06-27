@@ -12,6 +12,8 @@
   "scanning": { "message": "Scanning…" },
   "cantScan": { "message": "Can't scan this page" },
   "verdict_safe": { "message": "Safe" },
+  "verdict_caution": { "message": "Caution" },
+  "verdict_danger": { "message": "Dangerous" },
   "rescan": { "message": "Rescan" },
   "virustotal": { "message": "VirusTotal" },
 
@@ -65,6 +67,10 @@
   "reason_link_keyword": { "message": "phishing keywords in the domain" },
   "reason_link_redirectParam": { "message": "redirects elsewhere through a URL parameter" },
   "reason_link_textMismatch": { "message": "link text shows a different domain than it opens" },
+
+  "warn_link_heading": { "message": "Risk Radar safety warning" },
+  "warn_link_destination": { "message": "Destination" },
+  "warn_link_continue": { "message": "Continue to this link anyway?" },
 
   "lbl_protocol": { "message": "Protocol" },
   "lbl_domainAge": { "message": "Domain Age" },
