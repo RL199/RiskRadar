@@ -95,7 +95,35 @@ function fillModelOptions(
   select.value = selected;
 }
 
+// Masonry packing for the card grid. CSS grid sizes every row to its tallest
+// card, which leaves tall empty bands under short cards that share a row with
+// a tall one. Instead, rows become a small fixed unit (.settings__grid.masonry)
+// and each card spans enough of them to cover its own height plus one gap, so
+// each card slots in right below the card above it. Spans are refreshed
+// whenever a card's size changes (window resizes, language switches).
+const MASONRY_ROW_PX = 8;
+const MASONRY_GAP_PX = 16;
+
+function initMasonry(): void {
+  const grid = document.querySelector<HTMLElement>(".settings__grid");
+  if (!grid) return;
+  const cards = Array.from(grid.children).filter((el): el is HTMLElement => {
+    return el instanceof HTMLElement;
+  });
+  const relayout = (): void => {
+    for (const card of cards) {
+      const span = Math.ceil((card.offsetHeight + MASONRY_GAP_PX) / MASONRY_ROW_PX);
+      card.style.gridRowEnd = `span ${span}`;
+    }
+  };
+  grid.classList.add("masonry");
+  relayout();
+  const observer = new ResizeObserver(relayout);
+  for (const card of cards) observer.observe(card);
+}
+
 async function init(): Promise<void> {
+  initMasonry();
   settings = await loadSettings();
   dict = await loadMessages(settings.lang);
 

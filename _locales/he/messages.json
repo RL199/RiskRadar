@@ -199,5 +199,10 @@
   "set_highlights_links": { "message": "הדגשות קישורים" },
   "set_highlights_links_help": {
     "message": "בחרו אילו קישורים יקבלו מסגרת בדף. השינויים חלים בסריקה הבאה של הפופאפ."
-  }
+  },
+
+  "prev_phishingIndicators": { "message": "אמת את החשבון" },
+  "prev_urgentLanguage": { "message": "נדרשת פעולה מיידית" },
+  "prev_brandImpersonation": { "message": "חשבון פייפאל" },
+  "prev_suspiciousForms": { "message": "סיסמה" }
 }

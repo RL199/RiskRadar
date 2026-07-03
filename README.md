@@ -242,8 +242,10 @@ are non-destructive and reversible (the form outline and any borrowed `title` ar
 scan), the highlighter runs in the page's **main world** so it shares the page's CSS highlight registry,
 and re-running clears the previous pass so a now-clean page is left unmarked. Each of these marks
 (Phishing Indicators, Urgent Language, Brand Impersonation, and Suspicious Forms) can be **switched off
-individually** from the **Content highlights** section of the options page; a disabled category is simply
-left unmarked on the next scan.
+individually** from the **Content highlights** section of the options page, where every toggle shows a
+**live preview chip** of its mark (a sample flagged phrase with the red text highlight, and a mock
+password field with the red form outline) so it's clear what each switch turns off; a disabled category
+is simply left unmarked on the next scan.
 
 > **A note on false positives.** Several of these signals also show up on perfectly legitimate pages: your
 > bank's real login genuinely says "verify your account", a real promotion genuinely says "limited time
@@ -315,7 +317,9 @@ pass. **Benign external links are counted but deliberately not painted red:** an
 to many legitimate sites (CDNs, social, references), so flagging every external link would bury the real
 warnings; only off-site links with an actual phishing tell are marked. Each link bucket (Internal,
 External, Suspicious, and Malicious Redirects) can be **switched off individually** from the **Link
-highlights** section of the options page; a disabled bucket is left unmarked on the next scan.
+highlights** section of the options page, where every toggle shows a **live preview chip** of its outline
+(a sample link drawn in that bucket's exact colour and weight) so it's clear what each switch turns off;
+a disabled bucket is left unmarked on the next scan.
 
 **Warning before following a red link.** Marking alone is passive, so the highlighter also **guards clicks
 on the red links**: clicking a suspicious link or a malicious redirect pops a
@@ -494,6 +498,7 @@ Language selector.
 - **Languages:** TypeScript, HTML, CSS
 - **Platform:** Chrome Extension API (Manifest V3), including a background service worker (IndexedDB + `chrome.alarms`, plus optional auto-scan via `chrome.tabs` / `chrome.scripting` / `chrome.action` badge + icon tinting)
 - **Localization:** `chrome.i18n` with `_locales/` message files (English and Hebrew, RTL-aware)
+- **Theming:** shared design tokens in `styles/theme.css` (dark by default, light via a `data-theme` override). The options page follows the brand icon: green accents throughout and a radar rings and sweep backdrop built with CSS [`color-mix()`](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color-mix), [`conic-gradient()`](https://developer.mozilla.org/en-US/docs/Web/CSS/gradient/conic-gradient) and [`mask-image`](https://developer.mozilla.org/en-US/docs/Web/CSS/mask-image), with the sweep animation disabled under [`prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion). Its card grid packs masonry style at any window width, including ultrawide: since [CSS masonry](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_grid_layout/Masonry_layout) has not shipped in stable Chrome, each card spans a number of fixed 8px grid rows matching its measured height, kept current by a [`ResizeObserver`](https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver)
 - **External services:** AI and reputation APIs
 - **CI/CD:** GitHub Actions
 - **Version control:** Git / GitHub

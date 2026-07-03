@@ -199,5 +199,10 @@
   "set_highlights_links": { "message": "Link highlights" },
   "set_highlights_links_help": {
     "message": "Choose which links get outlined on the page. Changes apply the next time the popup scans a page."
-  }
+  },
+
+  "prev_phishingIndicators": { "message": "verify your account" },
+  "prev_urgentLanguage": { "message": "act immediately" },
+  "prev_brandImpersonation": { "message": "your PayPal account" },
+  "prev_suspiciousForms": { "message": "Password" }
 }
