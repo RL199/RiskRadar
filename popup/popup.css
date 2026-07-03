@@ -59,9 +59,11 @@ body {
   display: inline-flex;
 }
 
+/* The shield logo glows softly, matching the options page header. */
 .brand__logo img {
   width: auto;
   height: 24px;
+  filter: drop-shadow(0 0 6px var(--glow));
 }
 
 .brand__name {
@@ -340,7 +342,7 @@ body {
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: var(--blue);
+  color: var(--green);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -425,7 +427,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 7px;
   background: transparent;
-  color: var(--blue);
+  color: var(--green);
   font: inherit;
   font-size: 12px;
   font-weight: 500;
@@ -516,6 +518,7 @@ body {
   opacity: 0.6;
   cursor: default;
   filter: none;
+  box-shadow: none;
 }
 
 /* ------------------------------ Modal ------------------------------ */
@@ -581,7 +584,7 @@ body {
 }
 
 .control:focus-visible {
-  outline: 2px solid var(--blue);
+  outline: 2px solid var(--green);
   outline-offset: 1px;
 }
 
@@ -599,11 +602,12 @@ body {
   padding: 8px 16px;
   border: none;
   border-radius: 8px;
-  background: var(--blue);
-  color: #fff;
+  background: var(--green);
+  color: var(--on-accent);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--green) 28%, transparent);
 }
 
 .btn-primary:hover {
@@ -623,7 +627,14 @@ body {
 
 .btn-ghost:hover {
   background: var(--surface-2);
+  border-color: color-mix(in srgb, var(--green) 35%, var(--border));
   color: var(--text);
+}
+
+.btn-primary:focus-visible,
+.btn-ghost:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
 }
 
 /* ----------------------------- Status ----------------------------- */

@@ -15,6 +15,11 @@
 
   --green: #4ade80;
   --green-bg: rgba(74, 222, 128, 0.12);
+  /* Brand accent derivatives shared by the popup and the options page:
+     text/knob color on top of a green fill, and a soft glow tint. --glow
+     follows --green automatically via the cascade in each theme. */
+  --on-accent: #052e16;
+  --glow: color-mix(in srgb, var(--green) 45%, transparent);
   --amber: #f5b13d;
   --amber-bg: rgba(245, 177, 61, 0.12);
   --red: #f87171;
@@ -48,6 +53,7 @@
 
   --green: #16a34a;
   --green-bg: rgba(22, 163, 74, 0.12);
+  --on-accent: #ffffff;
   --amber: #c2740a;
   --amber-bg: rgba(217, 119, 6, 0.14);
   --red: #dc2626;

@@ -7,18 +7,6 @@
   box-sizing: border-box;
 }
 
-:root {
-  /* Text and knob color on top of a brand green fill. Dark theme uses the
-     shield gradient's deepest green, light theme uses white. */
-  --on-accent: #052e16;
-  /* Soft green used for glows, derived from the theme's green. */
-  --glow: color-mix(in srgb, var(--green) 45%, transparent);
-}
-
-[data-theme="light"] {
-  --on-accent: #ffffff;
-}
-
 /* The page background lives on <html> so the fixed radar layers below,
    which sit behind the body content at z-index -1, stay visible. */
 html {

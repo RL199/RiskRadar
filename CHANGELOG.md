@@ -32,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ResizeObserver), so short cards no longer leave tall empty bands before the next row.
 - The Save button (with its saved status flash) moved from below the cards to the top right corner
   of the options page header, mirrored under RTL.
+- Popup restyled to the same brand palette as the options page: the footer actions, inline key
+  buttons, Analyze and modal buttons, and focus rings switch from blue to the brand green (with the
+  same on-accent text and glow treatment), and the header shield logo glows. The shared green
+  accent tokens moved into `styles/theme.css`. The category icon tiles keep their distinct palette.
 
 ## [0.0.1]
 
