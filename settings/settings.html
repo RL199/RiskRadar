@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Risk Radar — Settings</title>
+    <link rel="stylesheet" href="../styles/theme.css" />
+    <link rel="stylesheet" href="settings.css" />
+  </head>
+  <body>
+    <main class="settings">
+      <header class="settings__head">
+        <span class="settings__logo" aria-hidden="true">
+          <img src="../assets/icon-plain.svg" alt="" width="34" height="40" />
+        </span>
+        <div>
+          <h1 class="settings__title" data-i18n="set_title">Settings</h1>
+          <p class="settings__subtitle" data-i18n="set_subtitle">Configure Risk Radar.</p>
+        </div>
+        <div class="settings__actions">
+          <span id="status" class="status-msg" role="status"></span>
+          <button id="save" class="btn-primary" type="button" data-i18n="set_save">Save</button>
+        </div>
+      </header>
+
+      <div class="settings__grid">
+        <section class="card">
+          <h2 class="card__title" data-i18n="set_appearance">Appearance</h2>
+
+          <div class="field">
+            <label class="field__label" for="theme" data-i18n="set_theme">Theme</label>
+            <select id="theme" class="control">
+              <option value="system" data-i18n="set_theme_system">System</option>
+              <option value="light" data-i18n="set_theme_light">Light</option>
+              <option value="dark" data-i18n="set_theme_dark">Dark</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="lang" data-i18n="set_language">Language</label>
+            <select id="lang" class="control">
+              <option value="en">English</option>
+              <option value="he">עברית</option>
+            </select>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="card__title" data-i18n="set_scanning">Scanning</h2>
+          <p class="field__help highlights__help" data-i18n="set_autoscan_help">
+            When on, Risk Radar scans every page you visit on its own, without opening the popup: it
+            shows a colour-coded risk badge on the toolbar icon and highlights findings on the page. It
+            runs the same URL, reputation, content, and link checks the popup does; the AI analysis is
+            never run automatically.
+          </p>
+          <div class="toggles">
+            <label class="toggle">
+              <span class="toggle__label" data-i18n="set_autoscan">Scan pages automatically</span>
+              <input id="autoscan" class="toggle__input" type="checkbox" />
+            </label>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="card__title" data-i18n="set_warnings">Safety warnings</h2>
+          <p class="field__help highlights__help" data-i18n="set_warnings_help">
+            Choose when Risk Radar interrupts a risky navigation with a confirmation prompt. Both are
+            on by default.
+          </p>
+          <div class="toggles">
+            <label class="toggle">
+              <span class="toggle__label" data-i18n="set_warn_links">Warn before opening malicious links</span>
+              <input id="warn-malicious-links" class="toggle__input" type="checkbox" />
+            </label>
+            <label class="toggle">
+              <span class="toggle__label" data-i18n="set_warn_typed">Warn when I type a risky address</span>
+              <input id="warn-typed-url" class="toggle__input" type="checkbox" />
+            </label>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="card__title" data-i18n="set_ai">AI</h2>
+
+          <div class="field">
+            <label class="field__label" for="ai-scan-mode" data-i18n="set_ai_scan_mode"
+              >When to scan with AI</label
+            >
+            <select id="ai-scan-mode" class="control">
+              <option value="auto" data-i18n="set_ai_scan_auto">Automatically when the popup opens</option>
+              <option value="manual" data-i18n="set_ai_scan_manual">When I click Analyze</option>
+            </select>
+            <p class="field__help" data-i18n="set_ai_scan_mode_help">
+              Automatic scans call the AI (and bill your provider) every time you open the popup on a
+              scannable page, and need a key for the selected provider. Manual scans only run when you
+              click Analyze.
+            </p>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="apikey" data-i18n="set_apikey">Claude API key</label>
+            <div class="apikey">
+              <input
+                id="apikey"
+                class="control"
+                type="password"
+                placeholder="sk-ant-..."
+                data-i18n-placeholder="set_apikey_placeholder"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button id="toggle-key" class="btn-ghost" type="button">Show</button>
+            </div>
+            <p class="field__help" data-i18n="set_apikey_help">
+              Used for AI-based content analysis. Stored locally on your device.
+            </p>
+            <a
+              class="field__link"
+              href="https://console.anthropic.com/settings/keys"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-i18n="set_apikey_link"
+              >Get a key at the Anthropic Console</a
+            >
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="claude-model" data-i18n="set_claude_model"
+              >Claude model</label
+            >
+            <select id="claude-model" class="control"></select>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="deepseek-apikey" data-i18n="set_deepseek_apikey"
+              >DeepSeek API key</label
+            >
+            <div class="apikey">
+              <input
+                id="deepseek-apikey"
+                class="control"
+                type="password"
+                placeholder="sk-..."
+                data-i18n-placeholder="set_deepseek_apikey_placeholder"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button id="toggle-deepseek-key" class="btn-ghost" type="button">Show</button>
+            </div>
+            <p class="field__help" data-i18n="set_deepseek_apikey_help">
+              Used for AI-based content analysis. Stored locally on your device.
+            </p>
+            <a
+              class="field__link"
+              href="https://platform.deepseek.com/api_keys"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-i18n="set_deepseek_apikey_link"
+              >Get a key at the DeepSeek Platform</a
+            >
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="deepseek-model" data-i18n="set_deepseek_model"
+              >DeepSeek model</label
+            >
+            <select id="deepseek-model" class="control"></select>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="card__title" data-i18n="set_reputation">Reputation</h2>
+
+          <div class="field">
+            <label class="field__label" for="safebrowsing-apikey" data-i18n="set_safebrowsing_apikey"
+              >Google Safe Browsing API key</label
+            >
+            <div class="apikey">
+              <input
+                id="safebrowsing-apikey"
+                class="control"
+                type="password"
+                placeholder="AIza..."
+                data-i18n-placeholder="set_safebrowsing_apikey_placeholder"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button id="toggle-safebrowsing-key" class="btn-ghost" type="button">Show</button>
+            </div>
+            <p class="field__help" data-i18n="set_safebrowsing_apikey_help">
+              Optional. Safe Browsing already works without a key via Google's public Transparency
+              Report; a key upgrades it to the official Lookup API. Stored locally on your device.
+            </p>
+            <a
+              class="field__link"
+              href="https://console.cloud.google.com/apis/library/safebrowsing.googleapis.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-i18n="set_safebrowsing_apikey_link"
+              >Get a key in the Google Cloud Console</a
+            >
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="virustotal-apikey" data-i18n="set_virustotal_apikey"
+              >VirusTotal API key</label
+            >
+            <div class="apikey">
+              <input
+                id="virustotal-apikey"
+                class="control"
+                type="password"
+                placeholder="VirusTotal API key"
+                data-i18n-placeholder="set_virustotal_apikey_placeholder"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button id="toggle-virustotal-key" class="btn-ghost" type="button">Show</button>
+            </div>
+            <p class="field__help" data-i18n="set_virustotal_apikey_help">
+              Needed for the VirusTotal check. With a key the row shows an inline malicious/total
+              verdict; without one the popup shows a "Key needed" prompt. Stored locally on your device.
+            </p>
+            <a
+              class="field__link"
+              href="https://www.virustotal.com/gui/my-apikey"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-i18n="set_virustotal_apikey_link"
+              >Get a key at VirusTotal</a
+            >
+          </div>
+
+        </section>
+
+        <section class="card">
+          <h2 class="card__title" data-i18n="set_highlights_content">Content highlights</h2>
+          <p class="field__help highlights__help" data-i18n="set_highlights_content_help">
+            Choose which content findings get highlighted on the page. Changes apply the next time the
+            popup scans a page.
+          </p>
+          <div class="toggles">
+            <label class="toggle">
+              <span class="toggle__text">
+                <span class="toggle__label" data-i18n="lbl_phishingIndicators">Phishing Indicators</span>
+                <span class="hl-preview"
+                  ><span class="hl-sample hl-sample--mark" data-i18n="prev_phishingIndicators"
+                    >verify your account</span
+                  ></span
+                >
+              </span>
+              <input id="hl-phishingIndicators" class="toggle__input" type="checkbox" />
+            </label>
+            <label class="toggle">
+              <span class="toggle__text">
+                <span class="toggle__label" data-i18n="lbl_urgentLanguage">Urgent Language</span>
+                <span class="hl-preview"
+                  ><span class="hl-sample hl-sample--mark" data-i18n="prev_urgentLanguage"
+                    >act immediately</span
+                  ></span
+                >
+              </span>
+              <input id="hl-urgentLanguage" class="toggle__input" type="checkbox" />
+            </label>
+            <label class="toggle">
+              <span class="toggle__text">
+                <span class="toggle__label" data-i18n="lbl_brandImpersonation">Brand Impersonation</span>
+                <span class="hl-preview"
+                  ><span class="hl-sample hl-sample--mark" data-i18n="prev_brandImpersonation"
+                    >your PayPal account</span
+                  ></span
+                >
+              </span>
+              <input id="hl-brandImpersonation" class="toggle__input" type="checkbox" />
+            </label>
+            <label class="toggle">
+              <span class="toggle__text">
+                <span class="toggle__label" data-i18n="lbl_suspiciousForms">Suspicious Forms</span>
+                <span class="hl-preview">
+                  <span class="hl-sample hl-sample--form">
+                    <span data-i18n="prev_suspiciousForms">Password</span>
+                    <span class="hl-form-input" aria-hidden="true">••••••</span>
+                  </span>
+                </span>
+              </span>
+              <input id="hl-suspiciousForms" class="toggle__input" type="checkbox" />
+            </label>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="card__title" data-i18n="set_highlights_links">Link highlights</h2>
+          <p class="field__help highlights__help" data-i18n="set_highlights_links_help">
+            Choose which links get outlined on the page. Changes apply the next time the popup scans a
+            page.
+          </p>
+          <div class="toggles">
+            <label class="toggle">
+              <span class="toggle__text">
+                <span class="toggle__label" data-i18n="lbl_internalLinks">Internal Links</span>
+                <span class="hl-preview"
+                  ><span class="hl-sample hl-sample--link hl-sample--internal" dir="ltr"
+                    >example.com/about</span
+                  ></span
+                >
+              </span>
+              <input id="hl-internalLinks" class="toggle__input" type="checkbox" />
+            </label>
+            <label class="toggle">
+              <span class="toggle__text">
+                <span class="toggle__label" data-i18n="lbl_externalLinks">External Links</span>
+                <span class="hl-preview"
+                  ><span class="hl-sample hl-sample--link hl-sample--external" dir="ltr"
+                    >partner-site.com</span
+                  ></span
+                >
+              </span>
+              <input id="hl-externalLinks" class="toggle__input" type="checkbox" />
+            </label>
+            <label class="toggle">
+              <span class="toggle__text">
+                <span class="toggle__label" data-i18n="lbl_suspiciousLinks">Suspicious Links</span>
+                <span class="hl-preview"
+                  ><span class="hl-sample hl-sample--link hl-sample--risk" dir="ltr"
+                    >paypal.secure-login.net</span
+                  ></span
+                >
+              </span>
+              <input id="hl-suspiciousLinks" class="toggle__input" type="checkbox" />
+            </label>
+            <label class="toggle">
+              <span class="toggle__text">
+                <span class="toggle__label" data-i18n="lbl_maliciousRedirects">Malicious Redirects</span>
+                <span class="hl-preview"
+                  ><span class="hl-sample hl-sample--link hl-sample--risk" dir="ltr"
+                    >site.com?url=evil.io</span
+                  ></span
+                >
+              </span>
+              <input id="hl-maliciousRedirects" class="toggle__input" type="checkbox" />
+            </label>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script type="module" src="settings.js"></script>
+  </body>
+</html>

@@ -1,12 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Risk Radar shield logo">
   <defs>
     <linearGradient id="shieldBg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0f4c81"/>
-      <stop offset="100%" stop-color="#072a47"/>
+      <stop offset="0%" stop-color="#15803d"/>
+      <stop offset="100%" stop-color="#052e16"/>
     </linearGradient>
-    <linearGradient id="sweepB" x1="50%" y1="50%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#4dd0e1" stop-opacity="0.7"/>
-      <stop offset="100%" stop-color="#4dd0e1" stop-opacity="0"/>
+    <!-- Beam trail: brightest along the leading edge, fading toward the trailing
+         arc, echoing the conic gradient sweep on the settings page background. -->
+    <linearGradient id="sweepTrail" gradientUnits="userSpaceOnUse" x1="64" y1="45" x2="36" y2="45">
+      <stop offset="0%" stop-color="#4ade80" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#4ade80" stop-opacity="0"/>
     </linearGradient>
     <filter id="glow" x="-75%" y="-75%" width="250%" height="250%">
       <feGaussianBlur stdDeviation="2.2" result="blur"/>
@@ -19,34 +21,37 @@
 
   <!-- Shield -->
   <path d="M64 8 L112 26 V64 C112 96 90 114 64 122 C38 114 16 96 16 64 V26 Z"
-        fill="url(#shieldBg)" stroke="#4dd0e1" stroke-width="3"/>
+        fill="url(#shieldBg)" stroke="#4ade80" stroke-width="3"/>
 
   <!-- Radar rings -->
-  <g fill="none" stroke="#4dd0e1" stroke-opacity="0.4" stroke-width="1.5">
+  <g fill="none" stroke="#4ade80" stroke-opacity="0.4" stroke-width="1.5">
     <circle cx="64" cy="62" r="34"/>
     <circle cx="64" cy="62" r="22"/>
     <circle cx="64" cy="62" r="10"/>
   </g>
 
-  <!-- Sweep -->
-  <path d="M64 62 L64 28 A34 34 0 0 1 93 45 Z" fill="url(#sweepB)"/>
-  <line x1="64" y1="62" x2="64" y2="28" stroke="#4dd0e1" stroke-width="2"/>
+  <!-- Sweep: a bright leading edge with the trail fading behind it, turning
+       clockwise around the ring center like the settings page radar sweep. -->
+  <g>
+    <path d="M64 62 L64 28 A34 34 0 0 0 35 45 Z" fill="url(#sweepTrail)"/>
+    <line x1="64" y1="62" x2="64" y2="28" stroke="#4ade80" stroke-width="2"/>
+    <animateTransform attributeName="transform" type="rotate"
+                      from="0 64 62" to="360 64 62" dur="8s" repeatCount="indefinite"/>
+  </g>
 
-  <!-- Threat target-lock marker -->
+  <!-- Contact blip: sits at 58 degrees clockwise from north, so the beam
+       reaches it 0.16 into each 8s cycle; the dot brightens and a ping ring
+       spreads out, then both settle until the next pass. -->
   <g transform="translate(83 50)">
-    <!-- pulsing ping ring -->
-    <circle r="9" fill="none" stroke="#ff5252" stroke-width="2" opacity="0.7">
-      <animate attributeName="r" values="6;14;6" dur="1.8s" repeatCount="indefinite"/>
-      <animate attributeName="opacity" values="0.8;0;0.8" dur="1.8s" repeatCount="indefinite"/>
+    <circle r="3.5" fill="#4ade80" filter="url(#glow)" opacity="0.35">
+      <animate attributeName="opacity" values="0.35;0.35;1;0.35;0.35"
+               keyTimes="0;0.15;0.18;0.55;1" dur="8s" repeatCount="indefinite"/>
     </circle>
-    <!-- corner brackets (target lock) -->
-    <g stroke="#ff7b7b" stroke-width="2" stroke-linecap="round" fill="none">
-      <path d="M-9 -6 V-9 H-6"/>
-      <path d="M6 -9 H9 V-6"/>
-      <path d="M9 6 V9 H6"/>
-      <path d="M-6 9 H-9 V6"/>
-    </g>
-    <!-- glowing core -->
-    <circle r="4" fill="#ff5252" filter="url(#glow)"/>
+    <circle r="4" fill="none" stroke="#4ade80" stroke-width="1.5" opacity="0">
+      <animate attributeName="r" values="4;4;12;12"
+               keyTimes="0;0.16;0.55;1" dur="8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0;0.7;0;0"
+               keyTimes="0;0.16;0.18;0.55;1" dur="8s" repeatCount="indefinite"/>
+    </circle>
   </g>
 </svg>

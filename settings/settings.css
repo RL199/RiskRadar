@@ -1,0 +1,457 @@
+/* Design tokens (colors, --radius) come from ../styles/theme.css.
+   The page styling follows the extension icon (assets/icon-plain.svg):
+   brand green accents, a glowing shield logo, and a faint radar rings
+   plus sweep backdrop echoing the radar inside the shield. */
+
+* {
+  box-sizing: border-box;
+}
+
+/* The page background lives on <html> so the fixed radar layers below,
+   which sit behind the body content at z-index -1, stay visible. */
+html {
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  background: transparent;
+  color: var(--text);
+}
+
+/* Radar backdrop: a soft green wash and faint concentric rings spreading
+   from above the top of the page, like the rings inside the shield icon.
+   A mask fades them out so the form area below stays clean. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      56rem 26rem at 50% -10rem,
+      color-mix(in srgb, var(--green) 9%, transparent),
+      transparent 70%
+    ),
+    repeating-radial-gradient(
+      circle at 50% -10rem,
+      transparent 0 5.5rem,
+      color-mix(in srgb, var(--green) 18%, transparent) 5.5rem calc(5.5rem + 1px)
+    );
+  mask-image: radial-gradient(circle 42rem at 50% -10rem, #000 20%, transparent 95%);
+}
+
+/* Radar sweep: a slow beam turning around the same center as the rings,
+   matching the sweep wedge in the icon. */
+body::after {
+  content: "";
+  position: fixed;
+  top: -10rem;
+  left: 50%;
+  z-index: -1;
+  width: 90rem;
+  height: 90rem;
+  margin: -45rem 0 0 -45rem;
+  border-radius: 50%;
+  pointer-events: none;
+  background: conic-gradient(
+    transparent 0 0.76turn,
+    color-mix(in srgb, var(--green) 10%, transparent) 0.97turn,
+    color-mix(in srgb, var(--green) 22%, transparent) 0.996turn,
+    transparent 0.996turn
+  );
+  mask-image: radial-gradient(circle, #000 0 40%, transparent 68%);
+  animation: radar-sweep 26s linear infinite;
+}
+
+@keyframes radar-sweep {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::after {
+    animation: none;
+  }
+}
+
+.settings {
+  margin: 0 auto;
+  padding: 36px 24px 48px;
+}
+
+/* Cards flow into as many columns as fit, so ultrawide screens get more
+   columns instead of empty margins, and the layout collapses back to a
+   single column on narrow windows. The cards live in their own grid,
+   separate from the header and footer, so auto-fit can collapse unused
+   trailing tracks and the remaining columns stretch to fill the row. */
+.settings__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+/* Masonry packing, activated by settings.js: rows shrink to a small unit and
+   the script gives each card a row span matching its measured height, so a
+   card sits right below its column neighbor instead of waiting for the
+   tallest card of the row. The visual row gap comes from the span formula,
+   hence row-gap 0. Without JS the grid above stands as the fallback. */
+.settings__grid.masonry {
+  grid-auto-rows: 8px;
+  row-gap: 0;
+}
+
+/* Header */
+.settings__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+/* Save action pinned to the end of the header row (the top right corner in
+   LTR, mirrored under RTL), with the saved status flash beside it. */
+.settings__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-inline-start: auto;
+}
+
+.settings__logo {
+  display: inline-flex;
+}
+
+/* The shield logo glows softly, like the score ring in the popup. */
+.settings__logo img {
+  width: auto;
+  height: 40px;
+  filter: drop-shadow(0 0 8px var(--glow));
+}
+
+.settings__title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.settings__subtitle {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* Card */
+.card {
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  transition: border-color 0.15s ease;
+}
+
+.card:hover {
+  border-color: color-mix(in srgb, var(--green) 22%, var(--border));
+}
+.card__title {
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+/* Fields */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 18px;
+}
+
+.field:last-of-type {
+  margin-bottom: 0;
+}
+
+.field__label {
+  font-weight: 500;
+}
+
+.field__help {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.field__link {
+  width: fit-content;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--green);
+  text-decoration: none;
+}
+
+.field__link:hover {
+  text-decoration: underline;
+}
+
+.field__link:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.control {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.control:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 1px;
+}
+
+select.control {
+  cursor: pointer;
+}
+
+/* API key */
+.apikey {
+  display: flex;
+  gap: 8px;
+}
+
+.apikey .control {
+  flex: 1;
+  font-family: ui-monospace, "Cascadia Code", monospace;
+}
+
+/* Highlights */
+.highlights__help {
+  margin-bottom: 14px;
+}
+
+.toggles {
+  display: flex;
+  flex-direction: column;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  cursor: pointer;
+}
+
+.toggle + .toggle {
+  border-top: 1px solid var(--border);
+}
+
+/* Label plus its preview chip stacked on the left of the switch. min-width 0
+   lets the chip ellipsize instead of widening the card. */
+.toggle__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.toggle__label {
+  font-weight: 500;
+}
+
+/* Highlight previews: a small page-like chip under each toggle drawing the
+   exact mark that toggle controls on real pages. Colors are the fixed values
+   the injected highlighters use (highlightPageMatches / highlightPageLinks in
+   scripts/shared), not theme tokens, so the preview matches what pages get. */
+.hl-preview {
+  max-width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Dim the chip while its toggle is off, so the rows read at a glance. */
+.toggle:has(.toggle__input:not(:checked)) .hl-preview {
+  opacity: 0.45;
+}
+
+/* Phrase mark: the translucent red wash the CSS Custom Highlight paints over
+   flagged wording. */
+.hl-sample--mark {
+  padding: 1px 3px;
+  border-radius: 3px;
+  background: rgba(248, 113, 113, 0.3);
+  color: var(--text);
+}
+
+/* Form mark: the red outline drawn around a credential-leaking password form,
+   shown here around a tiny mock password field. */
+.hl-sample--form {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px;
+  outline: 2px solid #f87171;
+  outline-offset: 2px;
+  color: var(--text);
+}
+
+.hl-form-input {
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  letter-spacing: 1px;
+}
+
+/* Link marks: outline plus tint per verdict, thin and reassuring for the safe
+   buckets, thicker red for the risky ones. */
+.hl-sample--link {
+  display: inline-block;
+  padding: 0 2px;
+  outline-offset: 1px;
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.hl-sample--internal {
+  outline: 1.5px solid #4ade80;
+  background: rgba(74, 222, 128, 0.12);
+}
+
+.hl-sample--external {
+  outline: 1.5px solid #6ea8fe;
+  background: rgba(110, 168, 254, 0.12);
+}
+
+.hl-sample--risk {
+  outline: 2px solid #f87171;
+  background: rgba(248, 113, 113, 0.14);
+}
+
+/* A checkbox restyled as a sliding switch; on is the brand green. */
+.toggle__input {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: none;
+  width: 38px;
+  height: 22px;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.toggle__input::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transform: translateY(-50%);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.toggle__input:checked {
+  background: var(--green);
+  border-color: var(--green);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--green) 30%, transparent);
+}
+
+.toggle__input:checked::after {
+  background: var(--on-accent);
+  transform: translateY(-50%) translateX(16px);
+}
+
+.toggle__input:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+/* Mirror the switch's travel under RTL so the knob slides toward the label. */
+[dir="rtl"] .toggle__input::after {
+  left: auto;
+  right: 2px;
+}
+
+[dir="rtl"] .toggle__input:checked::after {
+  transform: translateY(-50%) translateX(-16px);
+}
+
+/* Buttons */
+.btn-primary {
+  padding: 9px 22px;
+  border: none;
+  border-radius: 9px;
+  background: var(--green);
+  color: var(--on-accent);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--green) 28%, transparent);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.btn-ghost {
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-ghost:hover {
+  background: var(--surface-2);
+  border-color: color-mix(in srgb, var(--green) 35%, var(--border));
+  color: var(--text);
+}
+
+.btn-primary:focus-visible,
+.btn-ghost:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+.status-msg {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--green);
+}

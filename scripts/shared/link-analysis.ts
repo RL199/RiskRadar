@@ -1,0 +1,408 @@
+// Link analysis. Framework-free helpers used by the popup's "Links" view. Like
+// Content Analysis (and unlike URL & Reputation, which only need the host), these
+// checks need the page's DOM, so the popup injects extractPageLinks() into the
+// active tab via chrome.scripting.executeScript and runs the classification here
+// on the small, JSON-safe summary it returns.
+//
+// Every anchor is sorted into exactly one bucket:
+//  - internal:   same registrable domain as the page. Reassuring; marked green.
+//  - external:   a different domain with no risk traits. Counted; marked blue.
+//  - suspicious: an off-domain link whose destination itself looks dangerous (an
+//                IP-literal host, a punycode/IDN homograph, credentials embedded
+//                in the URL, a brand look-alike domain, a URL shortener, unusually
+//                deep subdomains, or stacked phishing keywords). Marked red.
+//  - redirect:   a link that hides or bounces its real destination (an open
+//                redirect parameter carrying an off-site URL, or visible text that
+//                claims one domain while the href points to another). Marked red.
+//  - ignore:     not a real navigation (mailto:/tel:/javascript:, or an in-page
+//                "#" anchor on the current document).
+//
+// Grounding: these are the long-documented phishing URL indicators from
+// anti-phishing guidance (CISA, the APWG, OWASP): IP literals, "@" userinfo,
+// punycode homographs, look-alike subdomains, link shorteners, open redirects,
+// and the displayed URL not matching the actual one.
+
+import {
+  splitDomain,
+  IPV4_RE,
+  SUSPICIOUS_KEYWORDS,
+  type AnalyzedRow,
+} from "./url-analysis";
+import { BRAND_URL_TOKENS } from "./content-data";
+
+export type LinkVerdict = "internal" | "external" | "suspicious" | "redirect" | "ignore";
+
+// One anchor as seen in the page, captured by extractPageLinks. Kept small and
+// JSON-safe because it crosses the executeScript boundary back into the popup.
+export interface RawLink {
+  // anchor.href, already resolved to an absolute URL by the browser.
+  href: string;
+  // Trimmed visible text, capped, used to spot displayed-vs-real URL mismatches.
+  text: string;
+}
+
+export interface PageLinks {
+  // location.href, so a same-page "#" anchor can be told from a real link.
+  pageUrl: string;
+  // Count of every <a href> on the page (may exceed links.length when capped).
+  total: number;
+  // First MAX_LINKS anchors in document order; classified here and, by the same
+  // index order, highlighted on the page by highlightPageLinks.
+  links: RawLink[];
+}
+
+// The classification of one link: its bucket, a host to show as a chip in the
+// popup, and (for suspicious/redirect) an i18n key naming the specific reason.
+export interface ClassifiedLink {
+  verdict: LinkVerdict;
+  host: string;
+  reasonKey?: string;
+}
+
+// Query parameter names that carry a follow-on destination. Pairing a known
+// redirect parameter with a value that is an absolute off-domain URL keeps this
+// high-signal, so even generic names ("u", "r", "go") rarely misfire.
+const REDIRECT_PARAMS = new Set([
+  "url", "uri", "redirect", "redirect_uri", "redirect_url", "redirecturl",
+  "redir", "return", "returnurl", "return_url", "returnto", "return_to", "next",
+  "dest", "destination", "continue", "goto", "target", "out", "link", "forward",
+  "fwd", "jump", "go", "q", "u", "r", "to",
+]);
+
+// Link shorteners (matched by registrable domain). A shortened link hides where
+// it really goes, so it is surfaced as suspicious.
+const URL_SHORTENERS = new Set([
+  "bit.ly", "bitly.com", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "is.gd",
+  "buff.ly", "cutt.ly", "rebrand.ly", "shorturl.at", "t.ly", "rb.gy", "tiny.cc",
+  "lnkd.in", "bit.do", "mcaf.ee", "bl.ink", "shorte.st", "v.gd", "x.co",
+  "trib.al", "ift.tt", "adf.ly",
+]);
+
+// A whole-label token of `hostname` matches a known brand while the registrable
+// label itself is not that brand. That is the brand-in-subdomain look-alike trick
+// (paypal.secure-login.com), distinct from being on the brand's own domain.
+function isBrandLookalike(hostname: string): boolean {
+  const regLabel = splitDomain(hostname).registrable.split(".")[0];
+  for (const token of hostname.toLowerCase().split(/[.-]/)) {
+    if (token !== regLabel && BRAND_URL_TOKENS.includes(token)) return true;
+  }
+  return false;
+}
+
+// Subdomain nesting far beyond the norm (login.account.secure.verify.evil.tld).
+// The threshold is set high so ordinary multi-label CDN hosts don't trip it.
+function hasDeepSubdomain(hostname: string): boolean {
+  if (IPV4_RE.test(hostname)) return false;
+  const { sub } = splitDomain(hostname);
+  return sub ? sub.split(".").length >= 4 : false;
+}
+
+// How many distinct phishing keywords appear in the host. Requiring two or more
+// (stacked, as in "secure-account-login.com") keeps a lone "login." subdomain
+// on an otherwise normal site from being flagged.
+function hostKeywordHits(hostname: string): number {
+  const host = hostname.toLowerCase();
+  return SUSPICIOUS_KEYWORDS.filter((kw) => host.includes(kw)).length;
+}
+
+// Whether the visible text is presented as a URL (starts with http(s):// or
+// www.) but names a different registrable domain than the href actually opens.
+// That is the displayed-vs-real URL spoof.
+function isTextMismatch(text: string, hrefReg: string): boolean {
+  const t = text.trim();
+  if (!/^(?:https?:\/\/|www\.)/i.test(t)) return false;
+  const m = t.match(/^(?:https?:\/\/)?(?:www\.)?([a-z0-9.-]+\.[a-z]{2,})/i);
+  if (!m) return false;
+  const reg = splitDomain(m[1].toLowerCase()).registrable;
+  return Boolean(reg) && reg !== hrefReg;
+}
+
+// If a redirect parameter (in the query or fragment) carries an absolute URL to
+// a different registrable domain than the link's own, return that destination
+// host. That is an open redirect / link-cloaking bounce.
+function redirectTargetHost(linkUrl: URL, linkReg: string): string | null {
+  const candidates: string[] = [];
+  const collect = (params: URLSearchParams): void => {
+    for (const [name, value] of params) {
+      if (value && REDIRECT_PARAMS.has(name.toLowerCase())) candidates.push(value);
+    }
+  };
+  collect(linkUrl.searchParams);
+  if (linkUrl.hash.includes("=")) collect(new URLSearchParams(linkUrl.hash.slice(1)));
+
+  for (const value of candidates) {
+    // Only an absolute http(s) (or protocol-relative) value leaves the site; a
+    // relative path stays put and is not a redirect.
+    if (!/^(?:https?:)?\/\//i.test(value.trim())) continue;
+    try {
+      const dest = new URL(value, linkUrl);
+      if (dest.protocol !== "http:" && dest.protocol !== "https:") continue;
+      const destReg = splitDomain(dest.hostname).registrable;
+      if (destReg && destReg !== linkReg) return dest.hostname;
+    } catch {
+      // Not a parseable URL; ignore this candidate.
+    }
+  }
+  return null;
+}
+
+// Sort one anchor into its bucket. `pageUrl` is the document the link sits on.
+export function classifyLink(raw: RawLink, pageUrl: URL): ClassifiedLink {
+  let url: URL;
+  try {
+    url = new URL(raw.href);
+  } catch {
+    return { verdict: "ignore", host: "" };
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    return { verdict: "ignore", host: "" };
+  }
+  // A same-document "#" anchor only changes the fragment; it navigates nowhere.
+  if (
+    url.origin === pageUrl.origin &&
+    url.pathname === pageUrl.pathname &&
+    url.search === pageUrl.search
+  ) {
+    return { verdict: "ignore", host: url.hostname };
+  }
+
+  const host = url.hostname;
+  const linkReg = splitDomain(host).registrable;
+  const pageReg = splitDomain(pageUrl.hostname).registrable;
+
+  // Deceptive / redirecting links first: an open redirect can sit on the page's
+  // own trusted domain, so this has to win over the internal check below.
+  if (isTextMismatch(raw.text, linkReg)) {
+    return { verdict: "redirect", host, reasonKey: "reason_link_textMismatch" };
+  }
+  const target = redirectTargetHost(url, linkReg);
+  if (target) return { verdict: "redirect", host: target, reasonKey: "reason_link_redirectParam" };
+
+  // Internal link: same registrable domain as the page.
+  if (linkReg && linkReg === pageReg) return { verdict: "internal", host };
+
+  // External: judge how dangerous the destination looks, worst tell first.
+  if (url.username) return { verdict: "suspicious", host, reasonKey: "reason_link_credentials" };
+  if (IPV4_RE.test(host)) return { verdict: "suspicious", host, reasonKey: "reason_link_ip" };
+  if (host.includes("xn--")) return { verdict: "suspicious", host, reasonKey: "reason_link_punycode" };
+  if (isBrandLookalike(host)) return { verdict: "suspicious", host, reasonKey: "reason_link_lookalike" };
+  if (URL_SHORTENERS.has(linkReg)) return { verdict: "suspicious", host, reasonKey: "reason_link_shortener" };
+  if (hasDeepSubdomain(host)) return { verdict: "suspicious", host, reasonKey: "reason_link_manySub" };
+  if (hostKeywordHits(host) >= 2) return { verdict: "suspicious", host, reasonKey: "reason_link_keyword" };
+
+  return { verdict: "external", host };
+}
+
+// A synthetic "page" on a domain no real site uses, so classifyLink never treats
+// a directly-typed URL as internal to it. It lets the address-bar guard reuse the
+// exact same suspicious/redirect judgement the on-page link marks use, even
+// though a typed URL sits on no page of its own.
+const NO_PAGE = new URL("https://address-bar.riskradar.invalid/");
+
+// Judge a URL entered straight into the address bar, reusing classifyLink. There
+// is no anchor text, so the displayed-vs-real spoof never applies; the remaining
+// tells (IP host, punycode, embedded credentials, brand look-alike, shortener,
+// deep subdomains, stacked keywords, and off-domain redirect parameters) all
+// still hold for a raw URL. A non-http(s) URL classifies as "ignore".
+export function classifyAddressBarUrl(rawUrl: string): ClassifiedLink {
+  return classifyLink({ href: rawUrl, text: "" }, NO_PAGE);
+}
+
+// Classify the page's links and build the four Links rows. `classified` is
+// returned alongside (in document order) so the popup can mark the same links on
+// the page.
+export function analyzeLinks(page: PageLinks): {
+  classified: ClassifiedLink[];
+  total: AnalyzedRow;
+  external: AnalyzedRow;
+  suspicious: AnalyzedRow;
+  redirects: AnalyzedRow;
+} {
+  let pageUrl: URL;
+  try {
+    pageUrl = new URL(page.pageUrl);
+  } catch {
+    pageUrl = new URL("https://invalid.invalid/");
+  }
+
+  const classified = page.links.map((l) => classifyLink(l, pageUrl));
+  const external = classified.filter((c) => c.verdict === "external");
+  const suspicious = classified.filter((c) => c.verdict === "suspicious");
+  const redirects = classified.filter((c) => c.verdict === "redirect");
+
+  // Distinct hosts to list as chips under a row, capped so a link-heavy page
+  // can't produce an endless list.
+  const hosts = (items: ClassifiedLink[]): string[] => {
+    const seen = new Set<string>();
+    for (const c of items) if (c.host) seen.add(c.host);
+    return [...seen].slice(0, 12);
+  };
+
+  const total: AnalyzedRow = { text: String(page.total), status: "neutral" };
+
+  const extHosts = hosts(external);
+  const externalRow: AnalyzedRow = {
+    text: String(external.length),
+    status: "good",
+    detail: extHosts.length ? extHosts : undefined,
+  };
+
+  const suspiciousRow: AnalyzedRow =
+    suspicious.length === 0
+      ? { key: "val_none", status: "good" }
+      : { text: String(suspicious.length), status: suspicious.length >= 3 ? "bad" : "warn", detail: hosts(suspicious) };
+
+  // A displayed-vs-real mismatch is an unambiguous spoof (risky); a parameter
+  // bounce alone can occasionally be a legitimate out-link wrapper (warning).
+  const hasMismatch = redirects.some((c) => c.reasonKey === "reason_link_textMismatch");
+  const redirectsRow: AnalyzedRow =
+    redirects.length === 0
+      ? { key: "val_none", status: "good" }
+      : { text: String(redirects.length), status: hasMismatch ? "bad" : "warn", detail: hosts(redirects) };
+
+  return { classified, total, external: externalRow, suspicious: suspiciousRow, redirects: redirectsRow };
+}
+
+// What highlightPageLinks needs per anchor: the colour to use and the hover label
+// to show. "skip" leaves the link unmarked. Built in the popup (which has the
+// dictionary) so the injected highlighter stays free of i18n.
+export interface LinkMark {
+  verdict: "internal" | "external" | "suspicious" | "redirect" | "skip";
+  title: string;
+  // For the red buckets (suspicious / redirect) only: a ready-to-show
+  // confirmation message. When present, clicking the link is intercepted and the
+  // user must confirm before the browser navigates. Safe links leave this unset.
+  warn?: string;
+}
+
+// Injected into the active tab to mark the classified links on the page itself:
+// internal links get a subtle green outline, plain external links a light-blue
+// one, and suspicious links and malicious redirects a red one, each carrying a
+// native title so hovering names what it is. It runs in the page's DOM (anchors
+// are real elements, so a title is enough; no floating tooltip needed) and must
+// be fully self-contained.
+// It re-reads the anchors in the same document order extractPageLinks used, so
+// marks[i] lines up with the i-th <a href>. Safe to call repeatedly: each run
+// first undoes the previous run's marks, so re-scans don't stack and passing
+// all-"skip" marks clears the page.
+// A red link (suspicious / redirect) whose mark carries a `warn` message is also
+// guarded: clicking it pops a confirm() so the user can back out before the
+// browser navigates. One capture-phase listener on the document drives every
+// guarded link, so re-scans never add a second.
+export function highlightPageLinks(marks: LinkMark[]): void {
+  const ATTR = "data-riskradar-link";
+  // Holds the per-link confirmation message; the click guard below reads it.
+  const WARN_ATTR = "data-riskradar-warn";
+  // Per-verdict outline width, outline colour and tint. Colours mirror the
+  // popup's palette: green "good", light blue for plain external links, red
+  // "danger". The reassuring buckets (internal, external) get a thin outline;
+  // the risky ones (suspicious, redirect) a thicker one.
+  const STYLE: Record<
+    "internal" | "external" | "suspicious" | "redirect",
+    { width: string; color: string; bg: string }
+  > = {
+    internal: { width: "1.5px", color: "#4ade80", bg: "rgba(74,222,128,.12)" },
+    external: { width: "1.5px", color: "#6ea8fe", bg: "rgba(110,168,254,.12)" },
+    suspicious: { width: "2px", color: "#f87171", bg: "rgba(248,113,113,.14)" },
+    redirect: { width: "2px", color: "#f87171", bg: "rgba(248,113,113,.14)" },
+  };
+
+  // Undo a previous run, restoring any inline background / title we borrowed.
+  for (const el of document.querySelectorAll<HTMLElement>(`[${ATTR}]`)) {
+    el.style.outline = "";
+    el.style.outlineOffset = "";
+    el.style.backgroundColor = el.dataset.riskradarBgPrev ?? "";
+    el.removeAttribute(ATTR);
+    el.removeAttribute(WARN_ATTR);
+    delete el.dataset.riskradarBgPrev;
+    const prevTitle = el.dataset.riskradarTitlePrev;
+    if (prevTitle !== undefined) {
+      el.title = prevTitle;
+      delete el.dataset.riskradarTitlePrev;
+    } else {
+      el.removeAttribute("title");
+    }
+  }
+
+  const anchors = document.querySelectorAll<HTMLAnchorElement>("a[href]");
+  const count = Math.min(anchors.length, marks.length);
+  for (let i = 0; i < count; i++) {
+    const mark = marks[i];
+    if (mark.verdict === "skip") continue;
+    const el = anchors[i];
+
+    const style = STYLE[mark.verdict];
+    // Outline doesn't affect layout, so it's a safe, reversible mark even on
+    // inline links that wrap across lines.
+    el.style.outline = `${style.width} solid ${style.color}`;
+    el.style.outlineOffset = "1px";
+    if (el.style.backgroundColor) el.dataset.riskradarBgPrev = el.style.backgroundColor;
+    el.style.backgroundColor = style.bg;
+    el.setAttribute(ATTR, "");
+
+    // Borrow the title for the hover label, remembering any the page had.
+    if (el.title) el.dataset.riskradarTitlePrev = el.title;
+    el.title = mark.title;
+
+    // Red links carry a confirmation message; clicking one is intercepted by the
+    // document guard installed below.
+    if (mark.warn) el.setAttribute(WARN_ATTR, mark.warn);
+  }
+
+  // Guard clicks on the red links: one capture-phase listener on the document
+  // checks whether the clicked target sits inside a link carrying WARN_ATTR and,
+  // if so, asks the user to confirm before letting the navigation through. The
+  // "already installed" flag is kept on a DOM attribute rather than a closure
+  // because each scan re-injects this function fresh, yet the attribute (and the
+  // listener) persist with the page, so the guard is wired exactly once.
+  const GUARD_FLAG = "data-riskradar-link-guard";
+  if (!document.documentElement.hasAttribute(GUARD_FLAG)) {
+    document.documentElement.setAttribute(GUARD_FLAG, "");
+    const guard = (event: Event): void => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const message = target.closest(`[${WARN_ATTR}]`)?.getAttribute(WARN_ATTR);
+      if (!message) return;
+      // confirm() blocks synchronously, so a declined prompt can still cancel the
+      // click before the browser acts on it. Confirming lets the event continue
+      // untouched so the page's own handlers and the navigation still run.
+      if (!window.confirm(message)) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    // click covers left- and modifier-clicks; auxclick covers a middle-click
+    // (open in new tab), which does not fire a click event.
+    document.addEventListener("click", guard, true);
+    document.addEventListener("auxclick", guard, true);
+  }
+}
+
+// Injected into the active tab (chrome.scripting.executeScript) and run in the
+// page's context, so it must be fully self-contained: it touches only the DOM.
+// Returns the small PageLinks summary the analyzers above consume.
+export function extractPageLinks(): PageLinks {
+  // Cap the number of links analyzed/marked so a huge page can't bloat the
+  // message payload or flood the page with outlines. extractPageLinks and the
+  // popup share this implicitly: the highlighter only marks as many links as
+  // this returns.
+  const MAX_LINKS = 500;
+  const anchors = document.querySelectorAll<HTMLAnchorElement>("a[href]");
+  const limit = Math.min(anchors.length, MAX_LINKS);
+
+  const links: { href: string; text: string }[] = [];
+  for (let i = 0; i < limit; i++) {
+    links.push({ href: anchors[i].href, text: (anchors[i].textContent ?? "").trim().slice(0, 200) });
+  }
+
+  return { pageUrl: window.location.href, total: anchors.length, links };
+}
+
+// Injected into a tab (chrome.scripting.executeScript) to show a blocking
+// confirmation and report the choice. window.confirm halts the page's own
+// scripts while it is open, so a URL typed into the address bar can be caught the
+// moment it commits and backed out of before the page really runs. Returns true
+// to proceed, false to back out. Self-contained: it touches only window.
+export function confirmNavigation(message: string): boolean {
+  return window.confirm(message);
+}

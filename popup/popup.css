@@ -1,28 +1,655 @@
-:root {
-  color-scheme: dark;
-  --bg: #072a47;
-  --accent: #4dd0e1;
+/* Design tokens (colors, --radius) come from ../styles/theme.css. */
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
-}
-
-.popup {
-  width: 280px;
-  padding: 16px;
-  background: var(--bg);
-  color: #e6f4f1;
-}
-
-.title {
-  margin: 0 0 8px;
-  font-size: 18px;
-  color: var(--accent);
-}
-
-.status {
-  margin: 0;
+  width: 360px;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 14px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ----------------------------- Views ----------------------------- */
+.view {
+  display: none;
+  flex-direction: column;
+  padding: 12px 16px 14px;
+  min-height: 100%;
+}
+
+.view.is-active {
+  display: flex;
+}
+
+/* ----------------------------- Top bar ----------------------------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.topbar--detail {
+  gap: 8px;
+}
+
+.topbar__title {
+  flex: 1;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.topbar__actions {
+  display: flex;
+  gap: 4px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.brand__logo {
+  display: inline-flex;
+}
+
+/* The shield logo glows softly, matching the options page header. */
+.brand__logo img {
+  width: auto;
+  height: 24px;
+  filter: drop-shadow(0 0 6px var(--glow));
+}
+
+.brand__name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* --------------------------- Site header --------------------------- */
+.site {
+  text-align: center;
+  margin: 2px 0 6px;
+}
+
+.site__host {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.site__status {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+/* A soft pulse while the auto-run categories are still scanning. The dot is
+   shown only during a scan; settled states hide it via the [hidden] attribute. */
+.dot--scanning {
+  background: var(--text-muted);
+  animation: dot-pulse 1s ease-in-out infinite;
+}
+
+@keyframes dot-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* ----------------------------- Score ----------------------------- */
+.score {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  margin: 4px auto 12px;
+}
+
+.score__ring {
+  width: 100%;
+  height: 100%;
+  /* Let the progress arc's glow render outside the SVG box instead of being
+     clipped to a square (SVG defaults to overflow: hidden). */
+  overflow: visible;
+  transform: rotate(-90deg);
+}
+
+.score__track {
+  fill: none;
+  stroke: var(--surface-2);
+  stroke-width: 10;
+}
+
+.score__value {
+  fill: none;
+  stroke: var(--green);
+  stroke-width: 10;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 3px rgba(74, 222, 128, 0.7))
+    drop-shadow(0 0 6px rgba(74, 222, 128, 0.4));
+  transition: stroke-dasharray 0.6s ease;
+}
+
+/* Per-band arc colour + glow, set by the popup once the trust score is known.
+   The glows are hardcoded rgba to match each status colour's tint. */
+.score__value--good {
+  stroke: var(--green);
+  filter: drop-shadow(0 0 3px rgba(74, 222, 128, 0.7))
+    drop-shadow(0 0 6px rgba(74, 222, 128, 0.4));
+}
+
+.score__value--warn {
+  stroke: var(--amber);
+  filter: drop-shadow(0 0 3px rgba(245, 177, 61, 0.7))
+    drop-shadow(0 0 6px rgba(245, 177, 61, 0.4));
+}
+
+.score__value--bad {
+  stroke: var(--red);
+  filter: drop-shadow(0 0 3px rgba(248, 113, 113, 0.7))
+    drop-shadow(0 0 6px rgba(248, 113, 113, 0.4));
+}
+
+/* While scanning / when the page can't be scored: a flat, glow-less grey arc. */
+.score__value--muted {
+  stroke: var(--text-muted);
+  filter: none;
+}
+
+.score__label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.score__num {
+  font-size: 38px;
+  font-weight: 700;
+}
+
+.score__max {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.score__verdict {
+  margin-top: 6px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* --------------------------- Categories --------------------------- */
+.cats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cat {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  text-align: start;
+}
+
+.cat:hover {
+  background: var(--surface-2);
+}
+
+/* Icon tile fills the card's left edge: full height, flush left/top/bottom. */
+.cat .tile {
+  width: 48px;
+  height: auto;
+  border-radius: 0;
+  align-self: stretch;
+}
+
+.cat__body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
+}
+
+.cat__name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.cat__status {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.chevron {
+  color: var(--text-muted);
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* ------------------------------ Tiles ------------------------------ */
+.tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.tile--lg {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+}
+
+.tile--pink {
+  background: var(--pink-bg);
+  color: var(--pink);
+}
+
+.tile--purple {
+  background: var(--purple-bg);
+  color: var(--purple);
+}
+
+.tile--blue {
+  background: var(--blue-bg);
+  color: var(--blue);
+}
+
+.tile--teal {
+  background: var(--teal-bg);
+  color: var(--teal);
+}
+
+.tile--moss {
+  background: var(--moss-bg);
+  color: var(--moss);
+}
+
+/* ----------------------------- Actions ----------------------------- */
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.action:hover {
+  background: var(--surface-2);
+}
+
+/* --------------------------- Detail views --------------------------- */
+.summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 6px 0 16px;
+}
+
+.summary__verdict {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.summary__sub {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 13px 2px;
+  border-top: 1px solid var(--border);
+}
+
+.row:first-child {
+  border-top: none;
+}
+
+.row__label {
+  flex: 1;
+  color: var(--text-muted);
+}
+
+.row__value {
+  font-weight: 500;
+}
+
+/* The specific risky items behind a row, as chips on their own line below it. */
+.row__detail {
+  flex-basis: 100%;
+  list-style: none;
+  margin: -2px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.row__chip {
+  padding: 2px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Inline "Add key" button shown in a row that needs an API key. */
+.row__keybtn {
+  margin-inline-start: 8px;
+  padding: 2px 9px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--green);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.row__keybtn:hover {
+  background: var(--surface-2);
+}
+
+/* Status check / warning icons rendered with CSS so markup stays light */
+.ico-good,
+.ico-warn,
+.ico-bad,
+.ico-unknown {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.ico-good {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='9' fill='none' stroke='%234ade80' stroke-width='1.8'/%3E%3Cpath d='m8.5 12 2.3 2.3 4.7-4.8' fill='none' stroke='%234ade80' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.ico-warn {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='9' fill='none' stroke='%23f5b13d' stroke-width='1.8'/%3E%3Cpath d='M12 7.5v5' fill='none' stroke='%23f5b13d' stroke-width='1.8' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='16' r='1.1' fill='%23f5b13d'/%3E%3C/svg%3E");
+}
+
+.ico-bad {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='9' fill='none' stroke='%23f87171' stroke-width='1.8'/%3E%3Cpath d='m9 9 6 6m0-6-6 6' fill='none' stroke='%23f87171' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+.ico-unknown {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='9' fill='none' stroke='%238b97a6' stroke-width='1.8'/%3E%3Cpath d='M9.6 9.2a2.4 2.4 0 1 1 3.3 2.3c-.8.4-1.4.9-1.4 1.8' fill='none' stroke='%238b97a6' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='12' cy='16' r='1.05' fill='%238b97a6'/%3E%3C/svg%3E");
+}
+
+/* ------------------------------ Note ------------------------------ */
+.note {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.note__title {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+
+.note__body {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* --------------------------- AI analysis controls --------------------------- */
+/* Provider picker + on-demand run button shown in the AI Analysis view. */
+.ai-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.ai-controls__field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ai-controls__label {
+  color: var(--text-muted);
+}
+
+.ai-controls__field .control {
+  flex: 1;
+}
+
+.ai-controls .btn-primary {
+  width: 100%;
+}
+
+.ai-controls .btn-primary:disabled {
+  opacity: 0.6;
+  cursor: default;
+  filter: none;
+  box-shadow: none;
+}
+
+/* ------------------------------ Modal ------------------------------ */
+.modal[hidden] {
+  display: none;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.modal__dialog {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.modal__title {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.modal__help {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* Form controls (used by the modal; mirrors the settings page). */
+.control {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.control:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 1px;
+}
+
+.apikey {
+  display: flex;
+  gap: 6px;
+}
+
+.apikey .control {
+  flex: 1;
+  font-family: ui-monospace, "Cascadia Code", monospace;
+}
+
+.btn-primary {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--green);
+  color: var(--on-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--green) 28%, transparent);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.btn-ghost {
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-ghost:hover {
+  background: var(--surface-2);
+  border-color: color-mix(in srgb, var(--green) 35%, var(--border));
+  color: var(--text);
+}
+
+.btn-primary:focus-visible,
+.btn-ghost:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+/* ----------------------------- Status ----------------------------- */
+.status--good {
+  color: var(--green);
+}
+
+.status--warning {
+  color: var(--amber);
+}
+
+.status--danger {
+  color: var(--red);
+}
+
+.status--muted {
+  color: var(--text-muted);
 }

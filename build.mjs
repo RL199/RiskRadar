@@ -10,11 +10,25 @@ const isWatch = process.argv.includes("--watch");
 
 // TypeScript entry points to bundle. Add background/content/interceptor here
 // as those files are created (e.g. "scripts/content/content-main.ts").
-const entryPoints = ["popup/popup.ts"].filter((p) => existsSync(join(root, p)));
+const entryPoints = [
+  "popup/popup.ts",
+  "settings/settings.ts",
+  "scripts/background/background.ts",
+].filter((p) => existsSync(join(root, p)));
 
 // Static files copied verbatim into dist/, preserving their relative paths
 // so the manifest's references keep resolving.
-const staticPaths = ["manifest.json", "popup/popup.html", "popup/popup.css", "assets/icons"];
+const staticPaths = [
+  "manifest.json",
+  "_locales",
+  "styles/theme.css",
+  "popup/popup.html",
+  "popup/popup.css",
+  "settings/settings.html",
+  "settings/settings.css",
+  "assets/icon-plain.svg",
+  "assets/icons",
+];
 
 async function copyStatic() {
   for (const rel of staticPaths) {
