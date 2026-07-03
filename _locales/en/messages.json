@@ -71,6 +71,8 @@
   "warn_link_heading": { "message": "Risk Radar safety warning" },
   "warn_link_destination": { "message": "Destination" },
   "warn_link_continue": { "message": "Continue to this link anyway?" },
+  "warn_url_continue": { "message": "Continue to this site anyway?" },
+  "tip_url_listed": { "message": "Known phishing site" },
 
   "lbl_protocol": { "message": "Protocol" },
   "lbl_domainAge": { "message": "Domain Age" },
@@ -145,6 +147,12 @@
   "set_autoscan_help": {
     "message": "When on, Risk Radar scans every page you visit on its own, without opening the popup: it shows a colour-coded risk badge on the toolbar icon and highlights findings on the page. It runs the same URL, reputation, content, and link checks the popup does; the AI analysis is never run automatically."
   },
+  "set_warnings": { "message": "Safety warnings" },
+  "set_warnings_help": {
+    "message": "Choose when Risk Radar interrupts a risky navigation with a confirmation prompt. Both are on by default."
+  },
+  "set_warn_links": { "message": "Warn before opening malicious links" },
+  "set_warn_typed": { "message": "Warn when I type a risky address" },
   "set_ai": { "message": "AI" },
   "set_ai_scan_mode": { "message": "When to scan with AI" },
   "set_ai_scan_auto": { "message": "Automatically when the popup opens" },

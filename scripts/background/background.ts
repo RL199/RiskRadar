@@ -35,6 +35,8 @@ import {
 } from "../shared/content-analysis";
 import {
   analyzeLinks,
+  classifyAddressBarUrl,
+  confirmNavigation,
   extractPageLinks,
   highlightPageLinks,
   type ClassifiedLink,
@@ -374,7 +376,11 @@ async function scanLinksCategory(tabId: number, settings: Settings, dict: Dict):
   };
   const marks: LinkMark[] = classified.map((link) =>
     enabled[link.verdict] && link.verdict !== "ignore"
-      ? { verdict: link.verdict, title: linkTitle(link, dict), warn: linkWarning(link, dict) }
+      ? {
+          verdict: link.verdict,
+          title: linkTitle(link, dict),
+          warn: settings.warnMaliciousLinks ? linkWarning(link, dict) : undefined,
+        }
       : { verdict: "skip", title: "" },
   );
   try {
@@ -499,6 +505,104 @@ async function clearAllBadges(): Promise<void> {
   lastScanned.clear();
 }
 
+// ----------------------- Address-bar URL warning -------------------------- //
+//
+// When the user turns on settings.warnTypedUrl, a URL entered straight into the
+// address bar is judged the moment it commits: a host on the phishing blocklist,
+// or a URL carrying strong phishing traits (an IP host, punycode, embedded
+// credentials, a brand look-alike, a shortener, deep subdomains, stacked
+// keywords, or an off-domain redirect parameter), pops the same style of
+// confirmation the on-page malicious-link guard uses. Declining backs the tab
+// off the page before it is really shown; confirming leaves it untouched.
+
+// Transition types that mean the user drove the navigation from the omnibox. The
+// "from_address_bar" qualifier covers the same ground, so either signal counts; a
+// followed link, form submit, or reload never does.
+const ADDRESS_BAR_TRANSITIONS = new Set(["typed", "generated", "keyword", "keyword_generated"]);
+
+function isAddressBarNavigation(
+  details: chrome.webNavigation.WebNavigationTransitionCallbackDetails,
+): boolean {
+  return (
+    details.transitionQualifiers.includes("from_address_bar") ||
+    ADDRESS_BAR_TRANSITIONS.has(details.transitionType)
+  );
+}
+
+// The heading + reason line for a typed-URL warning. A blocklisted host reads as
+// a known phishing site; otherwise it reuses the link tip/reason wording so the
+// two guards speak with one voice.
+function typedUrlTitle(link: ClassifiedLink, listed: boolean, dict: Dict): string {
+  if (listed) return dict.tip_url_listed ?? "Known phishing site";
+  return linkTitle(link, dict);
+}
+
+// The confirmation shown for a risky typed URL, mirroring linkWarning: the
+// heading, the reason, the destination host, and a continue prompt. Returns
+// undefined when the URL is neither blocklisted nor classified risky.
+function typedUrlWarning(url: URL, link: ClassifiedLink, listed: boolean, dict: Dict): string | undefined {
+  if (!listed && link.verdict !== "suspicious" && link.verdict !== "redirect") return undefined;
+  const heading = dict.warn_link_heading ?? "Risk Radar safety warning";
+  const destLabel = dict.warn_link_destination ?? "Destination";
+  const cont = dict.warn_url_continue ?? "Continue to this site anyway?";
+  const host = link.host || url.hostname;
+  const dest = host ? `${destLabel}: ${host}\n\n` : "";
+  return `${heading}\n\n${typedUrlTitle(link, listed, dict)}\n\n${dest}${cont}`;
+}
+
+// Take a tab off a page the user declined to visit: step back to the previous
+// page when there is history, otherwise blank the tab.
+async function leaveTab(tabId: number): Promise<void> {
+  try {
+    await chrome.tabs.goBack(tabId);
+  } catch {
+    try {
+      await chrome.tabs.update(tabId, { url: "about:blank" });
+    } catch {
+      // Tab closed mid-navigation; nothing to do.
+    }
+  }
+}
+
+// Judge a just-committed address-bar navigation and, if the URL is risky, pop a
+// blocking confirmation in the tab. confirm() halts the page's scripts while it
+// is open, so declining can back the tab out before the page really runs.
+async function warnOnTypedNavigation(
+  details: chrome.webNavigation.WebNavigationTransitionCallbackDetails,
+): Promise<void> {
+  if (details.frameId !== 0 || !isAddressBarNavigation(details)) return;
+
+  let url: URL;
+  try {
+    url = new URL(details.url);
+  } catch {
+    return;
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") return;
+
+  const settings = await loadSettings();
+  if (!settings.warnTypedUrl) return;
+
+  const link = classifyAddressBarUrl(details.url);
+  const listed = (await isListed(url.hostname)) === "listed";
+  if (!listed && link.verdict !== "suspicious" && link.verdict !== "redirect") return;
+
+  const dict = await loadMessages(settings.lang);
+  const message = typedUrlWarning(url, link, listed, dict);
+  if (!message) return;
+
+  try {
+    const [injection] = await chrome.scripting.executeScript({
+      target: { tabId: details.tabId },
+      func: confirmNavigation,
+      args: [message],
+    });
+    if (injection?.result === false) await leaveTab(details.tabId);
+  } catch {
+    // Page stopped being scriptable between commit and prompt; nothing to do.
+  }
+}
+
 // --------------------------------- Wiring --------------------------------- //
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -528,6 +632,12 @@ chrome.runtime.onMessage.addListener((msg: { type?: string; host?: string }, _se
 });
 
 // ----------------------------- Auto-scan wiring ---------------------------- //
+
+// Warn on a risky URL entered directly in the address bar, the moment it commits
+// (before the page's own scripts get to run). Independent of auto-scan.
+chrome.webNavigation.onCommitted.addListener((details) => {
+  void warnOnTypedNavigation(details);
+});
 
 // Scan the active tab once it finishes loading. A fresh load forces a rescan even
 // if the URL is unchanged (e.g. a reload), since the page content may have changed.

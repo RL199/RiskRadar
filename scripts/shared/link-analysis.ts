@@ -193,6 +193,21 @@ export function classifyLink(raw: RawLink, pageUrl: URL): ClassifiedLink {
   return { verdict: "external", host };
 }
 
+// A synthetic "page" on a domain no real site uses, so classifyLink never treats
+// a directly-typed URL as internal to it. It lets the address-bar guard reuse the
+// exact same suspicious/redirect judgement the on-page link marks use, even
+// though a typed URL sits on no page of its own.
+const NO_PAGE = new URL("https://address-bar.riskradar.invalid/");
+
+// Judge a URL entered straight into the address bar, reusing classifyLink. There
+// is no anchor text, so the displayed-vs-real spoof never applies; the remaining
+// tells (IP host, punycode, embedded credentials, brand look-alike, shortener,
+// deep subdomains, stacked keywords, and off-domain redirect parameters) all
+// still hold for a raw URL. A non-http(s) URL classifies as "ignore".
+export function classifyAddressBarUrl(rawUrl: string): ClassifiedLink {
+  return classifyLink({ href: rawUrl, text: "" }, NO_PAGE);
+}
+
 // Classify the page's links and build the four Links rows. `classified` is
 // returned alongside (in document order) so the popup can mark the same links on
 // the page.
@@ -381,4 +396,13 @@ export function extractPageLinks(): PageLinks {
   }
 
   return { pageUrl: window.location.href, total: anchors.length, links };
+}
+
+// Injected into a tab (chrome.scripting.executeScript) to show a blocking
+// confirmation and report the choice. window.confirm halts the page's own
+// scripts while it is open, so a URL typed into the address bar can be caught the
+// moment it commits and backed out of before the page really runs. Returns true
+// to proceed, false to back out. Self-contained: it touches only window.
+export function confirmNavigation(message: string): boolean {
+  return window.confirm(message);
 }

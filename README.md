@@ -23,6 +23,7 @@ third-party reputation services, and an AI model to surface threats before they 
 - **Reputation integration:** Google Safe Browsing, VirusTotal, Sucuri SiteCheck, threat-filtering DNS (Cloudflare, Quad9), and server-IP reputation (SANS ISC / DShield).
 - **AI analysis:** on-demand phishing / social-engineering assessment of the page by a large language model (Claude or DeepSeek, your choice).
 - **Automatic scanning (optional):** scan every page as you browse without opening the popup, surfacing the verdict as a colour-coded badge and a matching tint on the toolbar icon, and applying the on-page highlights.
+- **Safety warnings (optional):** a confirmation prompt before following a malicious link, and before a risky address you type into the URL bar is allowed to stay. Each can be toggled independently in the options page.
 - **Clear results:** a trust score plus risk indicators, explained at varying levels of detail.
 
 ## How it works
@@ -325,7 +326,26 @@ A single capture-phase listener on the document drives every guarded link (it re
 re-scans never stack listeners; the guard covers `click` (left- and modifier-clicks) and `auxclick`
 (middle-click open-in-new-tab). Only the red buckets are guarded, so the green/blue internal and external
 links navigate untouched, and a bucket switched off in the **Link highlights** options is neither marked
-nor guarded.
+nor guarded. This click guard can be turned off with the **Warn before opening malicious links** toggle in
+the **Safety warnings** section of the options page; when off, red links are still outlined but clicking
+one navigates without a prompt.
+
+**Warning on a risky address typed into the URL bar.** The same confirmation also protects URLs the user
+enters directly in the address bar, not just links clicked on a page. The background worker listens on
+[`chrome.webNavigation.onCommitted`](https://developer.chrome.com/docs/extensions/reference/api/webNavigation#event-onCommitted)
+and, for a main-frame navigation the browser tags as coming from the omnibox (a `typed` / `generated` /
+`keyword` transition, or the `from_address_bar` qualifier), judges the destination the moment it commits.
+A host on the offline [Phishing.Database](https://github.com/Phishing-Database/Phishing.Database) blocklist,
+or a URL carrying a strong phishing tell (an IP-literal host, a punycode/IDN homograph, embedded
+credentials, a brand look-alike, a link shortener, unusually deep subdomains, stacked phishing keywords, or
+an off-domain redirect parameter — the same tells the Links view uses, reused via `classifyAddressBarUrl`),
+triggers the same-style
+[`confirm()`](https://developer.mozilla.org/en-US/docs/Web/API/Window/confirm). Because `confirm()` blocks
+the page's own scripts while it is open, catching it at commit time means declining can step the tab back
+off the page (via [`chrome.tabs.goBack`](https://developer.chrome.com/docs/extensions/reference/api/tabs#method-goBack),
+or a blank tab when there is no history) before the site really runs. This guard is governed by the
+**Warn when I type a risky address** toggle in the **Safety warnings** section, and needs the
+[`webNavigation`](https://developer.chrome.com/docs/extensions/reference/api/webNavigation) permission.
 
 ### AI
 

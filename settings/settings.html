@@ -57,6 +57,24 @@
       </section>
 
       <section class="card">
+        <h2 class="card__title" data-i18n="set_warnings">Safety warnings</h2>
+        <p class="field__help highlights__help" data-i18n="set_warnings_help">
+          Choose when Risk Radar interrupts a risky navigation with a confirmation prompt. Both are
+          on by default.
+        </p>
+        <div class="toggles">
+          <label class="toggle">
+            <span class="toggle__label" data-i18n="set_warn_links">Warn before opening malicious links</span>
+            <input id="warn-malicious-links" class="toggle__input" type="checkbox" />
+          </label>
+          <label class="toggle">
+            <span class="toggle__label" data-i18n="set_warn_typed">Warn when I type a risky address</span>
+            <input id="warn-typed-url" class="toggle__input" type="checkbox" />
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
         <h2 class="card__title" data-i18n="set_ai">AI</h2>
 
         <div class="field">

@@ -71,6 +71,8 @@
   "warn_link_heading": { "message": "אזהרת בטיחות של Risk Radar" },
   "warn_link_destination": { "message": "יעד" },
   "warn_link_continue": { "message": "להמשיך לקישור הזה בכל זאת?" },
+  "warn_url_continue": { "message": "להמשיך לאתר הזה בכל זאת?" },
+  "tip_url_listed": { "message": "אתר פישינג מוכר" },
 
   "lbl_protocol": { "message": "פרוטוקול" },
   "lbl_domainAge": { "message": "גיל הדומיין" },
@@ -145,6 +147,12 @@
   "set_autoscan_help": {
     "message": "כשמופעל, Risk Radar סורק בעצמו כל דף שאתם מבקרים בו, בלי לפתוח את החלון הקופץ: הוא מציג תג סיכון צבעוני על סמל הסרגל ומדגיש ממצאים בדף. הוא מריץ את אותן בדיקות כתובת, מוניטין, תוכן וקישורים שהחלון הקופץ מריץ; ניתוח הבינה המלאכותית לעולם לא רץ אוטומטית."
   },
+  "set_warnings": { "message": "אזהרות בטיחות" },
+  "set_warnings_help": {
+    "message": "בחרו מתי Risk Radar יעצור ניווט מסוכן עם בקשת אישור. שתי האפשרויות מופעלות כברירת מחדל."
+  },
+  "set_warn_links": { "message": "אזהרה לפני פתיחת קישורים זדוניים" },
+  "set_warn_typed": { "message": "אזהרה כשאני מקליד כתובת מסוכנת" },
   "set_ai": { "message": "בינה מלאכותית" },
   "set_ai_scan_mode": { "message": "מתי לסרוק עם בינה מלאכותית" },
   "set_ai_scan_auto": { "message": "אוטומטית עם פתיחת החלון הקופץ" },

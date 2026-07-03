@@ -35,6 +35,14 @@ export interface Settings {
   // applies the in-page highlights. The AI scan never runs automatically here
   // (it bills the user); it stays governed by aiScanMode in the popup.
   autoScan: boolean;
+  // When on, clicking a link a scan flagged as a suspicious link or a malicious
+  // redirect first asks for confirmation before the browser follows it. The link
+  // is still outlined red regardless; this only gates the click confirmation.
+  warnMaliciousLinks: boolean;
+  // When on, entering a risky address directly in the URL bar (a known phishing
+  // host, or a URL with strong phishing traits) asks for confirmation before the
+  // page is allowed to stay. Handled by the background worker via webNavigation.
+  warnTypedUrl: boolean;
   apiKey: string;
   deepseekApiKey: string;
   safeBrowsingApiKey: string;
@@ -70,6 +78,8 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: "dark",
   lang: "en",
   autoScan: false,
+  warnMaliciousLinks: true,
+  warnTypedUrl: true,
   apiKey: "",
   deepseekApiKey: "",
   safeBrowsingApiKey: "",

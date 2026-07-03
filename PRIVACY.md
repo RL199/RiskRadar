@@ -108,6 +108,9 @@ analysis described above.)
 - **`activeTab` + `scripting`**: read the current tab's content and links (and draw the
   highlights) only when you open the popup on that tab.
 - **`alarms`**: schedule the periodic refresh of the offline blocklist.
+- **`webNavigation`**: notice when you type an address into the URL bar so a risky one can
+  be checked and warned about before the page runs. The navigation details are inspected
+  locally, on your device, and are not logged or sent anywhere.
 - **`host_permissions: <all_urls>`**: let the extension analyze whatever site you are on
   and reach the reputation, lookup, and (opt-in) AI services from the extension page. This
   permission is used to fetch verdicts, not to monitor your browsing.

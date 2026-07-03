@@ -1031,7 +1031,11 @@ async function analyzeLinksView(tab: chrome.tabs.Tab | undefined, settings: Sett
   };
   const marks: LinkMark[] = classified.map((link) =>
     enabled[link.verdict] && link.verdict !== "ignore"
-      ? { verdict: link.verdict, title: linkTitle(link, dict), warn: linkWarning(link, dict) }
+      ? {
+          verdict: link.verdict,
+          title: linkTitle(link, dict),
+          warn: settings.warnMaliciousLinks ? linkWarning(link, dict) : undefined,
+        }
       : { verdict: "skip", title: "" },
   );
   void markPageLinks(tab.id, marks);

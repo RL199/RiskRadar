@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Safety warning when a risky URL is entered directly in the address bar: the background worker
+  watches `webNavigation` for omnibox navigations and pops the same confirmation the malicious-link
+  guard uses when the destination is on the phishing blocklist or carries strong phishing traits,
+  backing the tab out if declined. Adds the `webNavigation` permission.
+- **Safety warnings** section in the options page with two toggles: **Warn before opening malicious
+  links** (gates the existing red-link click confirmation) and **Warn when I type a risky address**.
+
 ### Changed
 
 ## [0.0.1]

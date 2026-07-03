@@ -10,7 +10,7 @@
         "48": "assets/icons/icon-48.png",
         "128": "assets/icons/icon-128.png"
     },
-    "permissions": ["storage", "activeTab", "scripting", "alarms", "unlimitedStorage"],
+    "permissions": ["storage", "activeTab", "scripting", "alarms", "unlimitedStorage", "webNavigation"],
     "host_permissions": ["<all_urls>"],
     "background": {
         "service_worker": "scripts/background/background.js",

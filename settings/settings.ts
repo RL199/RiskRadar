@@ -21,6 +21,8 @@ import {
 const themeSelect = document.getElementById("theme") as HTMLSelectElement;
 const langSelect = document.getElementById("lang") as HTMLSelectElement;
 const autoScanInput = document.getElementById("autoscan") as HTMLInputElement;
+const warnLinksInput = document.getElementById("warn-malicious-links") as HTMLInputElement;
+const warnTypedInput = document.getElementById("warn-typed-url") as HTMLInputElement;
 const aiScanModeSelect = document.getElementById("ai-scan-mode") as HTMLSelectElement;
 const apiKeyInput = document.getElementById("apikey") as HTMLInputElement;
 const toggleKeyBtn = document.getElementById("toggle-key") as HTMLButtonElement;
@@ -100,6 +102,8 @@ async function init(): Promise<void> {
   themeSelect.value = settings.theme;
   langSelect.value = settings.lang;
   autoScanInput.checked = settings.autoScan;
+  warnLinksInput.checked = settings.warnMaliciousLinks;
+  warnTypedInput.checked = settings.warnTypedUrl;
   aiScanModeSelect.value = settings.aiScanMode;
   apiKeyInput.value = settings.apiKey;
   deepseekKeyInput.value = settings.deepseekApiKey;
@@ -160,6 +164,21 @@ async function init(): Promise<void> {
   // worker, which watches storage, picks the change up right away.
   autoScanInput.addEventListener("change", async () => {
     settings = { ...settings, autoScan: autoScanInput.checked };
+    await saveSettings(settings);
+    flashSaved();
+  });
+
+  // The two safety-warning toggles save immediately so the next scan (for the
+  // link prompt) and the next address-bar navigation (read live by the worker)
+  // honour the choice.
+  warnLinksInput.addEventListener("change", async () => {
+    settings = { ...settings, warnMaliciousLinks: warnLinksInput.checked };
+    await saveSettings(settings);
+    flashSaved();
+  });
+
+  warnTypedInput.addEventListener("change", async () => {
+    settings = { ...settings, warnTypedUrl: warnTypedInput.checked };
     await saveSettings(settings);
     flashSaved();
   });
