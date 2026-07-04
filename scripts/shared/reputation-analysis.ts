@@ -208,6 +208,12 @@ function parseTransparencyEntry(body: string): unknown[] | null {
 
 // ------------------------------- VirusTotal ------------------------------- //
 
+// VirusTotal aggregates ~90 vendors, a few of which flag benign domains as a
+// matter of course. Only call a domain "bad" once at least this many vendors
+// agree; a smaller non-zero count (or a "suspicious" vote) is a warning, not a
+// verdict, so a couple of noisy engines can't brand a clean site as risky.
+const VT_MALICIOUS_BAD_THRESHOLD = 5;
+
 // Look up a domain's VirusTotal report. Needs a (free-tier) API key. The value
 // shows how many security vendors flagged the domain out of the total that
 // scanned it.
@@ -228,7 +234,12 @@ export async function checkVirusTotal(host: string, apiKey: string): Promise<Ana
     const malicious = stats.malicious ?? 0;
     const suspicious = stats.suspicious ?? 0;
     const total = Object.values(stats).reduce((sum, n) => sum + n, 0);
-    const status: RowStatus = malicious > 0 ? "bad" : suspicious > 0 ? "warn" : "good";
+    const status: RowStatus =
+      malicious >= VT_MALICIOUS_BAD_THRESHOLD
+        ? "bad"
+        : malicious > 0 || suspicious > 0
+          ? "warn"
+          : "good";
     return { text: `${malicious} / ${total}`, status };
   } catch {
     return { key: "val_unknown", status: "unknown" };
