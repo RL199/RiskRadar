@@ -36,6 +36,11 @@ third-party reputation services, and an AI model to surface threats before they 
    - **Phishing site** → low score + a clear alert.
    - **New / unknown site** → intermediate score + an uncertainty note.
 
+> **Note: the popup re-scans on every open.** Chrome tears down the popup document each time it
+> closes and builds a fresh one on the next open, so the popup keeps no state between openings. Every
+> time you open it the scan runs again from scratch, even if you closed it a second ago; there is no
+> caching of the previous result across opens, so a just-seen verdict is recomputed rather than reused.
+
 ## Risk logic
 
 Each check produces a status, either **good** (✓), **warning** (!), or **risky** (✕), and the
