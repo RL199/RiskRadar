@@ -98,16 +98,17 @@ jobs:
           mkdir -p build
           cd dist && zip -r ../build/RiskRadar.zip . && cd ..
 
-      - name: Upload to Chrome Web Store
-        if: steps.check_tag.outputs.exists == 'false'
-        uses: mnao305/chrome-extension-upload@v6.0.0
-        with:
-          file-path: build/RiskRadar.zip
-          extension-id: ${{ secrets.CHROME_WEB_STORE_APP_ID }}
-          client-id: ${{ secrets.CHROME_WEB_STORE_CLIENT_ID }}
-          client-secret: ${{ secrets.CHROME_WEB_STORE_CLIENT_SECRET }}
-          refresh-token: ${{ secrets.CHROME_WEB_STORE_REFRESH_TOKEN }}
-          publish: true
+      # Chrome Web Store upload disabled for now. Re-enable to auto-publish.
+      # - name: Upload to Chrome Web Store
+      #   if: steps.check_tag.outputs.exists == 'false'
+      #   uses: mnao305/chrome-extension-upload@v6.0.0
+      #   with:
+      #     file-path: build/RiskRadar.zip
+      #     extension-id: ${{ secrets.CHROME_WEB_STORE_APP_ID }}
+      #     client-id: ${{ secrets.CHROME_WEB_STORE_CLIENT_ID }}
+      #     client-secret: ${{ secrets.CHROME_WEB_STORE_CLIENT_SECRET }}
+      #     refresh-token: ${{ secrets.CHROME_WEB_STORE_REFRESH_TOKEN }}
+      #     publish: true
 
       - name: Create Release
         if: steps.check_tag.outputs.exists == 'false'
@@ -122,10 +123,7 @@ jobs:
 
             ## Installation
 
-            **Option 1: Chrome Web Store (Recommended)**
-            The extension has been automatically published to the Chrome Web Store.
-
-            **Option 2: Manual Installation**
+            **Manual Installation**
             1. Download the ZIP file
             2. Extract it to a folder
             3. Open Chrome and go to `chrome://extensions/`
