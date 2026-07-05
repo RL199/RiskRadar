@@ -1,11 +1,18 @@
 # Risk Radar Privacy Policy
 
+**Last updated:** 2026-07-05
+
 Risk Radar is a Chromium browser extension that analyzes the trustworthiness of the
 sites you visit. This policy explains exactly what data the extension touches, what
 stays on your device, and what is sent to third parties (and only then, when and why).
 
 ## Summary
 
+- **Data collected (Chrome Web Store categories): Website content and Web history.**
+  Page content (the title and visible text) is sent to your chosen AI provider only when
+  you press "Analyze this page," and the host name of the site you are viewing is sent to
+  public reputation services to check it. Nothing else is collected, and none of it is
+  sent to us.
 - **No accounts, no tracking, no analytics.** Risk Radar has no backend server of its
   own. It does not create an account, assign you an identifier, serve ads, or send any
   usage, telemetry, or analytics data anywhere.
