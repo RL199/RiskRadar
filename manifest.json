@@ -4,6 +4,7 @@
     "version": "1.0.0",
     "description": "__MSG_appDesc__",
     "default_locale": "en",
+    "homepage_url": "https://github.com/RL199/RiskRadar",
     "icons": {
         "16": "assets/icons/icon-16.png",
         "32": "assets/icons/icon-32.png",

@@ -9,6 +9,10 @@
   detecting phishing, social engineering, and manipulative content while you browse.
 </p>
 
+<p align="center">
+  <a href="https://chromewebstore.google.com/detail/risk-radar/hddlacmehallgcmhcbigkhjggjpkcnml"><strong>Install from the Chrome Web Store &rarr;</strong></a>
+</p>
+
 ## Overview
 
 Risk Radar inspects each site you visit and produces a **trust score (1 to 100)** alongside an
@@ -510,7 +514,13 @@ Language selector.
 
 ## Installation
 
-### From a release (recommended)
+### From the Chrome Web Store (recommended)
+
+Install [**Risk Radar**](https://chromewebstore.google.com/detail/risk-radar/hddlacmehallgcmhcbigkhjggjpkcnml)
+directly from the Chrome Web Store, then pin it from the toolbar's extensions menu. Updates arrive
+automatically.
+
+### From a release (manual)
 
 1. Download `RiskRadar.zip` from the [latest release](../../releases/latest).
 2. Extract it to a folder.
