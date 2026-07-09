@@ -4,6 +4,7 @@
 import {
   loadSettings,
   saveSettings,
+  type AiProvider,
   type AiScanMode,
   type HighlightSettings,
   type LangPref,
@@ -23,6 +24,7 @@ const langSelect = document.getElementById("lang") as HTMLSelectElement;
 const autoScanInput = document.getElementById("autoscan") as HTMLInputElement;
 const warnLinksInput = document.getElementById("warn-malicious-links") as HTMLInputElement;
 const warnTypedInput = document.getElementById("warn-typed-url") as HTMLInputElement;
+const aiProviderSelect = document.getElementById("ai-provider") as HTMLSelectElement;
 const aiScanModeSelect = document.getElementById("ai-scan-mode") as HTMLSelectElement;
 const apiKeyInput = document.getElementById("apikey") as HTMLInputElement;
 const toggleKeyBtn = document.getElementById("toggle-key") as HTMLButtonElement;
@@ -132,6 +134,7 @@ async function init(): Promise<void> {
   autoScanInput.checked = settings.autoScan;
   warnLinksInput.checked = settings.warnMaliciousLinks;
   warnTypedInput.checked = settings.warnTypedUrl;
+  aiProviderSelect.value = settings.aiProvider;
   aiScanModeSelect.value = settings.aiScanMode;
   apiKeyInput.value = settings.apiKey;
   deepseekKeyInput.value = settings.deepseekApiKey;
@@ -207,6 +210,14 @@ async function init(): Promise<void> {
 
   warnTypedInput.addEventListener("change", async () => {
     settings = { ...settings, warnTypedUrl: warnTypedInput.checked };
+    await saveSettings(settings);
+    flashSaved();
+  });
+
+  // The default provider saves immediately so the popup's AI view opens on the
+  // chosen provider the next time it runs (the popup can still switch per scan).
+  aiProviderSelect.addEventListener("change", async () => {
+    settings = { ...settings, aiProvider: aiProviderSelect.value as AiProvider };
     await saveSettings(settings);
     flashSaved();
   });

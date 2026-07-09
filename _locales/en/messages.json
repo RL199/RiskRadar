@@ -154,6 +154,10 @@
   "set_warn_links": { "message": "Warn before opening malicious links" },
   "set_warn_typed": { "message": "Warn when I type a risky address" },
   "set_ai": { "message": "AI" },
+  "set_ai_provider": { "message": "Default AI provider" },
+  "set_ai_provider_help": {
+    "message": "Which provider the popup uses for AI analysis by default. You can still switch providers for a single scan from the popup."
+  },
   "set_ai_scan_mode": { "message": "When to scan with AI" },
   "set_ai_scan_auto": { "message": "Automatically when the popup opens" },
   "set_ai_scan_manual": { "message": "When I click Analyze" },

@@ -391,7 +391,9 @@ until you click. Because automatic mode bills your provider on every popup open,
 text spells that out.
 
 **Two providers, your choice.** A provider selector in the view chooses between **Claude** and
-**DeepSeek**; the choice is saved on-device (`aiProvider` in `chrome.storage.local`). Both keys live under
+**DeepSeek**; the choice is saved on-device (`aiProvider` in `chrome.storage.local`). The same value is
+exposed as a **Default AI provider** dropdown under **Settings → AI**, so you can set which provider the
+popup opens on while still switching it per scan from the view. Both keys live under
 **Settings → AI**; if the selected provider has no key yet, the button becomes **Add key** and opens the
 same inline key modal the Reputation view uses, then runs the analysis. Both are called directly from the
 popup with `fetch` (no SDK) — the `<all_urls>` host permission lets the extension reach
@@ -403,7 +405,7 @@ and `DEEPSEEK_MODELS` in `ai-analysis.ts`, so adding or removing a model is a on
 
 - **Claude** — Anthropic's [Messages API](https://docs.claude.com/en/api/messages) (`POST
   https://api.anthropic.com/v1/messages`), choosing between
-  [Opus 4.8, Sonnet 4.6, and Haiku 4.5](https://docs.claude.com/en/docs/about-claude/models/overview)
+  [Opus 4.8, Sonnet 5, Sonnet 4.6, and Haiku 4.5](https://docs.claude.com/en/docs/about-claude/models/overview)
   (default **Sonnet 4.6**). The response shape is pinned with
   [structured outputs](https://docs.claude.com/en/docs/build-with-claude/structured-outputs)
   (`output_config.format` + a JSON schema), and the

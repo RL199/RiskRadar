@@ -83,6 +83,20 @@
           <h2 class="card__title" data-i18n="set_ai">AI</h2>
 
           <div class="field">
+            <label class="field__label" for="ai-provider" data-i18n="set_ai_provider"
+              >Default AI provider</label
+            >
+            <select id="ai-provider" class="control">
+              <option value="claude">Claude</option>
+              <option value="deepseek">DeepSeek</option>
+            </select>
+            <p class="field__help" data-i18n="set_ai_provider_help">
+              Which provider the popup uses for AI analysis by default. You can still switch
+              providers for a single scan from the popup.
+            </p>
+          </div>
+
+          <div class="field">
             <label class="field__label" for="ai-scan-mode" data-i18n="set_ai_scan_mode"
               >When to scan with AI</label
             >

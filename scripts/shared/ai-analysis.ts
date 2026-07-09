@@ -28,6 +28,7 @@ export interface AiModelOption {
 // (fastest and cheapest). https://docs.claude.com/en/docs/about-claude/models/overview
 export const CLAUDE_MODELS: readonly AiModelOption[] = [
   { id: "claude-opus-4-8", label: "Claude Opus 4.8" },
+  { id: "claude-sonnet-5", label: "Claude Sonnet 5" },
   { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
   { id: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
 ];
