@@ -122,8 +122,12 @@ jobs:
 
             ## Installation
 
-            **Manual Installation**
-            1. Download the ZIP file
+            **Chrome Web Store (recommended)**
+
+            Install from the [Chrome Web Store](https://chromewebstore.google.com/detail/risk-radar/hddlacmehallgcmhcbigkhjggjpkcnml). Updates arrive automatically.
+
+            **Manual installation**
+            1. Download the ZIP file below
             2. Extract it to a folder
             3. Open Chrome and go to `chrome://extensions/`
             4. Enable "Developer mode"
