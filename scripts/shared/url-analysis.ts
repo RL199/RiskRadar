@@ -121,3 +121,30 @@ export async function fetchRegistrationDate(registrableDomain: string): Promise<
 export function isLookupableDomain(hostname: string): boolean {
   return hostname.includes(".") && !IPV4_RE.test(hostname) && hostname !== "localhost";
 }
+
+// Browser extension stores where script injection is forbidden at the browser
+// level: chrome.scripting.executeScript always throws there ("The extensions
+// gallery cannot be scripted"), no matter what permissions the extension holds,
+// so the DOM-reading categories (Content, Links, AI) can never run on them.
+// The popup shows an explicit "Chrome blocks extensions on this page" note for
+// these instead of the generic Unknown a transient failure gets.
+const RESTRICTED_STORES: { host: string; pathPrefix?: string }[] = [
+  // The Chrome Web Store, current and legacy addresses.
+  { host: "chromewebstore.google.com" },
+  { host: "chrome.google.com", pathPrefix: "/webstore" },
+  // The Edge Add-ons store, equally protected when running on Edge.
+  { host: "microsoftedge.microsoft.com", pathPrefix: "/addons" },
+];
+
+/** Whether the browser forbids extensions from scripting this page (its extension store). */
+export function isRestrictedPage(url: string | URL | undefined): boolean {
+  if (!url) return false;
+  try {
+    const u = new URL(url);
+    return RESTRICTED_STORES.some(
+      (store) => u.hostname === store.host && (!store.pathPrefix || u.pathname.startsWith(store.pathPrefix)),
+    );
+  } catch {
+    return false;
+  }
+}

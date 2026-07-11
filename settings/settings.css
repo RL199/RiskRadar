@@ -106,6 +106,41 @@ body::after {
   row-gap: 0;
 }
 
+/* Wide windows: the moment four columns fit, the layout locks to exactly four
+   and every card keeps a fixed home column, so related cards stay paired:
+   Appearance above Content highlights, Scanning above Reputation, Safety
+   warnings above Link highlights, and AI on its own. Wider screens only widen
+   these four columns instead of adding a fifth. Dense flow lets each pinned
+   card pack straight below its column neighbor regardless of source order;
+   grid column numbers count from the inline start, so RTL mirrors on its own.
+   The breakpoint is four 320px columns plus three 16px gaps plus the page
+   padding. Below it the auto fit grid above keeps working as before. */
+@media (min-width: 1376px) {
+  .settings__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-flow: row dense;
+  }
+
+  .card--appearance,
+  .card--content-highlights {
+    grid-column: 1;
+  }
+
+  .card--scanning,
+  .card--reputation {
+    grid-column: 2;
+  }
+
+  .card--warnings,
+  .card--link-highlights {
+    grid-column: 3;
+  }
+
+  .card--ai {
+    grid-column: 4;
+  }
+}
+
 /* Header */
 .settings__head {
   display: flex;

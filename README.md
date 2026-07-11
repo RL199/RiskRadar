@@ -27,7 +27,7 @@ third-party reputation services, and an AI model to surface threats before they 
 - **Reputation integration:** Google Safe Browsing, VirusTotal, Sucuri SiteCheck, threat-filtering DNS (Cloudflare, Quad9), and server-IP reputation (SANS ISC / DShield).
 - **AI analysis:** on-demand phishing / social-engineering assessment of the page by a large language model (Claude or DeepSeek, your choice).
 - **Automatic scanning (optional):** scan every page as you browse without opening the popup, surfacing the verdict as a colour-coded badge and a matching tint on the toolbar icon, and applying the on-page highlights.
-- **Safety warnings (optional):** a confirmation prompt before following a malicious link, and before a risky address you type into the URL bar is allowed to stay. Each can be toggled independently in the options page.
+- **Safety warnings:** interrupts a risky navigation, both when following a malicious link and when a risky address is typed into the URL bar. A single action setting in the options page decides what happens when one is caught: **Warn** (the default) shows a confirmation you can accept to continue anyway, **Block** cancels the navigation and shows a message that the website is blocked, and **Do nothing** lets the navigation through without interruption.
 - **Clear results:** a trust score plus risk indicators, explained at varying levels of detail.
 
 ## How it works
@@ -162,8 +162,9 @@ read another tab's DOM directly, it injects a small, self-contained extractor in
 (granted by `activeTab` + `scripting` + the `<all_urls>` host permission). The extractor returns a tiny
 JSON summary: the page title, its visible text (capped), the number of password fields, and a per-form
 note of whether each password form leaves the origin or uses plain HTTP. The risk logic then runs in the
-popup. Pages with no readable DOM (a `chrome://` page, the new-tab page, the Web Store) are reported as
-_Unknown_ and excluded from the verdict. All four checks are offline and textual/structural; no page
+popup. Pages with no readable DOM (a `chrome://` page, the new-tab page) are reported as _Unknown_ and
+excluded from the verdict, and browser extension stores show an explicit _Restricted_ note instead (see
+[Restricted pages](#restricted-pages)). All four checks are offline and textual/structural; no page
 content ever leaves the browser.
 
 | Check                    | How it's computed                                                                                                                                            | Risk logic                                                                                                  |
@@ -278,8 +279,9 @@ JSON summary: the page URL, the total number of `<a href>` links, and, for the f
 order, each link's resolved href and visible text. The risk logic then runs in the popup, sorting every
 link into one bucket: **internal** (same registrable domain), **external** (a different domain with no
 risk traits), **suspicious**, **redirect**, or **ignore** (a `mailto:` / `tel:` / `javascript:` link or a
-same-page `#` anchor). Pages with no readable DOM (a `chrome://` page, the new-tab page, the Web Store)
-are reported as _Unknown_ and excluded from the verdict. All checks are offline; no link ever leaves the
+same-page `#` anchor). Pages with no readable DOM (a `chrome://` page, the new-tab page) are reported as
+_Unknown_ and excluded from the verdict, and browser extension stores show an explicit _Restricted_ note
+instead (see [Restricted pages](#restricted-pages)). All checks are offline; no link ever leaves the
 browser.
 
 | Check                    | How it's computed                                                                                          | Risk logic                                                                                                          |
@@ -339,9 +341,18 @@ A single capture-phase listener on the document drives every guarded link (it re
 re-scans never stack listeners; the guard covers `click` (left- and modifier-clicks) and `auxclick`
 (middle-click open-in-new-tab). Only the red buckets are guarded, so the green/blue internal and external
 links navigate untouched, and a bucket switched off in the **Link highlights** options is neither marked
-nor guarded. This click guard can be turned off with the **Warn before opening malicious links** toggle in
-the **Safety warnings** section of the options page; when off, red links are still outlined but clicking
-one navigates without a prompt.
+nor guarded.
+
+**Choosing between warning, blocking, and doing nothing.** The **Safety warnings** section of the options
+page holds a single action setting deciding what both guards (the red-link click guard above and the
+typed-address guard below) do when they catch a risky navigation. **Warn**, the default, is the
+confirmation flow described here: the user can accept it and continue anyway. **Block** removes that
+choice: a click on a red link is cancelled outright and an
+[`alert()`](https://developer.mozilla.org/en-US/docs/Web/API/Window/alert) states the website is blocked
+(carried by a per-anchor `data-riskradar-block` attribute the same document guard reads), and a risky
+typed address is backed out of unconditionally after the same blocked notice. **Do nothing** disarms both
+guards: a caught navigation proceeds with no prompt at all, while red links keep their outlines and hover
+labels.
 
 **Warning on a risky address typed into the URL bar.** The same confirmation also protects URLs the user
 enters directly in the address bar, not just links clicked on a page. The background worker listens on
@@ -356,8 +367,12 @@ triggers the same-style
 [`confirm()`](https://developer.mozilla.org/en-US/docs/Web/API/Window/confirm). Because `confirm()` blocks
 the page's own scripts while it is open, catching it at commit time means declining can step the tab back
 off the page (via [`chrome.tabs.goBack`](https://developer.chrome.com/docs/extensions/reference/api/tabs#method-goBack),
-or a blank tab when there is no history) before the site really runs. This guard is governed by the
-**Warn when I type a risky address** toggle in the **Safety warnings** section, and needs the
+or a blank tab when there is no history) before the site really runs. When the guard action is set to
+**Block**, the confirmation is replaced by an
+[`alert()`](https://developer.mozilla.org/en-US/docs/Web/API/Window/alert) stating the website is blocked,
+and the tab is stepped back the same way once it is dismissed, with no option to continue; when it is set
+to **Do nothing**, the navigation is let through untouched. This guard follows the same shared action
+setting in the **Safety warnings** section, and needs the
 [`webNavigation`](https://developer.chrome.com/docs/extensions/reference/api/webNavigation) permission.
 
 ### AI
@@ -428,6 +443,29 @@ failure shows an explanatory note and leaves the rest of the popup working.
 > explicitly run it. The page summary above is transmitted to the provider you selected (Anthropic or
 > DeepSeek) under your own API key, subject to that provider's data-handling terms. See
 > [PRIVACY.md](PRIVACY.md).
+
+### Restricted pages
+
+The three DOM-reading categories (Content, Links, and AI) work by injecting an extractor into the
+active tab, and the browser refuses that injection on its own extension store:
+[`chrome.scripting.executeScript`](https://developer.chrome.com/docs/extensions/reference/api/scripting)
+always fails there with _"The extensions gallery cannot be scripted"_, no matter what permissions an
+extension holds. The block lives in the browser itself, protecting the store's install and review UI
+from tampering; see the
+[Chromium source](https://source.chromium.org/search?q=%22The%20extensions%20gallery%20cannot%20be%20scripted%22)
+and this [write-up of the error](https://www.extension.ninja/blog/post/solved-extensions-gallery-cannot-be-scripted/).
+
+On these pages the popup shows an explicit **Restricted** verdict with a _"Chrome blocks extensions on
+this page"_ note for those three categories, instead of the generic _Unknown_ a transient scan failure
+gets, and the AI **Analyze** button is disabled. The **URL & Domain** and **Reputation** categories
+never touch the page's DOM, so they still run, and the trust score is computed from them alone. The
+recognized store pages (`isRestrictedPage` in
+[`scripts/shared/url-analysis.ts`](scripts/shared/url-analysis.ts)) are the
+[Chrome Web Store](https://chromewebstore.google.com/) (`chromewebstore.google.com`, plus the legacy
+`chrome.google.com/webstore`) and, when running on Edge, the
+[Edge Add-ons store](https://microsoftedge.microsoft.com/addons) (`microsoftedge.microsoft.com/addons`).
+`chrome://` pages and the new-tab page have no scannable content at all, so they keep the muted
+"Can't scan this page" state.
 
 ## Automatic scanning
 
@@ -509,7 +547,7 @@ Language selector.
 - **Languages:** TypeScript, HTML, CSS
 - **Platform:** Chrome Extension API (Manifest V3), including a background service worker (IndexedDB + `chrome.alarms`, plus optional auto-scan via `chrome.tabs` / `chrome.scripting` / `chrome.action` badge + icon tinting)
 - **Localization:** `chrome.i18n` with `_locales/` message files (English and Hebrew, RTL-aware)
-- **Theming:** shared design tokens in `styles/theme.css` (dark by default, light via a `data-theme` override). The popup and the options page both follow the brand icon: green accents on every interactive element (buttons, links, toggles, focus rings), a softly glowing shield logo, and on the options page a radar rings and sweep backdrop built with CSS [`color-mix()`](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color-mix), [`conic-gradient()`](https://developer.mozilla.org/en-US/docs/Web/CSS/gradient/conic-gradient) and [`mask-image`](https://developer.mozilla.org/en-US/docs/Web/CSS/mask-image), with the sweep animation disabled under [`prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion). Its card grid packs masonry style at any window width, including ultrawide: since [CSS masonry](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_grid_layout/Masonry_layout) has not shipped in stable Chrome, each card spans a number of fixed 8px grid rows matching its measured height, kept current by a [`ResizeObserver`](https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver). The README logo (`assets/icon.svg`) mirrors that backdrop in all green: an SVG SMIL [`<animateTransform>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/animateTransform) turns the beam and its fading trail around the ring center, and [`<animate>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/animate) key times flash a contact blip with a spreading ping each time the beam passes over it. SMIL was chosen because it keeps playing when GitHub renders the image through an `<img>` embed, where scripts are not executed
+- **Theming:** shared design tokens in `styles/theme.css` (dark by default, light via a `data-theme` override). The popup and the options page both follow the brand icon: green accents on every interactive element (buttons, links, toggles, focus rings), a softly glowing shield logo, and on the options page a radar rings and sweep backdrop built with CSS [`color-mix()`](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color-mix), [`conic-gradient()`](https://developer.mozilla.org/en-US/docs/Web/CSS/gradient/conic-gradient) and [`mask-image`](https://developer.mozilla.org/en-US/docs/Web/CSS/mask-image), with the sweep animation disabled under [`prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion). Its card grid packs masonry style at any window width: since [CSS masonry](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_grid_layout/Masonry_layout) has not shipped in stable Chrome, each card spans a number of fixed 8px grid rows matching its measured height, kept current by a [`ResizeObserver`](https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver). Once four columns fit, the layout caps at four and pins each card to a home column via [`grid-column`](https://developer.mozilla.org/en-US/docs/Web/CSS/grid-column) with [`grid-auto-flow: row dense`](https://developer.mozilla.org/en-US/docs/Web/CSS/grid-auto-flow), so related cards stay stacked together and ultrawide screens widen the columns instead of adding more. The README logo (`assets/icon.svg`) mirrors that backdrop in all green: an SVG SMIL [`<animateTransform>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/animateTransform) turns the beam and its fading trail around the ring center, and [`<animate>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/animate) key times flash a contact blip with a spreading ping each time the beam passes over it. SMIL was chosen because it keeps playing when GitHub renders the image through an `<img>` embed, where scripts are not executed
 - **External services:** AI and reputation APIs
 - **CI/CD:** GitHub Actions
 - **Version control:** Git / GitHub

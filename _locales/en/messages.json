@@ -50,6 +50,7 @@
   "sum_ai_unknown": { "message": "Couldn't analyze this page." },
   "sum_ai_error": { "message": "AI analysis failed." },
   "sum_ai_idle": { "message": "Run AI analysis to check this page." },
+  "sum_restricted": { "message": "Chrome blocks extensions on this page." },
 
   "det_form_insecure": { "message": "Password sent over HTTP" },
   "det_form_crossOrigin": { "message": "Password posted to another domain" },
@@ -72,6 +73,8 @@
   "warn_link_destination": { "message": "Destination" },
   "warn_link_continue": { "message": "Continue to this link anyway?" },
   "warn_url_continue": { "message": "Continue to this site anyway?" },
+  "block_link_notice": { "message": "This website is blocked." },
+  "block_url_notice": { "message": "This website is blocked." },
   "tip_url_listed": { "message": "Known phishing site" },
 
   "lbl_protocol": { "message": "Protocol" },
@@ -122,6 +125,7 @@
   "val_low": { "message": "Low" },
   "val_high": { "message": "High" },
   "val_unknown": { "message": "Unknown" },
+  "val_restricted": { "message": "Restricted" },
 
   "unit_years": { "message": "years" },
   "unit_months": { "message": "months" },
@@ -149,10 +153,15 @@
   },
   "set_warnings": { "message": "Safety warnings" },
   "set_warnings_help": {
-    "message": "Choose when Risk Radar interrupts a risky navigation with a confirmation prompt. Both are on by default."
+    "message": "Applies both when you click a link flagged as malicious and when you type a risky address in the URL bar."
   },
-  "set_warn_links": { "message": "Warn before opening malicious links" },
-  "set_warn_typed": { "message": "Warn when I type a risky address" },
+  "set_guard_action": { "message": "What to do when a risky navigation is caught" },
+  "set_guard_action_warn": { "message": "Warn and let me decide" },
+  "set_guard_action_block": { "message": "Block the website" },
+  "set_guard_action_none": { "message": "Do nothing" },
+  "set_guard_action_help": {
+    "message": "Warn shows a confirmation you can accept to continue anyway. Block cancels the navigation and shows a message that the website is blocked. Do nothing lets the navigation through without interruption; flagged links are still outlined."
+  },
   "set_ai": { "message": "AI" },
   "set_ai_provider": { "message": "Default AI provider" },
   "set_ai_provider_help": {

@@ -5,18 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-### [1.0.1]
+## [1.0.2]
+
+### Added
+- In settings, a **What to do when a risky navigation is caught** option in the **Safety warnings**
+  section, deciding what both guards (the malicious-link click guard and the risky typed-address guard)
+  do when they catch a risky navigation. **Warn** (the default) keeps the existing confirmation the user
+  can accept to continue anyway; **Block** cancels the navigation outright and shows a message that the
+  website is blocked: a click on a flagged link never navigates, and a risky typed address is backed out
+  of unconditionally after the notice; **Do nothing** lets the navigation through with no interruption at
+  all, while flagged links keep their outlines and hover labels.
+
+### Removed
+- The two **Safety warnings** toggles (**Warn before opening malicious links** and **Warn when I type a
+  risky address**) were replaced by the single action option above, which always applies to both guards.
+  Turning both off is now expressed by choosing **Do nothing**.
+
+### Changed
+- On pages the browser forbids extensions from scripting (the Chrome Web Store, and the Edge
+  Add-ons store on Edge), the Content Analysis, Links, and AI Analysis categories now show an
+  explicit **Restricted** verdict with a "Chrome blocks extensions on this page" note instead of
+  the generic **Unknown**, and the AI **Analyze** button is disabled there. URL & Domain and
+  Reputation still run on these pages and the trust score is computed from them alone.
+
+## [1.0.1]
 
 ### Added
 - Support for Anthropic's Claude Sonnet 5 model
 - In settings, added an option to select the default AI provider.
 
-### [1.0.0]
+## [1.0.0]
 
 ### Added
 - Chrome Web Store listing and auto-publish workflow on merge to `main`.
 
-### [0.1.0]
+## [0.1.0]
 
 ### Fixed
 
