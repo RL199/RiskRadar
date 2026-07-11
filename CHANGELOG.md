@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2]
+
+### Changed
+- On pages the browser forbids extensions from scripting (the Chrome Web Store, and the Edge
+  Add-ons store on Edge), the Content Analysis, Links, and AI Analysis categories now show an
+  explicit **Restricted** verdict with a "Chrome blocks extensions on this page" note instead of
+  the generic **Unknown**, and the AI **Analyze** button is disabled there. URL & Domain and
+  Reputation still run on these pages and the trust score is computed from them alone.
+
 ## [1.0.1]
 
 ### Added

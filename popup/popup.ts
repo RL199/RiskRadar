@@ -12,6 +12,7 @@ import {
   fetchRegistrationDate,
   splitDomain,
   isLookupableDomain,
+  isRestrictedPage,
   type AnalyzedRow,
   type RowStatus,
 } from "../scripts/shared/url-analysis";
@@ -763,19 +764,22 @@ const CONTENT_FIELDS = [
 // Set the Content view's summary verdict + subtitle and the matching chip on the
 // main list, all from the overall (worst) status. `flags` carries a cleartext
 // credential form (definitive) or brand impersonation / heavy phishing wording
-// (strong) on to the header trust score.
-function setContentVerdict(status: RowStatus, dict: Dict, flags: ScoreFlags = {}): void {
+// (strong) on to the header trust score. `restricted` swaps the unknown wording
+// for the explicit "Chrome blocks extensions on this page" note.
+function setContentVerdict(status: RowStatus, dict: Dict, flags: ScoreFlags = {}, restricted = false): void {
   const tone = status === "unknown" ? "status--muted" : TONE_CLASS[status] || "status--good";
-  const vKey =
-    status === "bad"
+  const vKey = restricted
+    ? "val_restricted"
+    : status === "bad"
       ? "status_danger"
       : status === "warn"
         ? "status_warning"
         : status === "unknown"
           ? "val_unknown"
           : "status_good";
-  const sKey =
-    status === "bad"
+  const sKey = restricted
+    ? "sum_restricted"
+    : status === "bad"
       ? "sum_content_bad"
       : status === "warn"
         ? "sum_content_warn"
@@ -852,6 +856,15 @@ async function analyzeContentView(tab: chrome.tabs.Tab | undefined, settings: Se
     return;
   }
 
+  // Chrome forbids extensions from scripting its extension store, so the
+  // extractor can never run there. Say so explicitly instead of leaving the
+  // generic Unknown a transient failure gets.
+  if (isRestrictedPage(url)) {
+    for (const field of CONTENT_FIELDS) renderRow(field, { key: "val_unknown", status: "unknown" }, dict, true);
+    setContentVerdict("unknown", dict, {}, true);
+    return;
+  }
+
   // Show placeholders while the page is being read.
   for (const field of CONTENT_FIELDS) renderRow(field, { text: "…", status: "neutral" }, dict, false);
 
@@ -900,19 +913,22 @@ async function analyzeContentView(tab: chrome.tabs.Tab | undefined, settings: Se
 const LINK_FIELDS = ["totalLinks", "externalLinks", "suspiciousLinks", "maliciousRedirects"] as const;
 
 // Set the Links view's summary verdict + subtitle and the matching chip on the
-// main list, all from the overall (worst) status.
-function setLinksVerdict(status: RowStatus, dict: Dict): void {
+// main list, all from the overall (worst) status. `restricted` swaps the unknown
+// wording for the explicit "Chrome blocks extensions on this page" note.
+function setLinksVerdict(status: RowStatus, dict: Dict, restricted = false): void {
   const tone = status === "unknown" ? "status--muted" : TONE_CLASS[status] || "status--good";
-  const vKey =
-    status === "bad"
+  const vKey = restricted
+    ? "val_restricted"
+    : status === "bad"
       ? "status_danger"
       : status === "warn"
         ? "status_warning"
         : status === "unknown"
           ? "val_unknown"
           : "status_good";
-  const sKey =
-    status === "bad"
+  const sKey = restricted
+    ? "sum_restricted"
+    : status === "bad"
       ? "sum_links_bad"
       : status === "warn"
         ? "sum_links_warn"
@@ -996,6 +1012,15 @@ async function analyzeLinksView(tab: chrome.tabs.Tab | undefined, settings: Sett
   if (!tab?.id || !url || (url.protocol !== "http:" && url.protocol !== "https:")) {
     for (const field of LINK_FIELDS) renderRow(field, { key: "val_unknown", status: "neutral" }, dict, false);
     setLinksVerdict("unknown", dict);
+    return;
+  }
+
+  // Chrome forbids extensions from scripting its extension store, so the
+  // extractor can never run there. Say so explicitly instead of leaving the
+  // generic Unknown a transient failure gets.
+  if (isRestrictedPage(url)) {
+    for (const field of LINK_FIELDS) renderRow(field, { key: "val_unknown", status: "unknown" }, dict, true);
+    setLinksVerdict("unknown", dict, true);
     return;
   }
 
@@ -1224,9 +1249,9 @@ function setupAiView(tab: chrome.tabs.Tab | undefined, settings: Settings): void
     });
   }
 
-  // The Analyze button only makes sense on a scannable page; on privileged pages
-  // scanAiView leaves it disabled, so there's nothing to run.
-  if (!aiScannable(tab)) return;
+  // The Analyze button only makes sense on a scannable page; on privileged and
+  // store pages scanAiView leaves it disabled, so there's nothing to run.
+  if (!aiScannable(tab) || isRestrictedPage(tab.url)) return;
   const button = document.getElementById("ai-analyze") as HTMLButtonElement | null;
   button?.addEventListener("click", () => void runAiAnalysis(tab, settings));
 }
@@ -1238,11 +1263,19 @@ function scanAiView(tab: chrome.tabs.Tab | undefined, settings: Settings): void 
   const button = document.getElementById("ai-analyze") as HTMLButtonElement | null;
   const note = document.getElementById("ai-note-body");
 
-  // Privileged pages can't be scanned — show a muted, disabled state.
-  if (!aiScannable(tab)) {
+  // Privileged pages can't be scanned, and neither can the browser's extension
+  // store, which Chrome forbids extensions from scripting. Both get a muted,
+  // disabled state; the store names the reason instead of the generic unknown.
+  const restricted = isRestrictedPage(tab?.url);
+  if (!aiScannable(tab) || restricted) {
     for (const field of AI_FIELDS) renderRow(field, { key: "val_unknown", status: "neutral" }, dict, false);
-    setAiSummary("status--muted", "val_unknown", "sum_ai_unknown", dict);
-    if (note) note.textContent = dict.sum_ai_unknown;
+    setAiSummary(
+      "status--muted",
+      restricted ? "val_restricted" : "val_unknown",
+      restricted ? "sum_restricted" : "sum_ai_unknown",
+      dict,
+    );
+    if (note) note.textContent = restricted ? dict.sum_restricted : dict.sum_ai_unknown;
     if (button) {
       button.disabled = true;
       button.textContent = dict.btn_analyze;

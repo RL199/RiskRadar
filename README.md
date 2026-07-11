@@ -162,8 +162,9 @@ read another tab's DOM directly, it injects a small, self-contained extractor in
 (granted by `activeTab` + `scripting` + the `<all_urls>` host permission). The extractor returns a tiny
 JSON summary: the page title, its visible text (capped), the number of password fields, and a per-form
 note of whether each password form leaves the origin or uses plain HTTP. The risk logic then runs in the
-popup. Pages with no readable DOM (a `chrome://` page, the new-tab page, the Web Store) are reported as
-_Unknown_ and excluded from the verdict. All four checks are offline and textual/structural; no page
+popup. Pages with no readable DOM (a `chrome://` page, the new-tab page) are reported as _Unknown_ and
+excluded from the verdict, and browser extension stores show an explicit _Restricted_ note instead (see
+[Restricted pages](#restricted-pages)). All four checks are offline and textual/structural; no page
 content ever leaves the browser.
 
 | Check                    | How it's computed                                                                                                                                            | Risk logic                                                                                                  |
@@ -278,8 +279,9 @@ JSON summary: the page URL, the total number of `<a href>` links, and, for the f
 order, each link's resolved href and visible text. The risk logic then runs in the popup, sorting every
 link into one bucket: **internal** (same registrable domain), **external** (a different domain with no
 risk traits), **suspicious**, **redirect**, or **ignore** (a `mailto:` / `tel:` / `javascript:` link or a
-same-page `#` anchor). Pages with no readable DOM (a `chrome://` page, the new-tab page, the Web Store)
-are reported as _Unknown_ and excluded from the verdict. All checks are offline; no link ever leaves the
+same-page `#` anchor). Pages with no readable DOM (a `chrome://` page, the new-tab page) are reported as
+_Unknown_ and excluded from the verdict, and browser extension stores show an explicit _Restricted_ note
+instead (see [Restricted pages](#restricted-pages)). All checks are offline; no link ever leaves the
 browser.
 
 | Check                    | How it's computed                                                                                          | Risk logic                                                                                                          |
@@ -428,6 +430,29 @@ failure shows an explanatory note and leaves the rest of the popup working.
 > explicitly run it. The page summary above is transmitted to the provider you selected (Anthropic or
 > DeepSeek) under your own API key, subject to that provider's data-handling terms. See
 > [PRIVACY.md](PRIVACY.md).
+
+### Restricted pages
+
+The three DOM-reading categories (Content, Links, and AI) work by injecting an extractor into the
+active tab, and the browser refuses that injection on its own extension store:
+[`chrome.scripting.executeScript`](https://developer.chrome.com/docs/extensions/reference/api/scripting)
+always fails there with _"The extensions gallery cannot be scripted"_, no matter what permissions an
+extension holds. The block lives in the browser itself, protecting the store's install and review UI
+from tampering; see the
+[Chromium source](https://source.chromium.org/search?q=%22The%20extensions%20gallery%20cannot%20be%20scripted%22)
+and this [write-up of the error](https://www.extension.ninja/blog/post/solved-extensions-gallery-cannot-be-scripted/).
+
+On these pages the popup shows an explicit **Restricted** verdict with a _"Chrome blocks extensions on
+this page"_ note for those three categories, instead of the generic _Unknown_ a transient scan failure
+gets, and the AI **Analyze** button is disabled. The **URL & Domain** and **Reputation** categories
+never touch the page's DOM, so they still run, and the trust score is computed from them alone. The
+recognized store pages (`isRestrictedPage` in
+[`scripts/shared/url-analysis.ts`](scripts/shared/url-analysis.ts)) are the
+[Chrome Web Store](https://chromewebstore.google.com/) (`chromewebstore.google.com`, plus the legacy
+`chrome.google.com/webstore`) and, when running on Edge, the
+[Edge Add-ons store](https://microsoftedge.microsoft.com/addons) (`microsoftedge.microsoft.com/addons`).
+`chrome://` pages and the new-tab page have no scannable content at all, so they keep the muted
+"Can't scan this page" state.
 
 ## Automatic scanning
 

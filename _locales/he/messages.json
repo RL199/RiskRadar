@@ -50,6 +50,7 @@
   "sum_ai_unknown": { "message": "לא ניתן היה לנתח את הדף." },
   "sum_ai_error": { "message": "ניתוח ה-AI נכשל." },
   "sum_ai_idle": { "message": "הרץ ניתוח AI כדי לבדוק את הדף." },
+  "sum_restricted": { "message": "Chrome חוסם תוספים בדף זה." },
 
   "det_form_insecure": { "message": "סיסמה נשלחת דרך HTTP" },
   "det_form_crossOrigin": { "message": "סיסמה נשלחת לדומיין אחר" },
@@ -122,6 +123,7 @@
   "val_low": { "message": "נמוכה" },
   "val_high": { "message": "גבוהה" },
   "val_unknown": { "message": "לא ידוע" },
+  "val_restricted": { "message": "מוגבל" },
 
   "unit_years": { "message": "שנים" },
   "unit_months": { "message": "חודשים" },

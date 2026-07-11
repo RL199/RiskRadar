@@ -50,6 +50,7 @@
   "sum_ai_unknown": { "message": "Couldn't analyze this page." },
   "sum_ai_error": { "message": "AI analysis failed." },
   "sum_ai_idle": { "message": "Run AI analysis to check this page." },
+  "sum_restricted": { "message": "Chrome blocks extensions on this page." },
 
   "det_form_insecure": { "message": "Password sent over HTTP" },
   "det_form_crossOrigin": { "message": "Password posted to another domain" },
@@ -122,6 +123,7 @@
   "val_low": { "message": "Low" },
   "val_high": { "message": "High" },
   "val_unknown": { "message": "Unknown" },
+  "val_restricted": { "message": "Restricted" },
 
   "unit_years": { "message": "years" },
   "unit_months": { "message": "months" },
