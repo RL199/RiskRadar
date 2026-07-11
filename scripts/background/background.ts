@@ -35,6 +35,7 @@ import {
 } from "../shared/content-analysis";
 import {
   analyzeLinks,
+  blockNavigation,
   classifyAddressBarUrl,
   confirmNavigation,
   extractPageLinks,
@@ -358,6 +359,18 @@ function linkWarning(link: ClassifiedLink, dict: Dict): string | undefined {
   return `${heading}\n\n${linkTitle(link, dict)}\n\n${dest}${cont}`;
 }
 
+// The blocked notice for a red link when the guard action is "block", mirroring
+// the popup's linkBlockNotice: the continue prompt becomes a "website is
+// blocked" line, since a blocked click cannot be continued.
+function linkBlockNotice(link: ClassifiedLink, dict: Dict): string | undefined {
+  if (link.verdict !== "suspicious" && link.verdict !== "redirect") return undefined;
+  const heading = dict.warn_link_heading ?? "Risk Radar safety warning";
+  const destLabel = dict.warn_link_destination ?? "Destination";
+  const blocked = dict.block_link_notice ?? "This website is blocked.";
+  const dest = link.host ? `${destLabel}: ${link.host}\n\n` : "";
+  return `${heading}\n\n${linkTitle(link, dict)}\n\n${dest}${blocked}`;
+}
+
 // Links category: read the page, classify its links, and outline them on the
 // page for the verdict buckets the user left enabled.
 async function scanLinksCategory(tabId: number, settings: Settings, dict: Dict): Promise<ScoreInput> {
@@ -374,12 +387,16 @@ async function scanLinksCategory(tabId: number, settings: Settings, dict: Dict):
     redirect: hl.maliciousRedirects,
     ignore: false,
   };
+  // The red-link click guard honours the guard action: "warn" attaches the
+  // confirmation, "block" the blocked notice, and "none" neither, so a click
+  // navigates untouched. Mirrors the popup.
   const marks: LinkMark[] = classified.map((link) =>
     enabled[link.verdict] && link.verdict !== "ignore"
       ? {
           verdict: link.verdict,
           title: linkTitle(link, dict),
-          warn: settings.warnMaliciousLinks ? linkWarning(link, dict) : undefined,
+          warn: settings.guardAction === "warn" ? linkWarning(link, dict) : undefined,
+          block: settings.guardAction === "block" ? linkBlockNotice(link, dict) : undefined,
         }
       : { verdict: "skip", title: "" },
   );
@@ -507,13 +524,16 @@ async function clearAllBadges(): Promise<void> {
 
 // ----------------------- Address-bar URL warning -------------------------- //
 //
-// When the user turns on settings.warnTypedUrl, a URL entered straight into the
-// address bar is judged the moment it commits: a host on the phishing blocklist,
-// or a URL carrying strong phishing traits (an IP host, punycode, embedded
-// credentials, a brand look-alike, a shortener, deep subdomains, stacked
-// keywords, or an off-domain redirect parameter), pops the same style of
-// confirmation the on-page malicious-link guard uses. Declining backs the tab
-// off the page before it is really shown; confirming leaves it untouched.
+// A URL entered straight into the address bar is judged the moment it commits:
+// a host on the phishing blocklist, or a URL carrying strong phishing traits
+// (an IP host, punycode, embedded credentials, a brand look-alike, a shortener,
+// deep subdomains, stacked keywords, or an off-domain redirect parameter),
+// triggers the guard. What the guard does follows settings.guardAction: "warn"
+// pops the same style of confirmation the on-page malicious-link guard uses
+// (declining backs the tab off the page before it is really shown; confirming
+// leaves it untouched); "block" shows a notice that the website is blocked and
+// always backs the tab out; "none" lets the navigation through with no
+// interruption at all.
 
 // Transition types that mean the user drove the navigation from the omnibox. The
 // "from_address_bar" qualifier covers the same ground, so either signal counts; a
@@ -550,6 +570,19 @@ function typedUrlWarning(url: URL, link: ClassifiedLink, listed: boolean, dict: 
   return `${heading}\n\n${typedUrlTitle(link, listed, dict)}\n\n${dest}${cont}`;
 }
 
+// The blocked notice shown instead when the guard action is "block": the same
+// heading, reason, and destination, but a "website is blocked" line in place of
+// the continue prompt. Returns undefined for a URL that isn't risky.
+function typedUrlBlockNotice(url: URL, link: ClassifiedLink, listed: boolean, dict: Dict): string | undefined {
+  if (!listed && link.verdict !== "suspicious" && link.verdict !== "redirect") return undefined;
+  const heading = dict.warn_link_heading ?? "Risk Radar safety warning";
+  const destLabel = dict.warn_link_destination ?? "Destination";
+  const blocked = dict.block_url_notice ?? "This website is blocked.";
+  const host = link.host || url.hostname;
+  const dest = host ? `${destLabel}: ${host}\n\n` : "";
+  return `${heading}\n\n${typedUrlTitle(link, listed, dict)}\n\n${dest}${blocked}`;
+}
+
 // Take a tab off a page the user declined to visit: step back to the previous
 // page when there is history, otherwise blank the tab.
 async function leaveTab(tabId: number): Promise<void> {
@@ -564,9 +597,11 @@ async function leaveTab(tabId: number): Promise<void> {
   }
 }
 
-// Judge a just-committed address-bar navigation and, if the URL is risky, pop a
-// blocking confirmation in the tab. confirm() halts the page's scripts while it
-// is open, so declining can back the tab out before the page really runs.
+// Judge a just-committed address-bar navigation and, if the URL is risky, act on
+// it per the guard action. "warn" pops a blocking confirmation in the tab
+// (confirm() halts the page's scripts while it is open, so declining can back
+// the tab out before the page really runs); "block" shows the blocked notice and
+// always backs the tab out.
 async function warnOnTypedNavigation(
   details: chrome.webNavigation.WebNavigationTransitionCallbackDetails,
 ): Promise<void> {
@@ -581,13 +616,34 @@ async function warnOnTypedNavigation(
   if (url.protocol !== "http:" && url.protocol !== "https:") return;
 
   const settings = await loadSettings();
-  if (!settings.warnTypedUrl) return;
+  // The "none" action means a caught navigation is let through untouched, so
+  // there is nothing to judge either.
+  if (settings.guardAction === "none") return;
 
   const link = classifyAddressBarUrl(details.url);
   const listed = (await isListed(url.hostname)) === "listed";
   if (!listed && link.verdict !== "suspicious" && link.verdict !== "redirect") return;
 
   const dict = await loadMessages(settings.lang);
+
+  if (settings.guardAction === "block") {
+    const notice = typedUrlBlockNotice(url, link, listed, dict);
+    if (!notice) return;
+    try {
+      // The alert halts the page while it is shown; the tab is backed out once
+      // it is dismissed.
+      await chrome.scripting.executeScript({
+        target: { tabId: details.tabId },
+        func: blockNavigation,
+        args: [notice],
+      });
+    } catch {
+      // Page stopped being scriptable between commit and notice; still block.
+    }
+    await leaveTab(details.tabId);
+    return;
+  }
+
   const message = typedUrlWarning(url, link, listed, dict);
   if (!message) return;
 

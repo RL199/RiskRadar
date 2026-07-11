@@ -73,6 +73,8 @@
   "warn_link_destination": { "message": "יעד" },
   "warn_link_continue": { "message": "להמשיך לקישור הזה בכל זאת?" },
   "warn_url_continue": { "message": "להמשיך לאתר הזה בכל זאת?" },
+  "block_link_notice": { "message": "האתר הזה נחסם." },
+  "block_url_notice": { "message": "האתר הזה נחסם." },
   "tip_url_listed": { "message": "אתר פישינג מוכר" },
 
   "lbl_protocol": { "message": "פרוטוקול" },
@@ -151,10 +153,15 @@
   },
   "set_warnings": { "message": "אזהרות בטיחות" },
   "set_warnings_help": {
-    "message": "בחרו מתי Risk Radar יעצור ניווט מסוכן עם בקשת אישור. שתי האפשרויות מופעלות כברירת מחדל."
+    "message": "חל גם בלחיצה על קישור שסומן כזדוני וגם בהקלדת כתובת מסוכנת בשורת הכתובת."
   },
-  "set_warn_links": { "message": "אזהרה לפני פתיחת קישורים זדוניים" },
-  "set_warn_typed": { "message": "אזהרה כשאני מקליד כתובת מסוכנת" },
+  "set_guard_action": { "message": "מה לעשות כשניווט מסוכן נתפס" },
+  "set_guard_action_warn": { "message": "להזהיר ולתת לי להחליט" },
+  "set_guard_action_block": { "message": "לחסום את האתר" },
+  "set_guard_action_none": { "message": "לא לעשות דבר" },
+  "set_guard_action_help": {
+    "message": "אזהרה מציגה בקשת אישור שאפשר לאשר כדי להמשיך בכל זאת. חסימה מבטלת את הניווט ומציגה הודעה שהאתר נחסם. לא לעשות דבר מאפשר את הניווט ללא הפרעה; קישורים מסומנים עדיין מוקפים בקו מתאר."
+  },
   "set_ai": { "message": "בינה מלאכותית" },
   "set_ai_provider": { "message": "ספק בינה מלאכותית ברירת מחדל" },
   "set_ai_provider_help": {

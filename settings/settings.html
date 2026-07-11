@@ -64,18 +64,23 @@
         <section class="card">
           <h2 class="card__title" data-i18n="set_warnings">Safety warnings</h2>
           <p class="field__help highlights__help" data-i18n="set_warnings_help">
-            Choose when Risk Radar interrupts a risky navigation with a confirmation prompt. Both are
-            on by default.
+            Applies both when you click a link flagged as malicious and when you type a risky
+            address in the URL bar.
           </p>
-          <div class="toggles">
-            <label class="toggle">
-              <span class="toggle__label" data-i18n="set_warn_links">Warn before opening malicious links</span>
-              <input id="warn-malicious-links" class="toggle__input" type="checkbox" />
-            </label>
-            <label class="toggle">
-              <span class="toggle__label" data-i18n="set_warn_typed">Warn when I type a risky address</span>
-              <input id="warn-typed-url" class="toggle__input" type="checkbox" />
-            </label>
+          <div class="field">
+            <label class="field__label" for="guard-action" data-i18n="set_guard_action"
+              >What to do when a risky navigation is caught</label
+            >
+            <select id="guard-action" class="control">
+              <option value="warn" data-i18n="set_guard_action_warn">Warn and let me decide</option>
+              <option value="block" data-i18n="set_guard_action_block">Block the website</option>
+              <option value="none" data-i18n="set_guard_action_none">Do nothing</option>
+            </select>
+            <p class="field__help" data-i18n="set_guard_action_help">
+              Warn shows a confirmation you can accept to continue anyway. Block cancels the
+              navigation and shows a message that the website is blocked. Do nothing lets the
+              navigation through without interruption; flagged links are still outlined.
+            </p>
           </div>
         </section>
 

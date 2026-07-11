@@ -1000,6 +1000,15 @@ function linkWarning(link: ClassifiedLink, dict: Dict): string | undefined {
   return `${dict.warn_link_heading}\n\n${linkTitle(link, dict)}\n\n${dest}${dict.warn_link_continue}`;
 }
 
+// The blocked notice shown instead when the guard action is "block": the same
+// heading, reason, and destination, but a "website is blocked" line in place of
+// the continue prompt, since a blocked click cannot be continued.
+function linkBlockNotice(link: ClassifiedLink, dict: Dict): string | undefined {
+  if (link.verdict !== "suspicious" && link.verdict !== "redirect") return undefined;
+  const dest = link.host ? `${dict.warn_link_destination}: ${link.host}\n\n` : "";
+  return `${dict.warn_link_heading}\n\n${linkTitle(link, dict)}\n\n${dest}${dict.block_link_notice}`;
+}
+
 async function analyzeLinksView(tab: chrome.tabs.Tab | undefined, settings: Settings): Promise<void> {
   let url: URL | undefined;
   try {
@@ -1054,12 +1063,16 @@ async function analyzeLinksView(tab: chrome.tabs.Tab | undefined, settings: Sett
     redirect: hl.maliciousRedirects,
     ignore: false,
   };
+  // The red-link click guard honours the guard action: "warn" attaches the
+  // confirmation, "block" the blocked notice, and "none" neither, so a click
+  // navigates untouched.
   const marks: LinkMark[] = classified.map((link) =>
     enabled[link.verdict] && link.verdict !== "ignore"
       ? {
           verdict: link.verdict,
           title: linkTitle(link, dict),
-          warn: settings.warnMaliciousLinks ? linkWarning(link, dict) : undefined,
+          warn: settings.guardAction === "warn" ? linkWarning(link, dict) : undefined,
+          block: settings.guardAction === "block" ? linkBlockNotice(link, dict) : undefined,
         }
       : { verdict: "skip", title: "" },
   );

@@ -27,7 +27,7 @@ third-party reputation services, and an AI model to surface threats before they 
 - **Reputation integration:** Google Safe Browsing, VirusTotal, Sucuri SiteCheck, threat-filtering DNS (Cloudflare, Quad9), and server-IP reputation (SANS ISC / DShield).
 - **AI analysis:** on-demand phishing / social-engineering assessment of the page by a large language model (Claude or DeepSeek, your choice).
 - **Automatic scanning (optional):** scan every page as you browse without opening the popup, surfacing the verdict as a colour-coded badge and a matching tint on the toolbar icon, and applying the on-page highlights.
-- **Safety warnings (optional):** a confirmation prompt before following a malicious link, and before a risky address you type into the URL bar is allowed to stay. Each can be toggled independently in the options page.
+- **Safety warnings:** interrupts a risky navigation, both when following a malicious link and when a risky address is typed into the URL bar. A single action setting in the options page decides what happens when one is caught: **Warn** (the default) shows a confirmation you can accept to continue anyway, **Block** cancels the navigation and shows a message that the website is blocked, and **Do nothing** lets the navigation through without interruption.
 - **Clear results:** a trust score plus risk indicators, explained at varying levels of detail.
 
 ## How it works
@@ -341,9 +341,18 @@ A single capture-phase listener on the document drives every guarded link (it re
 re-scans never stack listeners; the guard covers `click` (left- and modifier-clicks) and `auxclick`
 (middle-click open-in-new-tab). Only the red buckets are guarded, so the green/blue internal and external
 links navigate untouched, and a bucket switched off in the **Link highlights** options is neither marked
-nor guarded. This click guard can be turned off with the **Warn before opening malicious links** toggle in
-the **Safety warnings** section of the options page; when off, red links are still outlined but clicking
-one navigates without a prompt.
+nor guarded.
+
+**Choosing between warning, blocking, and doing nothing.** The **Safety warnings** section of the options
+page holds a single action setting deciding what both guards (the red-link click guard above and the
+typed-address guard below) do when they catch a risky navigation. **Warn**, the default, is the
+confirmation flow described here: the user can accept it and continue anyway. **Block** removes that
+choice: a click on a red link is cancelled outright and an
+[`alert()`](https://developer.mozilla.org/en-US/docs/Web/API/Window/alert) states the website is blocked
+(carried by a per-anchor `data-riskradar-block` attribute the same document guard reads), and a risky
+typed address is backed out of unconditionally after the same blocked notice. **Do nothing** disarms both
+guards: a caught navigation proceeds with no prompt at all, while red links keep their outlines and hover
+labels.
 
 **Warning on a risky address typed into the URL bar.** The same confirmation also protects URLs the user
 enters directly in the address bar, not just links clicked on a page. The background worker listens on
@@ -358,8 +367,12 @@ triggers the same-style
 [`confirm()`](https://developer.mozilla.org/en-US/docs/Web/API/Window/confirm). Because `confirm()` blocks
 the page's own scripts while it is open, catching it at commit time means declining can step the tab back
 off the page (via [`chrome.tabs.goBack`](https://developer.chrome.com/docs/extensions/reference/api/tabs#method-goBack),
-or a blank tab when there is no history) before the site really runs. This guard is governed by the
-**Warn when I type a risky address** toggle in the **Safety warnings** section, and needs the
+or a blank tab when there is no history) before the site really runs. When the guard action is set to
+**Block**, the confirmation is replaced by an
+[`alert()`](https://developer.mozilla.org/en-US/docs/Web/API/Window/alert) stating the website is blocked,
+and the tab is stepped back the same way once it is dismissed, with no option to continue; when it is set
+to **Do nothing**, the navigation is let through untouched. This guard follows the same shared action
+setting in the **Safety warnings** section, and needs the
 [`webNavigation`](https://developer.chrome.com/docs/extensions/reference/api/webNavigation) permission.
 
 ### AI

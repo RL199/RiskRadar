@@ -273,6 +273,10 @@ export interface LinkMark {
   // confirmation message. When present, clicking the link is intercepted and the
   // user must confirm before the browser navigates. Safe links leave this unset.
   warn?: string;
+  // For the red buckets only, when the guard action is "block": a ready-to-show
+  // blocked notice. When present, clicking the link is always cancelled and this
+  // message is shown; there is no way to continue. Takes precedence over `warn`.
+  block?: string;
 }
 
 // Injected into the active tab to mark the classified links on the page itself:
@@ -287,12 +291,16 @@ export interface LinkMark {
 // all-"skip" marks clears the page.
 // A red link (suspicious / redirect) whose mark carries a `warn` message is also
 // guarded: clicking it pops a confirm() so the user can back out before the
-// browser navigates. One capture-phase listener on the document drives every
-// guarded link, so re-scans never add a second.
+// browser navigates. A mark carrying a `block` message instead cancels the click
+// outright and shows the notice, with no way to continue. One capture-phase
+// listener on the document drives every guarded link, so re-scans never add a
+// second.
 export function highlightPageLinks(marks: LinkMark[]): void {
   const ATTR = "data-riskradar-link";
   // Holds the per-link confirmation message; the click guard below reads it.
   const WARN_ATTR = "data-riskradar-warn";
+  // Holds the per-link blocked notice; when present the guard cancels the click.
+  const BLOCK_ATTR = "data-riskradar-block";
   // Per-verdict outline width, outline colour and tint. Colours mirror the
   // popup's palette: green "good", light blue for plain external links, red
   // "danger". The reassuring buckets (internal, external) get a thin outline;
@@ -314,6 +322,7 @@ export function highlightPageLinks(marks: LinkMark[]): void {
     el.style.backgroundColor = el.dataset.riskradarBgPrev ?? "";
     el.removeAttribute(ATTR);
     el.removeAttribute(WARN_ATTR);
+    el.removeAttribute(BLOCK_ATTR);
     delete el.dataset.riskradarBgPrev;
     const prevTitle = el.dataset.riskradarTitlePrev;
     if (prevTitle !== undefined) {
@@ -344,15 +353,17 @@ export function highlightPageLinks(marks: LinkMark[]): void {
     if (el.title) el.dataset.riskradarTitlePrev = el.title;
     el.title = mark.title;
 
-    // Red links carry a confirmation message; clicking one is intercepted by the
-    // document guard installed below.
-    if (mark.warn) el.setAttribute(WARN_ATTR, mark.warn);
+    // Red links carry a confirmation message or a blocked notice; clicking one
+    // is intercepted by the document guard installed below.
+    if (mark.block) el.setAttribute(BLOCK_ATTR, mark.block);
+    else if (mark.warn) el.setAttribute(WARN_ATTR, mark.warn);
   }
 
   // Guard clicks on the red links: one capture-phase listener on the document
-  // checks whether the clicked target sits inside a link carrying WARN_ATTR and,
-  // if so, asks the user to confirm before letting the navigation through. The
-  // "already installed" flag is kept on a DOM attribute rather than a closure
+  // checks whether the clicked target sits inside a link carrying BLOCK_ATTR or
+  // WARN_ATTR. A blocked link is cancelled outright and its notice shown; a
+  // warned link asks the user to confirm before letting the navigation through.
+  // The "already installed" flag is kept on a DOM attribute rather than a closure
   // because each scan re-injects this function fresh, yet the attribute (and the
   // listener) persist with the page, so the guard is wired exactly once.
   const GUARD_FLAG = "data-riskradar-link-guard";
@@ -361,7 +372,18 @@ export function highlightPageLinks(marks: LinkMark[]): void {
     const guard = (event: Event): void => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      const message = target.closest(`[${WARN_ATTR}]`)?.getAttribute(WARN_ATTR);
+      const guarded = target.closest(`[${BLOCK_ATTR}], [${WARN_ATTR}]`);
+      if (!guarded) return;
+      // Block mode: cancel the click first, then tell the user why. alert()
+      // blocks synchronously, and there is no way to continue to the link.
+      const notice = guarded.getAttribute(BLOCK_ATTR);
+      if (notice) {
+        event.preventDefault();
+        event.stopPropagation();
+        window.alert(notice);
+        return;
+      }
+      const message = guarded.getAttribute(WARN_ATTR);
       if (!message) return;
       // confirm() blocks synchronously, so a declined prompt can still cancel the
       // click before the browser acts on it. Confirming lets the event continue
@@ -405,4 +427,13 @@ export function extractPageLinks(): PageLinks {
 // to proceed, false to back out. Self-contained: it touches only window.
 export function confirmNavigation(message: string): boolean {
   return window.confirm(message);
+}
+
+// Injected into a tab (chrome.scripting.executeScript) to tell the user the
+// website is blocked, with no way to continue. Like confirmNavigation, the
+// window.alert halts the page's own scripts while it is open; the background
+// worker backs the tab out once it is dismissed. Self-contained: it touches
+// only window.
+export function blockNavigation(message: string): void {
+  window.alert(message);
 }

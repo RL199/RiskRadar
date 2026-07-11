@@ -10,6 +10,12 @@ export type AiProvider = "claude" | "deepseek";
 // (the default, so opening the popup never bills the user); "auto" runs it as
 // soon as the popup opens on a scannable page.
 export type AiScanMode = "auto" | "manual";
+// What the safety guards do when they catch a risky navigation (a click on a
+// flagged link, or a risky address entered in the URL bar). "warn" asks for
+// confirmation and lets the user continue; "block" cancels the navigation and
+// shows a message that the website is blocked; "none" lets the navigation
+// through with no interruption at all (flagged links stay outlined).
+export type GuardAction = "warn" | "block" | "none";
 
 // Per-element toggles for the marks the popup draws on the page. Each flag gates
 // one kind of highlight so the user can turn any of them off individually from
@@ -35,14 +41,14 @@ export interface Settings {
   // applies the in-page highlights. The AI scan never runs automatically here
   // (it bills the user); it stays governed by aiScanMode in the popup.
   autoScan: boolean;
-  // When on, clicking a link a scan flagged as a suspicious link or a malicious
-  // redirect first asks for confirmation before the browser follows it. The link
-  // is still outlined red regardless; this only gates the click confirmation.
-  warnMaliciousLinks: boolean;
-  // When on, entering a risky address directly in the URL bar (a known phishing
-  // host, or a URL with strong phishing traits) asks for confirmation before the
-  // page is allowed to stay. Handled by the background worker via webNavigation.
-  warnTypedUrl: boolean;
+  // What both safety guards do when they fire: clicking a link a scan flagged
+  // as a suspicious link or a malicious redirect, or entering a risky address
+  // directly in the URL bar (a known phishing host, or a URL with strong
+  // phishing traits; handled by the background worker via webNavigation).
+  // "warn" (the default) shows a confirmation the user can accept to continue;
+  // "block" cancels the navigation outright and tells the user the website is
+  // blocked; "none" does nothing. Flagged links are outlined red regardless.
+  guardAction: GuardAction;
   apiKey: string;
   deepseekApiKey: string;
   safeBrowsingApiKey: string;
@@ -78,8 +84,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: "dark",
   lang: "en",
   autoScan: false,
-  warnMaliciousLinks: true,
-  warnTypedUrl: true,
+  guardAction: "warn",
   apiKey: "",
   deepseekApiKey: "",
   safeBrowsingApiKey: "",

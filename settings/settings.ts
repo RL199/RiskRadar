@@ -6,6 +6,7 @@ import {
   saveSettings,
   type AiProvider,
   type AiScanMode,
+  type GuardAction,
   type HighlightSettings,
   type LangPref,
   type Settings,
@@ -22,8 +23,7 @@ import {
 const themeSelect = document.getElementById("theme") as HTMLSelectElement;
 const langSelect = document.getElementById("lang") as HTMLSelectElement;
 const autoScanInput = document.getElementById("autoscan") as HTMLInputElement;
-const warnLinksInput = document.getElementById("warn-malicious-links") as HTMLInputElement;
-const warnTypedInput = document.getElementById("warn-typed-url") as HTMLInputElement;
+const guardActionSelect = document.getElementById("guard-action") as HTMLSelectElement;
 const aiProviderSelect = document.getElementById("ai-provider") as HTMLSelectElement;
 const aiScanModeSelect = document.getElementById("ai-scan-mode") as HTMLSelectElement;
 const apiKeyInput = document.getElementById("apikey") as HTMLInputElement;
@@ -132,8 +132,7 @@ async function init(): Promise<void> {
   themeSelect.value = settings.theme;
   langSelect.value = settings.lang;
   autoScanInput.checked = settings.autoScan;
-  warnLinksInput.checked = settings.warnMaliciousLinks;
-  warnTypedInput.checked = settings.warnTypedUrl;
+  guardActionSelect.value = settings.guardAction;
   aiProviderSelect.value = settings.aiProvider;
   aiScanModeSelect.value = settings.aiScanMode;
   apiKeyInput.value = settings.apiKey;
@@ -199,17 +198,11 @@ async function init(): Promise<void> {
     flashSaved();
   });
 
-  // The two safety-warning toggles save immediately so the next scan (for the
-  // link prompt) and the next address-bar navigation (read live by the worker)
-  // honour the choice.
-  warnLinksInput.addEventListener("change", async () => {
-    settings = { ...settings, warnMaliciousLinks: warnLinksInput.checked };
-    await saveSettings(settings);
-    flashSaved();
-  });
-
-  warnTypedInput.addEventListener("change", async () => {
-    settings = { ...settings, warnTypedUrl: warnTypedInput.checked };
+  // The guard action saves immediately so the next scan (for the link guard)
+  // and the next address-bar navigation (read live by the worker) honour the
+  // choice.
+  guardActionSelect.addEventListener("change", async () => {
+    settings = { ...settings, guardAction: guardActionSelect.value as GuardAction };
     await saveSettings(settings);
     flashSaved();
   });
