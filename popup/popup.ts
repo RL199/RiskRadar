@@ -36,6 +36,7 @@ import {
 } from "../scripts/shared/content-analysis";
 import {
   analyzeLinks,
+  collectLinkHosts,
   extractPageLinks,
   highlightPageLinks,
   type ClassifiedLink,
@@ -967,6 +968,26 @@ async function getPageLinks(tabId: number): Promise<PageLinks | null> {
   }
 }
 
+// Ask the background worker which of the page's link hosts sit on its locally
+// cached Phishing.Database blocklist. One message covers every host on the page;
+// the worker answers from its in-memory set, so even thousands of links come
+// back instantly and fully offline. Returns undefined while the list is still
+// downloading (or on error), in which case the classifier runs on its heuristic
+// tells alone.
+async function fetchListedLinkHosts(page: PageLinks): Promise<Set<string> | undefined> {
+  const hosts = collectLinkHosts(page);
+  if (hosts.length === 0) return undefined;
+  try {
+    const res: { status?: string; listed?: string[] } = await chrome.runtime.sendMessage({
+      type: "phishingdb-check-batch",
+      hosts,
+    });
+    return res?.status === "ok" && Array.isArray(res.listed) ? new Set(res.listed) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 // Outline the classified links on the page itself, each carrying its hover label.
 // Passing all-"skip" marks clears any marks from a prior scan.
 async function markPageLinks(tabId: number, marks: LinkMark[]): Promise<void> {
@@ -1043,7 +1064,11 @@ async function analyzeLinksView(tab: chrome.tabs.Tab | undefined, settings: Sett
     return;
   }
 
-  const { classified, total, external, suspicious, redirects } = analyzeLinks(page);
+  // Resolve the page's link hosts against the local Phishing.Database blocklist
+  // in one batch, then classify: a link to a listed domain is flagged even when
+  // no heuristic tell would catch it.
+  const listed = await fetchListedLinkHosts(page);
+  const { classified, total, external, suspicious, redirects } = analyzeLinks(page, listed);
 
   renderRow("totalLinks", total, dict, false);
   renderRow("externalLinks", external, dict, false);

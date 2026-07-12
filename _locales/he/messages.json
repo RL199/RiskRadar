@@ -59,6 +59,7 @@
   "tip_link_external": { "message": "קישור חיצוני (דומיין אחר)" },
   "tip_link_suspicious": { "message": "קישור חשוד" },
   "tip_link_redirect": { "message": "הפניה זדונית" },
+  "reason_link_listed": { "message": "היעד נמצא ברשימת אתרי הפישינג" },
   "reason_link_ip": { "message": "היעד הוא כתובת IP" },
   "reason_link_punycode": { "message": "דומיין דמוי punycode או IDN" },
   "reason_link_credentials": { "message": "פרטי התחברות מוטמעים בכתובת" },

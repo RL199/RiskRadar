@@ -59,6 +59,7 @@
   "tip_link_external": { "message": "External link (different domain)" },
   "tip_link_suspicious": { "message": "Suspicious link" },
   "tip_link_redirect": { "message": "Malicious redirect" },
+  "reason_link_listed": { "message": "destination is on the phishing blocklist" },
   "reason_link_ip": { "message": "host is an IP address" },
   "reason_link_punycode": { "message": "punycode or IDN homograph domain" },
   "reason_link_credentials": { "message": "credentials embedded in the URL" },

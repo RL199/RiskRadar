@@ -37,6 +37,7 @@ import {
   analyzeLinks,
   blockNavigation,
   classifyAddressBarUrl,
+  collectLinkHosts,
   confirmNavigation,
   extractPageLinks,
   highlightPageLinks,
@@ -175,18 +176,30 @@ function refreshIfStale(): Promise<void> {
 
 type LookupStatus = "listed" | "clean" | "loading";
 
-async function isListed(host: string): Promise<LookupStatus> {
+// Which of `hosts` are on the blocklist. Each host costs at most two in-memory
+// Set lookups (itself, then its registrable domain, since a listed registrable
+// domain covers its subdomains, e.g. login.evil.tld), so even the thousands of
+// link hosts a large page yields are answered instantly and offline. Returns
+// null while the list is still downloading.
+async function listedAmong(hosts: string[]): Promise<Set<string> | null> {
   await ensureLoaded();
   if (!domainSet) {
     void refreshIfStale(); // first use also kicks off the initial download
-    return "loading";
+    return null;
   }
-  const h = host.toLowerCase();
-  if (domainSet.has(h)) return "listed";
-  // A listed registrable domain covers its subdomains (e.g. login.evil.tld).
-  const { registrable } = splitDomain(h);
-  if (registrable !== h && domainSet.has(registrable)) return "listed";
-  return "clean";
+  const listed = new Set<string>();
+  for (const host of hosts) {
+    const h = host.toLowerCase();
+    const { registrable } = splitDomain(h);
+    if (domainSet.has(h) || (registrable !== h && domainSet.has(registrable))) listed.add(host);
+  }
+  return listed;
+}
+
+async function isListed(host: string): Promise<LookupStatus> {
+  const listed = await listedAmong([host]);
+  if (!listed) return "loading";
+  return listed.size > 0 ? "listed" : "clean";
 }
 
 // ------------------------------- Auto-scan -------------------------------- //
@@ -371,13 +384,16 @@ function linkBlockNotice(link: ClassifiedLink, dict: Dict): string | undefined {
   return `${heading}\n\n${linkTitle(link, dict)}\n\n${dest}${blocked}`;
 }
 
-// Links category: read the page, classify its links, and outline them on the
-// page for the verdict buckets the user left enabled.
+// Links category: read the page, classify its links (each destination host
+// checked against the local Phishing.Database blocklist directly, since the
+// worker owns the cache), and outline them on the page for the verdict buckets
+// the user left enabled.
 async function scanLinksCategory(tabId: number, settings: Settings, dict: Dict): Promise<ScoreInput> {
   const page = await getPageLinks(tabId);
   if (!page) return { status: "unknown" };
 
-  const { classified, total, external, suspicious, redirects } = analyzeLinks(page);
+  const listed = (await listedAmong(collectLinkHosts(page))) ?? undefined;
+  const { classified, total, external, suspicious, redirects } = analyzeLinks(page, listed);
 
   const hl = settings.highlights;
   const enabled: Record<ClassifiedLink["verdict"], boolean> = {
@@ -676,16 +692,29 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   else if (alarm.name === INCREMENT_ALARM) void refreshIncrement();
 });
 
-chrome.runtime.onMessage.addListener((msg: { type?: string; host?: string }, _sender, sendResponse) => {
-  if (msg?.type === "phishingdb-check" && typeof msg.host === "string") {
-    isListed(msg.host).then(
-      (status) => sendResponse({ status }),
-      () => sendResponse({ status: "error" }),
-    );
-    return true; // keep the message channel open for the async response
-  }
-  return undefined;
-});
+chrome.runtime.onMessage.addListener(
+  (msg: { type?: string; host?: string; hosts?: unknown }, _sender, sendResponse) => {
+    if (msg?.type === "phishingdb-check" && typeof msg.host === "string") {
+      isListed(msg.host).then(
+        (status) => sendResponse({ status }),
+        () => sendResponse({ status: "error" }),
+      );
+      return true; // keep the message channel open for the async response
+    }
+    // Batch lookup for the popup's Links view: which of the page's link hosts
+    // are on the blocklist. One message covers the whole page.
+    if (msg?.type === "phishingdb-check-batch" && Array.isArray(msg.hosts)) {
+      const hosts = (msg.hosts as unknown[]).filter((h): h is string => typeof h === "string");
+      listedAmong(hosts).then(
+        (listed) =>
+          sendResponse(listed ? { status: "ok", listed: [...listed] } : { status: "loading" }),
+        () => sendResponse({ status: "error" }),
+      );
+      return true; // keep the message channel open for the async response
+    }
+    return undefined;
+  },
+);
 
 // ----------------------------- Auto-scan wiring ---------------------------- //
 

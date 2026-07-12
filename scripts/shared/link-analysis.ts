@@ -7,10 +7,11 @@
 // Every anchor is sorted into exactly one bucket:
 //  - internal:   same registrable domain as the page. Reassuring; marked green.
 //  - external:   a different domain with no risk traits. Counted; marked blue.
-//  - suspicious: an off-domain link whose destination itself looks dangerous (an
-//                IP-literal host, a punycode/IDN homograph, credentials embedded
-//                in the URL, a brand look-alike domain, a URL shortener, unusually
-//                deep subdomains, or stacked phishing keywords). Marked red.
+//  - suspicious: a link whose destination itself looks dangerous (a host on the
+//                locally cached Phishing.Database blocklist, an IP-literal host,
+//                a punycode/IDN homograph, credentials embedded in the URL, a
+//                brand look-alike domain, a URL shortener, unusually deep
+//                subdomains, or stacked phishing keywords). Marked red.
 //  - redirect:   a link that hides or bounces its real destination (an open
 //                redirect parameter carrying an off-site URL, or visible text that
 //                claims one domain while the href points to another). Marked red.
@@ -20,7 +21,12 @@
 // Grounding: these are the long-documented phishing URL indicators from
 // anti-phishing guidance (CISA, the APWG, OWASP): IP literals, "@" userinfo,
 // punycode homographs, look-alike subdomains, link shorteners, open redirects,
-// and the displayed URL not matching the actual one.
+// and the displayed URL not matching the actual one. On top of those heuristics,
+// every destination host is also checked against the Phishing.Database blocklist
+// the background worker keeps on the device: the caller resolves the page's
+// hosts against it in one batch (collectLinkHosts) and hands the listed subset
+// to classifyLink/analyzeLinks, so checking even thousands of links stays an
+// instant, offline set lookup.
 
 import {
   splitDomain,
@@ -147,7 +153,13 @@ function redirectTargetHost(linkUrl: URL, linkReg: string): string | null {
 }
 
 // Sort one anchor into its bucket. `pageUrl` is the document the link sits on.
-export function classifyLink(raw: RawLink, pageUrl: URL): ClassifiedLink {
+// `listed` is the (optional) set of this page's link hosts found on the local
+// Phishing.Database blocklist, resolved by the caller in one batch beforehand.
+export function classifyLink(
+  raw: RawLink,
+  pageUrl: URL,
+  listed?: ReadonlySet<string>,
+): ClassifiedLink {
   let url: URL;
   try {
     url = new URL(raw.href);
@@ -170,7 +182,15 @@ export function classifyLink(raw: RawLink, pageUrl: URL): ClassifiedLink {
   const linkReg = splitDomain(host).registrable;
   const pageReg = splitDomain(pageUrl.hostname).registrable;
 
-  // Deceptive / redirecting links first: an open redirect can sit on the page's
+  // A destination on the Phishing.Database blocklist is the one authoritative
+  // (non-heuristic) tell, so it wins over every other bucket, including
+  // internal: on a listed site, even a same-domain link leads to a known
+  // phishing domain.
+  if (listed?.has(host)) {
+    return { verdict: "suspicious", host, reasonKey: "reason_link_listed" };
+  }
+
+  // Deceptive / redirecting links next: an open redirect can sit on the page's
   // own trusted domain, so this has to win over the internal check below.
   if (isTextMismatch(raw.text, linkReg)) {
     return { verdict: "redirect", host, reasonKey: "reason_link_textMismatch" };
@@ -203,15 +223,35 @@ const NO_PAGE = new URL("https://address-bar.riskradar.invalid/");
 // is no anchor text, so the displayed-vs-real spoof never applies; the remaining
 // tells (IP host, punycode, embedded credentials, brand look-alike, shortener,
 // deep subdomains, stacked keywords, and off-domain redirect parameters) all
-// still hold for a raw URL. A non-http(s) URL classifies as "ignore".
+// still hold for a raw URL. The blocklist tell is not applied here either: the
+// background worker checks the typed host against its cached list itself. A
+// non-http(s) URL classifies as "ignore".
 export function classifyAddressBarUrl(rawUrl: string): ClassifiedLink {
   return classifyLink({ href: rawUrl, text: "" }, NO_PAGE);
 }
 
+// The distinct http(s) hostnames among the page's links, for the batch
+// Phishing.Database lookup: the caller resolves these against the local
+// blocklist once and passes the listed subset to analyzeLinks below.
+export function collectLinkHosts(page: PageLinks): string[] {
+  const hosts = new Set<string>();
+  for (const { href } of page.links) {
+    try {
+      const url = new URL(href);
+      if (url.protocol === "http:" || url.protocol === "https:") hosts.add(url.hostname);
+    } catch {
+      // Not a parseable URL; classifyLink will ignore it too.
+    }
+  }
+  return [...hosts];
+}
+
 // Classify the page's links and build the four Links rows. `classified` is
 // returned alongside (in document order) so the popup can mark the same links on
-// the page.
-export function analyzeLinks(page: PageLinks): {
+// the page. `listed` is the subset of the page's link hosts found on the local
+// Phishing.Database blocklist (see collectLinkHosts); omitted when the list is
+// still downloading, in which case only the heuristic tells apply.
+export function analyzeLinks(page: PageLinks, listed?: ReadonlySet<string>): {
   classified: ClassifiedLink[];
   total: AnalyzedRow;
   external: AnalyzedRow;
@@ -225,7 +265,7 @@ export function analyzeLinks(page: PageLinks): {
     pageUrl = new URL("https://invalid.invalid/");
   }
 
-  const classified = page.links.map((l) => classifyLink(l, pageUrl));
+  const classified = page.links.map((l) => classifyLink(l, pageUrl, listed));
   const external = classified.filter((c) => c.verdict === "external");
   const suspicious = classified.filter((c) => c.verdict === "suspicious");
   const redirects = classified.filter((c) => c.verdict === "redirect");
@@ -247,10 +287,17 @@ export function analyzeLinks(page: PageLinks): {
     detail: extHosts.length ? extHosts : undefined,
   };
 
+  // Heuristic tells turn risky only when stacked (3+), but a single link to a
+  // blocklisted domain is an authoritative hit, so it is risky on its own.
+  const hasListed = suspicious.some((c) => c.reasonKey === "reason_link_listed");
   const suspiciousRow: AnalyzedRow =
     suspicious.length === 0
       ? { key: "val_none", status: "good" }
-      : { text: String(suspicious.length), status: suspicious.length >= 3 ? "bad" : "warn", detail: hosts(suspicious) };
+      : {
+          text: String(suspicious.length),
+          status: hasListed || suspicious.length >= 3 ? "bad" : "warn",
+          detail: hosts(suspicious),
+        };
 
   // A displayed-vs-real mismatch is an unambiguous spoof (risky); a parameter
   // bounce alone can occasionally be a legitimate out-link wrapper (warning).
@@ -408,7 +455,7 @@ export function extractPageLinks(): PageLinks {
   // message payload or flood the page with outlines. extractPageLinks and the
   // popup share this implicitly: the highlighter only marks as many links as
   // this returns.
-  const MAX_LINKS = 500;
+  const MAX_LINKS = 2000;
   const anchors = document.querySelectorAll<HTMLAnchorElement>("a[href]");
   const limit = Math.min(anchors.length, MAX_LINKS);
 
