@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3]
+
+### Added
+- The **Links** category now checks every link on the page against the locally cached
+  [Phishing.Database](https://github.com/Phishing-Database/Phishing.Database) blocklist, in both the
+  popup and automatic scanning. The popup resolves all of the page's link hosts through the background
+  worker (which owns the cached list) in a single batch message, so even thousands of links are checked
+  instantly and offline. A link to a listed domain is flagged **Suspicious** with a
+  "destination is on the phishing blocklist" reason, wins over every other bucket (a listed site's own
+  internal links stay flagged), and a single such link already turns the **Suspicious Links** row risky,
+  unlike the heuristic tells that need three or more. Flagged links get the same red outline, hover
+  label, and click guard (warn or block) as other red links.
+
+### Changed
+- The link scanner now reads up to 2,000 links per page (previously 500).
+
 ## [1.0.2]
 
 ### Added
