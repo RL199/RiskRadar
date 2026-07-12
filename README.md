@@ -23,9 +23,9 @@ third-party reputation services, and an AI model to surface threats before they 
 
 - **URL analysis:** protocol, domain, and structure checks (e.g. HTTP vs. HTTPS).
 - **Content scanning:** inspects the page DOM for suspicious patterns, and marks the matches on the page.
-- **Link scanning:** classifies the page's links into internal, external, suspicious, and malicious redirects, marks them on the page, and warns before following a red (suspicious or malicious-redirect) link.
+- **Link scanning:** classifies the page's links into internal, external, suspicious, and malicious redirects, marks them on the page (optional), and warns before following a red (suspicious or malicious-redirect) link.
 - **Reputation integration:** Google Safe Browsing, VirusTotal, Sucuri SiteCheck, threat-filtering DNS (Cloudflare, Quad9), and server-IP reputation (SANS ISC / DShield).
-- **AI analysis:** on-demand phishing / social-engineering assessment of the page by a large language model (Claude or DeepSeek, your choice).
+- **AI analysis (optional):** on-demand phishing / social-engineering assessment of the page by a large language model (Claude or DeepSeek, your choice).
 - **Automatic scanning (optional):** scan every page as you browse without opening the popup, surfacing the verdict as a colour-coded badge and a matching tint on the toolbar icon, and applying the on-page highlights.
 - **Safety warnings:** interrupts a risky navigation, both when following a malicious link and when a risky address is typed into the URL bar. A single action setting in the options page decides what happens when one is caught: **Warn** (the default) shows a confirmation you can accept to continue anyway, **Block** cancels the navigation and shows a message that the website is blocked, and **Do nothing** lets the navigation through without interruption.
 - **Clear results:** a trust score plus risk indicators, explained at varying levels of detail.
@@ -39,11 +39,6 @@ third-party reputation services, and an AI model to surface threats before they 
    - **Legitimate site** → high score, no warnings.
    - **Phishing site** → low score + a clear alert.
    - **New / unknown site** → intermediate score + an uncertainty note.
-
-> **Note: the popup re-scans on every open.** Chrome tears down the popup document each time it
-> closes and builds a fresh one on the next open, so the popup keeps no state between openings. Every
-> time you open it the scan runs again from scratch, even if you closed it a second ago; there is no
-> caching of the previous result across opens, so a just-seen verdict is recomputed rather than reused.
 
 ## Risk logic
 
@@ -473,82 +468,25 @@ By default the extension only scans when you open the popup. **Settings → Scan
 automatically** (`autoScan` in `chrome.storage.local`) flips this on: the **background service worker**
 then scans each page on its own, with the popup never opened.
 
-It hooks Chrome's tab events
-([`chrome.tabs.onUpdated`](https://developer.chrome.com/docs/extensions/reference/api/tabs#event-onUpdated)
-when a page finishes loading in the active tab, and
-[`chrome.tabs.onActivated`](https://developer.chrome.com/docs/extensions/reference/api/tabs#event-onActivated)
-when you switch tabs), then runs the same URL, reputation, content, and link checks the popup runs —
-injecting the same self-contained extractors and highlighters via
-[`chrome.scripting.executeScript`](https://developer.chrome.com/docs/extensions/reference/api/scripting#method-executeScript)
-and honouring your per-element highlight toggles. The four categories are folded into the **same weighted
-trust score the popup shows** (see [Trust score](#trust-score); AI is never run automatically, so it is
-left out), and that score's band is shown two ways on the toolbar icon: a colour-coded **badge** via the
-[`chrome.action`](https://developer.chrome.com/docs/extensions/reference/api/action#method-setBadgeText)
-badge API (**✓** green for a safe score, **!** amber for caution, **✕** red for dangerous, and a muted
-**…** while a scan is in flight), and a **matching tint of the icon itself** via
-[`chrome.action.setIcon`](https://developer.chrome.com/docs/extensions/reference/api/action#method-setIcon).
-Because both come from the trust score rather than a worst-of category verdict, the badge and icon always
-agree with the popup's ring (a single category warning on an otherwise clean site stays green, as the
-score does). A page no verdict is possible for — a `chrome://` page, the new-tab page, or one where every
-category comes back unknown — shows a grey **?** and the default green icon, the popup's "Can't scan this
-page" state.
+> **Note: the popup re-scans on every open.** Chrome tears down the popup document each time it
+> closes and builds a fresh one on the next open, so the popup keeps no state between openings. Every
+> time you open it the scan runs again from scratch, even if you closed it a second ago; there is no
+> caching of the previous result across opens, so a just-seen verdict is recomputed rather than reused.
 
-**How the icon is tinted.** The packaged icon is the green radar shield, so the amber/red variants are
-produced at runtime rather than shipped as extra files: the green PNG is decoded with
-[`createImageBitmap`](https://developer.mozilla.org/en-US/docs/Web/API/Window/createImageBitmap), drawn to
-an [`OffscreenCanvas`](https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvas), and each opaque
-pixel is hue-shifted to the band's hue while keeping its saturation, lightness and transparency, so the
-shield's shading and the radar sweep are preserved and only the hue changes. PNG decoding via
-`createImageBitmap` works in both the popup and the background service worker (SVG decoding does not work
-off the main thread), so [`scripts/shared/icon.ts`](scripts/shared/icon.ts) serves both: opening the popup
-tints the active tab's icon from the same trust score it shows in the ring, and the auto-scan worker tints
-each tab as it scans. The packaged green PNGs are referenced by **absolute extension URL** via
-[`chrome.runtime.getURL`](https://developer.chrome.com/docs/extensions/reference/api/runtime#method-getURL)
-rather than a bare relative path, because `setIcon` resolves a relative `path` against the calling context
-(the extension root from the worker, but the `popup/` directory from the popup document, where the relative
-path would not exist) — an absolute URL resolves the same way from either caller.
+The **AI analysis is never run automatically here:**  it bills your provider, so it stays governed by
+the [**When to scan with AI**](#ai) dropdown and only ever runs from the popup.
 
-The **AI analysis is never run automatically here** — it bills your provider, so it stays governed by
-the [**When to scan with AI**](#ai) dropdown and only ever runs from the popup. To keep network load and
-third-party rate limits in check, the worker scans only the tab you are actually looking at and skips a
-tab whose current URL it has already scanned. Turning the option off clears every badge and restores the
-default green icon.
-
-## Localization
-
-The interface ships in **English** and **Hebrew**, built on Chrome's official
-[`chrome.i18n`](https://developer.chrome.com/docs/extensions/reference/api/i18n) infrastructure. Every
-user-visible string lives in a per-language
-[`messages.json`](https://developer.chrome.com/docs/extensions/develop/ui/i18n) under
-[`_locales/`](_locales/): [`_locales/en/messages.json`](_locales/en/messages.json) and
-[`_locales/he/messages.json`](_locales/he/messages.json). These files are the single source of truth for
-both paths below. The locale codes follow Chrome's
-[supported list](https://developer.chrome.com/docs/extensions/reference/api/i18n#locales) (`en`, `he`).
-
-**Store listing (browser-driven).** The extension name and description in
-[`manifest.json`](manifest.json) use `__MSG_appName__` / `__MSG_appDesc__` placeholders resolved by
-`chrome.i18n` against the browser's UI language, with
-[`default_locale`](https://developer.chrome.com/docs/extensions/reference/manifest/default-locale) set to
-`en` as the fallback. This is what Chrome and the Web Store show.
-
-**In-app UI (user-driven).** `chrome.i18n.getMessage` only ever returns strings in the single browser UI
-language and [cannot be switched at runtime](https://developer.chrome.com/docs/extensions/reference/api/i18n#concepts_and_usage),
-but the popup and options page offer a **Language** toggle. To honor it, those pages read the very same
-`_locales/<lang>/messages.json` files directly with `fetch(chrome.runtime.getURL(...))` and resolve keys
-from the chosen language ([`scripts/shared/i18n.ts`](scripts/shared/i18n.ts)). Markup carries `data-i18n`
-(text) and `data-i18n-placeholder` (input placeholders) attributes that are filled from the loaded
-dictionary. Hebrew is **right-to-left**, so applying it also sets `<html lang="he" dir="rtl">`.
-
-To add a language, drop a new `_locales/<code>/messages.json`, mirror the keys, and add its option to the
-Language selector.
 
 ## Tech stack
 
 - **Languages:** TypeScript, HTML, CSS
 - **Platform:** Chrome Extension API (Manifest V3), including a background service worker (IndexedDB + `chrome.alarms`, plus optional auto-scan via `chrome.tabs` / `chrome.scripting` / `chrome.action` badge + icon tinting)
 - **Localization:** `chrome.i18n` with `_locales/` message files (English and Hebrew, RTL-aware)
-- **Theming:** shared design tokens in `styles/theme.css` (dark by default, light via a `data-theme` override). The popup and the options page both follow the brand icon: green accents on every interactive element (buttons, links, toggles, focus rings), a softly glowing shield logo, and on the options page a radar rings and sweep backdrop built with CSS [`color-mix()`](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color-mix), [`conic-gradient()`](https://developer.mozilla.org/en-US/docs/Web/CSS/gradient/conic-gradient) and [`mask-image`](https://developer.mozilla.org/en-US/docs/Web/CSS/mask-image), with the sweep animation disabled under [`prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion). Its card grid packs masonry style at any window width: since [CSS masonry](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_grid_layout/Masonry_layout) has not shipped in stable Chrome, each card spans a number of fixed 8px grid rows matching its measured height, kept current by a [`ResizeObserver`](https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver). Once four columns fit, the layout caps at four and pins each card to a home column via [`grid-column`](https://developer.mozilla.org/en-US/docs/Web/CSS/grid-column) with [`grid-auto-flow: row dense`](https://developer.mozilla.org/en-US/docs/Web/CSS/grid-auto-flow), so related cards stay stacked together and ultrawide screens widen the columns instead of adding more. The README logo (`assets/icon.svg`) mirrors that backdrop in all green: an SVG SMIL [`<animateTransform>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/animateTransform) turns the beam and its fading trail around the ring center, and [`<animate>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/animate) key times flash a contact blip with a spreading ping each time the beam passes over it. SMIL was chosen because it keeps playing when GitHub renders the image through an `<img>` embed, where scripts are not executed
-- **External services:** AI and reputation APIs
+- **Theming:** shared design tokens in `styles/theme.css` (dark by default, light via a `data-theme` override). The popup and the options page both follow the brand icon: green accents on every interactive element (buttons, links, toggles, focus rings), a softly glowing shield logo, and on the options page a radar rings and sweep backdrop built with CSS [`color-mix()`](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color-mix), [`conic-gradient()`](https://developer.mozilla.org/en-US/docs/Web/CSS/gradient/conic-gradient) and [`mask-image`](https://developer.mozilla.org/en-US/docs/Web/CSS/mask-image).
+- **External services:** all called directly with `fetch` (no SDKs), and every lookup degrades to an _Unknown_ row on failure instead of breaking the popup
+  - **AI:** the [Anthropic Messages API](https://docs.claude.com/en/api/messages) (Claude) or the OpenAI compatible [DeepSeek chat completions API](https://api-docs.deepseek.com), billed to the user's own on device key and only ever run on demand
+  - **Reputation:** [Google Safe Browsing Lookup v4](https://developers.google.com/safe-browsing/v4/lookup-api) (keyed, with a keyless Transparency Report fallback), [VirusTotal domains](https://docs.virustotal.com/reference/domain-info) (keyed), [Sucuri SiteCheck](https://sitecheck.sucuri.net/), threat filtering DNS over HTTPS ([Cloudflare Security](https://developers.cloudflare.com/1.1.1.1/setup/) and [Quad9](https://quad9.net/)) checked against a neutral [dns.google](https://developers.google.com/speed/public-dns/docs/doh/json) baseline, [SANS ISC / DShield](https://isc.sans.edu/api/) server IP reputation, and a locally cached copy of the [Phishing.Database](https://github.com/Phishing-Database/Phishing.Database) domain list
+  - **Domain data:** registration age via [RDAP](https://about.rdap.org/) through the [rdap.org](https://rdap.org/) bootstrap endpoint
 - **CI/CD:** GitHub Actions
 - **Version control:** Git / GitHub
 
