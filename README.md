@@ -112,22 +112,22 @@ checks that ran.
 | **Blacklist Status**      | **Keyless:** the host is resolved over [DNS-over-HTTPS](https://datatracker.ietf.org/doc/html/rfc8484) through two threat-filtering resolvers, Cloudflare (`security.cloudflare-dns.com`) and [Quad9](https://quad9.net/) (`dns.quad9.net`), and compared with a non-filtering baseline (`dns.google`). | Either resolver sinkholes a host that otherwise resolves (a `0.0.0.0` answer or `NXDOMAIN`) → _Blacklisted_ → risky; both resolve normally → _Clean_ → good. Lookup error → _Unknown_. |
 | **Server IP Reputation**  | **Keyless:** the host is resolved to its server IP, which is looked up in the [SANS ISC / DShield](https://isc.sans.edu/) database (`isc.sans.edu/api/ip/<ip>?json`), a feed of addresses reported attacking internet honeypots. | The IP has attack reports → _Reported_ → warning; none → good. A shared **CDN/cloud** IP (Cloudflare, Akamai, AWS…) is reported as _Shared CDN_ → _Unknown_ and excluded, since it isn't the site's own server. Lookup error → _Unknown_. |
 
-**Phishing.Database cache.** [Phishing.Database](https://github.com/Phishing-Database/Phishing.Database)
+**Phishing.Database cache:** [Phishing.Database](https://github.com/Phishing-Database/Phishing.Database)
 is a first-class keyless source, but it ships as bulk flat files (the active domain list is ~10 MB) with
 no per-host lookup, far too large to fetch on every popup. A **background service worker** therefore
 downloads the list once into **IndexedDB** (`unlimitedStorage`), fully refreshes it daily and tops it up
 hourly from the project's "new in the last hour" feed (both via `chrome.alarms`), and the popup queries
 it with an instant, offline message round-trip. A listed registrable domain also covers its subdomains.
 
-**Blacklist via filtering DNS.** The Blacklist check exploits the fact that security DNS resolvers
+**Blacklist via filtering DNS:** The Blacklist check exploits the fact that security DNS resolvers
 *sinkhole* known-malicious hosts: instead of the real address they return `0.0.0.0` (Cloudflare) or
 `NXDOMAIN` (Quad9). The extension resolves the host once through a neutral baseline (`dns.google`) and
-once through each filtering resolver via their JSON DoH endpoints; if the baseline resolves but a filter
+once through each filtering resolver via their JSON DoH endpoints. if the baseline resolves but a filter
 does not, that resolver is treating the host as a threat. This needs no API key and works from the popup
 because the `<all_urls>` host permission bypasses CORS. A transient resolver error (e.g. `SERVFAIL`) is
 treated as _Unknown_, never as a positive hit.
 
-**Server IP reputation (and why it's conservative).** IP blocklists track *attacking infrastructure*
+**Server IP reputation (and why it's conservative):** IP blocklists track *attacking infrastructure*
 (brute-force, scanning, spam) rather than phishing/malware hosting, and most sites today sit behind a
 shared CDN/cloud address, so a raw IP verdict would be noisy or misleading. The check therefore (1)
 detects shared CDN/cloud ranges by AS name and reports them as _Shared CDN_ (excluded from the verdict)
@@ -135,10 +135,10 @@ instead of judging an address that isn't the site's own, and (2) caps a positive
 never a hard "risky", because the signal is circumstantial. It's a complementary infrastructure angle,
 not a primary trust signal.
 
-**API keys.** The two keyed paths live under **Settings → Reputation** and are stored on-device in
+**API keys:** The two keyed paths live under **Settings → Reputation** and are stored on-device in
 `chrome.storage.local`. VirusTotal requires a (free-tier) key for its inline `malicious / total`
-verdict; without one the row shows a _Key needed_ prompt with an **Add key** button that opens a modal
-to enter it inline (no need to open Settings); the key is saved and the row re-runs immediately. Safe
+verdict. without one the row shows a _Key needed_ prompt with an **Add key** button that opens a modal
+to enter it inline (no need to open Settings). the key is saved and the row re-runs immediately. Safe
 Browsing's key is optional: it switches the check from the public Transparency Report to Google's
 official Lookup API. The other four checks need no key at all.
 
@@ -152,7 +152,7 @@ JSON summary: the page title, its visible text (capped), the number of password 
 note of whether each password form leaves the origin or uses plain HTTP. The risk logic then runs in the
 popup. Pages with no readable DOM (a `chrome://` page, the new-tab page) are reported as _Unknown_ and
 excluded from the verdict, and browser extension stores show an explicit _Restricted_ note instead (see
-[Restricted pages](#restricted-pages)). All four checks are offline and textual/structural; no page
+[Restricted pages](#restricted-pages)). All four checks are offline and textual/structural and no page
 content ever leaves the browser.
 
 | Check                    | How it's computed                                                                                                                                            | Risk logic                                                                                                  |
@@ -162,7 +162,7 @@ content ever leaves the browser.
 | **Urgent Language**      | The title + text are scanned for **time-pressure / fear wording** ("act now", "within 24 hours", "final notice", "your account will be suspended"…).            | None → good; 1 to 2 matches → warning; 3+ → risky. The count is shown, and the matched phrases are listed under the row.                                   |
 | **Brand Impersonation**  | A well-known brand (Microsoft, Google, Amazon, Apple, PayPal, banks, couriers…) is named in the title/text while the host **isn't** one of that brand's own domains, **and** the page asks for a password. | Mismatch on a credential-entry page → risky, naming the impersonated brand and listing the brand wording that matched; otherwise good.                 |
 
-**The wordlists ("small database").** The phrases and brands the three text checks match against live in
+**The wordlists ("small database"):** The phrases and brands the three text checks match against live in
 their own module, [`scripts/shared/content-data.ts`](scripts/shared/content-data.ts), separate from the
 matching logic so they can grow without touching the algorithms. The phishing/urgency wording follows
 common phishing-email keyword round-ups ([Expel](https://expel.com/blog/top-phishing-keywords/),
@@ -177,7 +177,7 @@ LinkedIn), extended with the shipping
 and gaming (Roblox, Steam) brands phishing kits routinely clone. Each brand carries both the phrases that
 signal it and the set of registrable labels that are legitimately its own.
 
-**Hebrew (Israel) coverage.** The same three text checks also carry the wording Israeli phishing SMS,
+**Hebrew (Israel) coverage:** The same three text checks also carry the wording Israeli phishing SMS,
 emails and pages actually use (for example `פעילות חשודה בחשבון`, `החשבון שלך נחסם`, `לאמת את החשבון`,
 `חבילה ממתינה במכס`, `חוב אגרה`, and urgency wording like `דחוף`, `תוך 24 שעות`, `לחץ על הקישור`), plus
 the local bodies most impersonated in Israel: Highway 6 (כביש 6) tolls, the banks and credit-card issuers
@@ -192,12 +192,12 @@ most common local scam messages, the Israel National Cyber Directorate's
 a [penetrationtest.co.il SMS-fraud guide](https://penetrationtest.co.il/sms-fraud/), and the
 [Jerusalem Post report on the Israel Electric scam](https://www.jpost.com/israel-news/israel-electric-warns-of-phishing-scam-trying-to-steal-customer-details-673983).
 
-> **Note.** These are deliberately **short, hardcoded lists**; they cover the *most common* phishing
+> **Note:** These are deliberately **short, hardcoded lists**; they cover the *most common* phishing
 > wording and the *most-impersonated* brands rather than aiming to be exhaustive. The goal is to catch
 > typical attacks while keeping false positives low; the lists can be extended at any time in
 > [`content-data.ts`](scripts/shared/content-data.ts).
 
-**Matching is whole-word and de-duplicated.** Text is matched case-insensitively with the page's title and
+**Matching is whole-word and de-duplicated:** Text is matched case-insensitively with the page's title and
 body folded to one normalized string (smart quotes → ASCII, whitespace collapsed so a phrase still matches
 across a line break). Terms match on **word boundaries**, so a short token like `ups` can't fire inside
 `backups` and `apple` can't fire inside `pineapple`. The boundary is **Unicode-aware** (it treats any
@@ -206,14 +206,14 @@ exactly the same whole-word way the English ones do. When a broad term and a mor
 same text (`action required` inside `immediate action required`), only the longer match is counted, so a
 single phrase can't inflate the score.
 
-**How the page is read.** The extractor (`extractPageContent` in `scripts/shared/content-analysis.ts`)
+**How the page is read:** The extractor (`extractPageContent` in `scripts/shared/content-analysis.ts`)
 is written to be fully self-contained, referencing no imports or module-scope helpers, only the page's
 DOM, so it survives being serialized and run in the page's world by `executeScript`. It runs in the
 content script's isolated world, which is enough to read the DOM (it never needs to touch page-script
 state). The popup then judges the returned summary, keeping all the risk logic in one shared, testable
 module alongside the URL and Reputation checks.
 
-**Why Brand Impersonation is gated on a password field.** Most pages mention big brands harmlessly: a
+**Why Brand Impersonation is gated on a password field:** Most pages mention big brands harmlessly: a
 "Log in with Google" button, a "We accept PayPal" footer, a news article. Flagging every mention would
 be noise. Impersonation only *matters* where it harvests credentials, so the check fires only when the
 page also has a password field, which sharply cuts false positives (a stated project goal). The host is
@@ -221,12 +221,12 @@ compared by its **registrable primary label** (the part before the public suffix
 legitimate domains and ccTLDs (`google.com`, `google.co.uk`, `microsoftonline.com`) all count as genuine,
 while look-alikes (`paypal-secure.tk`, `microsoft-verify.com`) do not.
 
-**Why the form check distinguishes HTTP from cross-origin.** A password field that POSTs over plain HTTP
+**Why the form check distinguishes HTTP from cross-origin:** A password field that POSTs over plain HTTP
 sends credentials in clear text, an unambiguous, hard risk. A password field that POSTs cross-origin
 over HTTPS is *suspicious* but can be legitimate (federated/SSO login often posts to an auth domain), so
 it's capped at a warning rather than treated as a certain compromise.
 
-**Marking matches on the page.** Besides listing what it found in the popup, the Content view marks the
+**Marking matches on the page:** Besides listing what it found in the popup, the Content view marks the
 same findings on the page itself. After scanning, the popup injects a second self-contained function
 (`highlightPageMatches`) that gives every flagged phrase (phishing wording, urgent language, and the
 matched brand keywords) a **light red highlight**, and every **suspicious password form** a **red
@@ -245,7 +245,7 @@ individually** from the **Content highlights** section of the options page, wher
 password field with the red form outline) so it's clear what each switch turns off; a disabled category
 is simply left unmarked on the next scan.
 
-> **A note on false positives.** Several of these signals also show up on perfectly legitimate pages: your
+> **A note on false positives:** Several of these signals also show up on perfectly legitimate pages: your
 > bank's real login genuinely says "verify your account", a real promotion genuinely says "limited time
 > offer" or "act now", and a real federated login genuinely posts your password to a separate auth domain.
 > Risk Radar treats each check as an **advisory signal, not a standalone verdict**, and is tuned to keep
@@ -279,7 +279,7 @@ browser.
 | **Suspicious Links**     | External links whose **destination itself** looks dangerous (see below).                                   | None → good; 1 to 2 → warning; 3+ → risky. The flagged hosts are listed.                                           |
 | **Malicious Redirects**  | Links that **hide or bounce** their true destination (see below).                                          | None → good; a parameter bounce → warning; a displayed-vs-real URL mismatch → risky. The destinations are listed.  |
 
-**What makes a link "suspicious".** A suspicious link points off-site to a destination that itself carries
+**What makes a link "suspicious":** A suspicious link points off-site to a destination that itself carries
 a phishing tell, drawn from the standard anti-phishing URL indicators (CISA, the APWG, OWASP): a raw **IP
 address** host; a **punycode / IDN homograph** domain (`xn--`); **credentials embedded in the URL**
 (`https://paypal.com@evil.com`); a **brand look-alike**, where a known brand token appears in the host but
@@ -289,7 +289,7 @@ phishing keywords** in the host (two or more of `secure`, `login`, `verify`, `ac
 `secure-account-login.com`). Single signals are kept high-signal to limit false positives (a stated
 project goal): a lone `login.` subdomain, a real brand domain, and an ordinary external link all stay good.
 
-**What counts as a "malicious redirect".** A redirect is a link that **disguises where it really goes**,
+**What counts as a "malicious redirect":** A redirect is a link that **disguises where it really goes**,
 caught before the internal/external check so an open redirect hosted on the page's own trusted domain is
 still flagged. Two patterns are detected: an **open-redirect parameter** carrying an absolute off-domain
 URL (`https://trusted.com/out?url=https://evil.com`, scanning common parameter names like `url`, `next`,
@@ -298,14 +298,14 @@ mismatch**, where the visible link text is presented as one domain (`https://www
 the href opens another. A redirect that stays within the same domain family (a `continue=` back to a
 sibling subdomain) is not flagged.
 
-**The look-alike token list and shorteners.** The distinctive brand tokens the look-alike check watches
+**The look-alike token list and shorteners:** The distinctive brand tokens the look-alike check watches
 for live alongside the Content wordlists in
 [`scripts/shared/content-data.ts`](scripts/shared/content-data.ts) (`BRAND_URL_TOKENS`), kept to long,
 unambiguous brand words so short or dictionary-ish labels don't trip it. The shortener and redirect
 parameter lists live in [`link-analysis.ts`](scripts/shared/link-analysis.ts) and can be extended at any
 time.
 
-**Marking links on the page.** After scanning, the popup injects a second self-contained function
+**Marking links on the page:** After scanning, the popup injects a second self-contained function
 (`highlightPageLinks`) that outlines the same links on the page itself, in document order so each mark
 lines up with its verdict: **internal links get a subtle green outline**, **suspicious links and malicious
 redirects a red one**, and **every mark carries a hover label** naming exactly what it is (greens
@@ -320,7 +320,7 @@ highlights** section of the options page, where every toggle shows a **live prev
 (a sample link drawn in that bucket's exact colour and weight) so it's clear what each switch turns off;
 a disabled bucket is left unmarked on the next scan.
 
-**Warning before following a red link.** Marking alone is passive, so the highlighter also **guards clicks
+**Warning before following a red link:** Marking alone is passive, so the highlighter also **guards clicks
 on the red links**: clicking a suspicious link or a malicious redirect pops a
 [`confirm()`](https://developer.mozilla.org/en-US/docs/Web/API/Window/confirm) naming what was flagged,
 its reason, and the real destination host, and the page only navigates if the user chooses to continue.
@@ -331,7 +331,7 @@ re-scans never stack listeners; the guard covers `click` (left- and modifier-cli
 links navigate untouched, and a bucket switched off in the **Link highlights** options is neither marked
 nor guarded.
 
-**Choosing between warning, blocking, and doing nothing.** The **Safety warnings** section of the options
+**Choosing between warning, blocking, and doing nothing:** The **Safety warnings** section of the options
 page holds a single action setting deciding what both guards (the red-link click guard above and the
 typed-address guard below) do when they catch a risky navigation. **Warn**, the default, is the
 confirmation flow described here: the user can accept it and continue anyway. **Block** removes that
@@ -342,7 +342,7 @@ typed address is backed out of unconditionally after the same blocked notice. **
 guards: a caught navigation proceeds with no prompt at all, while red links keep their outlines and hover
 labels.
 
-**Warning on a risky address typed into the URL bar.** The same confirmation also protects URLs the user
+**Warning on a risky address typed into the URL bar:** The same confirmation also protects URLs the user
 enters directly in the address bar, not just links clicked on a page. The background worker listens on
 [`chrome.webNavigation.onCommitted`](https://developer.chrome.com/docs/extensions/reference/api/webNavigation#event-onCommitted)
 and, for a main-frame navigation the browser tags as coming from the omnibox (a `typed` / `generated` /
@@ -380,12 +380,12 @@ chosen provider, and renders the model's structured verdict. The risk logic and 
 | **Content Risk Score**    | The model returns an overall `0`–`100` content-risk score.                          | `< 34` → good; `34`–`66` → warning; `≥ 67` → risky. Shown as `score / 100`.           |
 | **Summary**               | One or two sentences from the model explaining its verdict.                         | Shown in the **Summary** note; the category verdict is the worst of the three rows.  |
 
-**On-demand by default.** Unlike the other categories (which run for free on every popup open), an
+**On-demand by default:** Unlike the other categories (which run for free on every popup open), an
 AI request costs money per scan, so by default this category never calls the API on its own: the view
 opens in an idle state and only contacts the model when you press **Analyze this page** (and
 **Re-analyze** afterwards). No page content is sent anywhere until you click.
 
-**When to scan with AI.** A **Settings → AI** dropdown (`aiScanMode` in `chrome.storage.local`,
+**When to scan with AI:** A **Settings → AI** dropdown (`aiScanMode` in `chrome.storage.local`,
 default `manual`) chooses when the scan runs: **When I click Analyze** keeps the on-demand behaviour
 above, while **Automatically when the popup opens** runs the analysis as soon as the popup opens on a
 scannable page. Automatic mode only fires when a key for the selected provider is already set, so
@@ -393,14 +393,14 @@ opening the popup never pops the key modal unprompted; without a key it falls ba
 until you click. Because automatic mode bills your provider on every popup open, the dropdown's help
 text spells that out.
 
-**Two providers, your choice.** A provider selector in the view chooses between **Claude** and
-**DeepSeek**; the choice is saved on-device (`aiProvider` in `chrome.storage.local`). The same value is
+**Two providers, your choice:** A provider selector in the view chooses between **Claude** and
+**DeepSeek**. the choice is saved on-device (`aiProvider` in `chrome.storage.local`). The same value is
 exposed as a **Default AI provider** dropdown under **Settings → AI**, so you can set which provider the
 popup opens on while still switching it per scan from the view. Both keys live under
-**Settings → AI**; if the selected provider has no key yet, the button becomes **Add key** and opens the
+**Settings → AI**. if the selected provider has no key yet, the button becomes **Add key** and opens the
 same inline key modal the Reputation view uses, then runs the analysis.
 
-**Pick the model.** Each provider has a model dropdown under **Settings → AI**, saved on-device
+**Pick the model:** Each provider has a model dropdown under **Settings → AI**, saved on-device
 (`claudeModel` / `deepseekModel` in `chrome.storage.local`):
 
 - **Claude** — Anthropic's [Messages API](https://platform.claude.com/docs/en/api/messages) (`POST
