@@ -43,19 +43,13 @@ third-party reputation services, and an AI model to surface threats before they 
 ## Risk logic
 
 Each check produces a status, either **good** (✓), **warning** (!), or **risky** (✕), and the
-category's overall verdict reflects its worst finding. While a category is still scanning, its chip on
-the main list reads a muted **Loading** rather than a verdict, so a stale or default "Good" is never
-shown mid-scan; it switches to the real verdict once that category finishes (the AI chip instead reads
-**Not run** until a scan starts, then **Loading** while it runs). The five category verdicts roll up
+category's overall verdict reflects its worst finding. The five category verdicts roll up
 into a single **trust score (1 to 100)** shown in the header ring (see [Trust score](#trust-score)
-below); the dot beside the site name, and the extension's **toolbar icon**, both take the colour of that
+below); the extension's **toolbar icon** take the colour of that
 score's band (green / amber / red), so the icon in the toolbar reflects the verdict even after the popup
-is closed. Both the ring and the dot show a muted pulse
-while the automatic categories scan, then settle once every expected category is in (or stay muted with
-a "Can't scan this page" note on pages with no scannable content, such as `chrome://` pages). AI
+is closed. AI
 analysis is on demand, so it feeds the score only when a scan actually runs (auto mode on open, or when
-you press Analyze): the header returns to its scanning pulse and folds the AI verdict into the score once
-it finishes. In manual mode without a scan, the score is computed from the four automatic categories alone.
+you press Analyze). Without AI scan, the score is computed from the four automatic categories alone.
 
 The footer's **Rescan** button re-runs every category against the current tab from a clean slate: it
 clears the header score back to its scanning pulse, re-runs the four automatic categories, and resets
@@ -67,19 +61,19 @@ bills you unprompted or pops the key modal).
 The header number is a weighted average of the category verdicts with hard caps, so a broadly clean
 site scores high while a single authoritative red flag can never be averaged away into a green score.
 
-1. **Weighted average.** Each determinate category verdict maps to points (good = 100, warning = 55,
+1. **Weighted average:** Each determinate category verdict maps to points (good = 100, warning = 55,
    risky = 10) and is combined by weight: **Reputation 0.40, AI 0.20, Content 0.20, URL 0.15, Links
    0.05**. Reputation leads because it is the only category backed by authoritative threat intelligence;
    outbound links are the lightest signal. Categories that come back _Unknown_ (or the AI when it hasn't
    run) are left out and the remaining weights are renormalized, so a missing check never skews the score.
-2. **Hard caps.** A **confirmed-malicious** signal caps the score at **15** (deep red): an authoritative
+2. **Hard caps:** A **confirmed-malicious** signal caps the score at **15** (deep red): an authoritative
    blocklist/malware hit (Safe Browsing, VirusTotal _malicious_, Sucuri, Phishing Database, or a DNS
    sinkhole) or a password form that submits credentials in cleartext. Failing that, a **strong phishing
    heuristic** caps it at **49** (no higher than the warning band): a raw-IP host, a brand-new domain
    (< 30 days), brand impersonation on a credential page, or the AI rating the page high-risk. Softer
    signals (a long URL, urgent wording, a cross-origin login form, suspicious outbound links) only lower
    the average; they never cap.
-3. **Bands.** The final 1-100 score is coloured by the same thirds the rows use: **67-100** safe (green),
+3. **Bands:** The final 1-100 score is coloured by the same thirds the rows use: **67-100** safe (green),
    **34-66** caution (amber), **1-33** dangerous (red). A page with nothing determinate to score shows a
    muted "Can't scan this page" instead of a number.
 
@@ -90,21 +84,20 @@ site scores high while a single authoritative red flag can never be averaged awa
 | **Protocol**            | `URL.protocol` of the active tab                                   | `https` → good; `http` → risky (traffic is unencrypted).                            |
 | **Domain Age**          | Registration date via [RDAP](https://about.rdap.org/) (see below)  | `< 30 days` → risky; `< 6 months` → warning; otherwise good. Unknown registries are reported as _Unknown_. |
 | **Subdomain**           | Hostname split into subdomain + registrable domain                 | Raw IP host → risky; deeply nested subdomains → warning; `www` or a single label → good. |
-| **URL Length**          | Character count of the full URL                                    | `< 54` Short → good; `≤ 100` Medium → good; `> 100` Long → warning.                 |
+| **URL Length**          | Character count of the full URL                                    | `< 54` Short → good; `≤ 100` Medium → still good; `> 100` Long → warning.                 |
 | **Suspicious Keywords** | Host, path, and query scanned against a short phishing wordlist          | None → good; 1 to 2 matches → warning; 3+ matches → risky. Matches are listed.         |
 
-**Domain age lookup.** Classic WHOIS runs over TCP port 43 and can't be reached from a browser,
+**Domain age lookup:** Classic WHOIS runs over TCP port 43 and can't be reached from a browser,
 so domain age is resolved with **RDAP**, the JSON-based successor to WHOIS. The extension queries
 the IANA bootstrap endpoint `https://rdap.org/domain/<domain>`, which redirects to the authoritative
-registry for the TLD, and reads the `registration` event date. It needs no API key and works from
-the popup because the extension's `<all_urls>` host permission bypasses CORS.
+registry for the TLD, and reads the `registration` event date. It needs no API key.
 
 ### Reputation
 
 This category cross-checks the host against external threat intelligence. **Five of the six checks run
 without any API key**: Safe Browsing, Sucuri SiteCheck, Phishing Database, Blacklist Status, and Server
 IP Reputation each produce a verdict keylessly. Only **VirusTotal** needs a key (its public API and web
-UI are gated behind authentication and reCAPTCHA, so there is no honest keyless lookup); Safe Browsing
+UI are gated behind authentication and reCAPTCHA, so there is no honest keyless lookup). Safe Browsing
 also accepts an optional key to upgrade it to Google's official API. A check that can't be completed (a
 network or lookup failure, no data, or a missing key) is reported as _Unknown_ / _Not checked_ and
 excluded from the verdict rather than counted as good, so the category's verdict reflects only the
@@ -116,7 +109,7 @@ checks that ran.
 | **VirusTotal**            | **Keyed:** [VirusTotal API v3](https://docs.virustotal.com/reference/domain-info) (`/domains/<host>`) is queried with a key from Settings and `last_analysis_stats` read. (VirusTotal has no keyless lookup; both its API and web UI require authentication/reCAPTCHA.) | `malicious >= 5` → risky; `1 to 4` malicious (or any `suspicious`) → warning; otherwise good, showing `malicious / total` vendor verdicts. A couple of noisy engines can't brand a clean site as risky. No key → _Not checked_ (excluded from the verdict). |
 | **Sucuri SiteCheck**      | **Keyless:** the host is scanned via [Sucuri SiteCheck](https://sitecheck.sucuri.net/)'s public API (`/api/v3/?scan=<host>`), which aggregates several vendor blacklists (Google, Sucuri Labs, Norton, McAfee, ESET, Yandex, PhishTank…) plus its own malware checks. | A `blacklists` hit → _Blacklisted_ → risky; a `warnings.security` malware finding → _Unsafe_ → risky; a clean scan → good. A failed/timed-out scan → _Unknown_. |
 | **Phishing Database**     | **Keyless:** the host is checked against a local, offline copy of the [Phishing.Database](https://github.com/Phishing-Database/Phishing.Database) project's active phishing-domain list (~600k domains), cached and kept current by the background worker (see below). | Host (or its registrable domain) on the list → _Listed_ → risky; not on it → _Not listed_ → good. While the first download is in progress → _Updating…_ (excluded). |
-| **Blacklist Status**      | The host is resolved over [DNS-over-HTTPS](https://developer.mozilla.org/en-US/docs/Glossary/DoH) through two threat-filtering resolvers, Cloudflare (`security.cloudflare-dns.com`) and [Quad9](https://quad9.net/) (`dns.quad9.net`), and compared with a non-filtering baseline (`dns.google`). | Either resolver sinkholes a host that otherwise resolves (a `0.0.0.0` answer or `NXDOMAIN`) → _Blacklisted_ → risky; both resolve normally → _Clean_ → good. Lookup error → _Unknown_. |
+| **Blacklist Status**      | **Keyless:** the host is resolved over [DNS-over-HTTPS](https://datatracker.ietf.org/doc/html/rfc8484) through two threat-filtering resolvers, Cloudflare (`security.cloudflare-dns.com`) and [Quad9](https://quad9.net/) (`dns.quad9.net`), and compared with a non-filtering baseline (`dns.google`). | Either resolver sinkholes a host that otherwise resolves (a `0.0.0.0` answer or `NXDOMAIN`) → _Blacklisted_ → risky; both resolve normally → _Clean_ → good. Lookup error → _Unknown_. |
 | **Server IP Reputation**  | **Keyless:** the host is resolved to its server IP, which is looked up in the [SANS ISC / DShield](https://isc.sans.edu/) database (`isc.sans.edu/api/ip/<ip>?json`), a feed of addresses reported attacking internet honeypots. | The IP has attack reports → _Reported_ → warning; none → good. A shared **CDN/cloud** IP (Cloudflare, Akamai, AWS…) is reported as _Shared CDN_ → _Unknown_ and excluded, since it isn't the site's own server. Lookup error → _Unknown_. |
 
 **Phishing.Database cache.** [Phishing.Database](https://github.com/Phishing-Database/Phishing.Database)
@@ -405,29 +398,23 @@ text spells that out.
 exposed as a **Default AI provider** dropdown under **Settings → AI**, so you can set which provider the
 popup opens on while still switching it per scan from the view. Both keys live under
 **Settings → AI**; if the selected provider has no key yet, the button becomes **Add key** and opens the
-same inline key modal the Reputation view uses, then runs the analysis. Both are called directly from the
-popup with `fetch` (no SDK) — the `<all_urls>` host permission lets the extension reach
-`api.anthropic.com` and `api.deepseek.com` cross-origin.
+same inline key modal the Reputation view uses, then runs the analysis.
 
 **Pick the model.** Each provider has a model dropdown under **Settings → AI**, saved on-device
-(`claudeModel` / `deepseekModel` in `chrome.storage.local`). The available options live in `CLAUDE_MODELS`
-and `DEEPSEEK_MODELS` in `ai-analysis.ts`, so adding or removing a model is a one-line change there:
+(`claudeModel` / `deepseekModel` in `chrome.storage.local`):
 
 - **Claude** — Anthropic's [Messages API](https://docs.claude.com/en/api/messages) (`POST
   https://api.anthropic.com/v1/messages`), choosing between
   [Opus 4.8, Sonnet 5, Sonnet 4.6, and Haiku 4.5](https://docs.claude.com/en/docs/about-claude/models/overview)
   (default **Sonnet 4.6**). The response shape is pinned with
   [structured outputs](https://docs.claude.com/en/docs/build-with-claude/structured-outputs)
-  (`output_config.format` + a JSON schema), and the
-  [`anthropic-dangerous-direct-browser-access`](https://docs.claude.com/en/api/client-sdks) header opts
-  the extension page into direct browser calls.
+  (`output_config.format` + a JSON schema).
 - **DeepSeek** — the OpenAI-compatible
   [chat completions](https://api-docs.deepseek.com/api/create-chat-completion) endpoint (`POST
   https://api.deepseek.com/chat/completions`), choosing between
   [V4 Flash and V4 Pro](https://api-docs.deepseek.com/quick_start/pricing) (default **V4 Flash**), with
   [JSON output mode](https://api-docs.deepseek.com/guides/json_mode)
-  (`response_format: { type: "json_object" }`). These V4 models replace the legacy `deepseek-chat` /
-  `deepseek-reasoner` aliases, which DeepSeek deprecates on 2026-07-24.
+  (`response_format: { type: "json_object" }`).
 
 Whatever the model returns is treated defensively: the response is parsed tolerantly (code fences and
 stray prose are stripped before the first `{…}` is read) and every score is clamped into range, so a
@@ -446,19 +433,15 @@ active tab, and the browser refuses that injection on its own extension store:
 [`chrome.scripting.executeScript`](https://developer.chrome.com/docs/extensions/reference/api/scripting)
 always fails there with _"The extensions gallery cannot be scripted"_, no matter what permissions an
 extension holds. The block lives in the browser itself, protecting the store's install and review UI
-from tampering; see the
-[Chromium source](https://source.chromium.org/search?q=%22The%20extensions%20gallery%20cannot%20be%20scripted%22)
-and this [write-up of the error](https://www.extension.ninja/blog/post/solved-extensions-gallery-cannot-be-scripted/).
+from tampering.
 
 On these pages the popup shows an explicit **Restricted** verdict with a _"Chrome blocks extensions on
 this page"_ note for those three categories, instead of the generic _Unknown_ a transient scan failure
 gets, and the AI **Analyze** button is disabled. The **URL & Domain** and **Reputation** categories
 never touch the page's DOM, so they still run, and the trust score is computed from them alone. The
-recognized store pages (`isRestrictedPage` in
-[`scripts/shared/url-analysis.ts`](scripts/shared/url-analysis.ts)) are the
-[Chrome Web Store](https://chromewebstore.google.com/) (`chromewebstore.google.com`, plus the legacy
-`chrome.google.com/webstore`) and, when running on Edge, the
-[Edge Add-ons store](https://microsoftedge.microsoft.com/addons) (`microsoftedge.microsoft.com/addons`).
+recognized store pages are the
+[Chrome Web Store](https://chromewebstore.google.com/) and, when running on Edge, the
+[Edge Add-ons store](https://microsoftedge.microsoft.com/addons).
 `chrome://` pages and the new-tab page have no scannable content at all, so they keep the muted
 "Can't scan this page" state.
 
