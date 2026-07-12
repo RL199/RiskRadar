@@ -187,7 +187,7 @@ national guidance: [mako](https://www.mako.co.il/nexter-news/Article-0e0541aa525
 [Ynet](https://www.ynet.co.il/digital/technews/article/byvvjxhfj) on the most-impersonated bodies and the
 most common local scam messages, the Israel National Cyber Directorate's
 [how-to-recognize-phishing guide](https://www.gov.il/en/pages/recognize_phishing_2711),
-[ISOC-IL](https://www.isoc.org.il/digital-literacy/online-safety-guides/guides-users/how-to-spot-phishing),
+[ISOC-IL](https://www.isoc.org.il/digital-literacy/cybersafe/how-to-spot-phishing),
 [Israel Post's own fake-SMS notice](https://israelpost.co.il/%D7%A9%D7%99%D7%A8%D7%95%D7%AA%D7%99%D7%9D/sms-%D7%9E%D7%94%D7%93%D7%95%D7%90%D7%A8-%D7%9B%D7%9A-%D7%AA%D7%95%D7%95%D7%93%D7%90%D7%95-%D7%A9%D7%9C%D7%90-%D7%9E%D7%93%D7%95%D7%91%D7%A8-%D7%91%D7%94%D7%95%D7%93%D7%A2%D7%AA-%D7%A4%D7%99%D7%A9%D7%99%D7%A0%D7%92/),
 a [penetrationtest.co.il SMS-fraud guide](https://penetrationtest.co.il/sms-fraud/), and the
 [Jerusalem Post report on the Israel Electric scam](https://www.jpost.com/israel-news/israel-electric-warns-of-phishing-scam-trying-to-steal-customer-details-673983).
@@ -403,11 +403,11 @@ same inline key modal the Reputation view uses, then runs the analysis.
 **Pick the model.** Each provider has a model dropdown under **Settings → AI**, saved on-device
 (`claudeModel` / `deepseekModel` in `chrome.storage.local`):
 
-- **Claude** — Anthropic's [Messages API](https://docs.claude.com/en/api/messages) (`POST
+- **Claude** — Anthropic's [Messages API](https://platform.claude.com/docs/en/api/messages) (`POST
   https://api.anthropic.com/v1/messages`), choosing between
-  [Opus 4.8, Sonnet 5, Sonnet 4.6, and Haiku 4.5](https://docs.claude.com/en/docs/about-claude/models/overview)
+  [Opus 4.8, Sonnet 5, Sonnet 4.6, and Haiku 4.5](https://platform.claude.com/docs/en/about-claude/models/overview)
   (default **Sonnet 4.6**). The response shape is pinned with
-  [structured outputs](https://docs.claude.com/en/docs/build-with-claude/structured-outputs)
+  [structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)
   (`output_config.format` + a JSON schema).
 - **DeepSeek** — the OpenAI-compatible
   [chat completions](https://api-docs.deepseek.com/api/create-chat-completion) endpoint (`POST
@@ -465,9 +465,9 @@ the [**When to scan with AI**](#ai) dropdown and only ever runs from the popup.
 - **Languages:** TypeScript, HTML, CSS
 - **Platform:** Chrome Extension API (Manifest V3), including a background service worker (IndexedDB + `chrome.alarms`, plus optional auto-scan via `chrome.tabs` / `chrome.scripting` / `chrome.action` badge + icon tinting)
 - **Localization:** `chrome.i18n` with `_locales/` message files (English and Hebrew, RTL-aware)
-- **Theming:** shared design tokens in `styles/theme.css` (dark by default, light via a `data-theme` override). The popup and the options page both follow the brand icon: green accents on every interactive element (buttons, links, toggles, focus rings), a softly glowing shield logo, and on the options page a radar rings and sweep backdrop built with CSS [`color-mix()`](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color-mix), [`conic-gradient()`](https://developer.mozilla.org/en-US/docs/Web/CSS/gradient/conic-gradient) and [`mask-image`](https://developer.mozilla.org/en-US/docs/Web/CSS/mask-image).
+- **Theming:** shared design tokens in `styles/theme.css` (dark by default, light via a `data-theme` override). The popup and the options page both follow the brand icon: green accents on every interactive element (buttons, links, toggles, focus rings), a softly glowing shield logo, and on the options page a radar rings and sweep backdrop built with CSS [`color-mix()`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/color_value/color-mix), [`conic-gradient()`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/gradient/conic-gradient) and [`mask-image`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-image).
 - **External services:** all called directly with `fetch` (no SDKs), and every lookup degrades to an _Unknown_ row on failure instead of breaking the popup
-  - **AI:** the [Anthropic Messages API](https://docs.claude.com/en/api/messages) (Claude) or the OpenAI compatible [DeepSeek chat completions API](https://api-docs.deepseek.com), billed to the user's own on device key and only ever run on demand
+  - **AI:** the [Anthropic Messages API](https://platform.claude.com/docs/en/api/messages) (Claude) or the OpenAI compatible [DeepSeek chat completions API](https://api-docs.deepseek.com), billed to the user's own on device key and only ever run on demand
   - **Reputation:** [Google Safe Browsing Lookup v4](https://developers.google.com/safe-browsing/v4/lookup-api) (keyed, with a keyless Transparency Report fallback), [VirusTotal domains](https://docs.virustotal.com/reference/domain-info) (keyed), [Sucuri SiteCheck](https://sitecheck.sucuri.net/), threat filtering DNS over HTTPS ([Cloudflare Security](https://developers.cloudflare.com/1.1.1.1/setup/) and [Quad9](https://quad9.net/)) checked against a neutral [dns.google](https://developers.google.com/speed/public-dns/docs/doh/json) baseline, [SANS ISC / DShield](https://isc.sans.edu/api/) server IP reputation, and a locally cached copy of the [Phishing.Database](https://github.com/Phishing-Database/Phishing.Database) domain list
   - **Domain data:** registration age via [RDAP](https://about.rdap.org/) through the [rdap.org](https://rdap.org/) bootstrap endpoint
 - **CI/CD:** GitHub Actions
