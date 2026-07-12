@@ -45,7 +45,7 @@ third-party reputation services, and an AI model to surface threats before they 
 Each check produces a status, either **good** (✓), **warning** (!), or **risky** (✕), and the
 category's overall verdict reflects its worst finding. The five category verdicts roll up
 into a single **trust score (1 to 100)** shown in the header ring (see [Trust score](#trust-score)
-below); the extension's **toolbar icon** take the colour of that
+below). the extension's **toolbar icon** take the colour of that
 score's band (green / amber / red), so the icon in the toolbar reflects the verdict even after the popup
 is closed. AI
 analysis is on demand, so it feeds the score only when a scan actually runs (auto mode on open, or when
@@ -63,7 +63,7 @@ site scores high while a single authoritative red flag can never be averaged awa
 
 1. **Weighted average:** Each determinate category verdict maps to points (good = 100, warning = 55,
    risky = 10) and is combined by weight: **Reputation 0.40, AI 0.20, Content 0.20, URL 0.15, Links
-   0.05**. Reputation leads because it is the only category backed by authoritative threat intelligence;
+   0.05**. Reputation leads because it is the only category backed by authoritative threat intelligence.
    outbound links are the lightest signal. Categories that come back _Unknown_ (or the AI when it hasn't
    run) are left out and the remaining weights are renormalized, so a missing check never skews the score.
 2. **Hard caps:** A **confirmed-malicious** signal caps the score at **15** (deep red): an authoritative
@@ -72,7 +72,7 @@ site scores high while a single authoritative red flag can never be averaged awa
    heuristic** caps it at **49** (no higher than the warning band): a raw-IP host, a brand-new domain
    (< 30 days), brand impersonation on a credential page, or the AI rating the page high-risk. Softer
    signals (a long URL, urgent wording, a cross-origin login form, suspicious outbound links) only lower
-   the average; they never cap.
+   the average. they never cap.
 3. **Bands:** The final 1-100 score is coloured by the same thirds the rows use: **67-100** safe (green),
    **34-66** caution (amber), **1-33** dangerous (red). A page with nothing determinate to score shows a
    muted "Can't scan this page" instead of a number.
@@ -192,9 +192,9 @@ most common local scam messages, the Israel National Cyber Directorate's
 a [penetrationtest.co.il SMS-fraud guide](https://penetrationtest.co.il/sms-fraud/), and the
 [Jerusalem Post report on the Israel Electric scam](https://www.jpost.com/israel-news/israel-electric-warns-of-phishing-scam-trying-to-steal-customer-details-673983).
 
-> **Note:** These are deliberately **short, hardcoded lists**; they cover the *most common* phishing
+> **Note:** These are deliberately **short, hardcoded lists**. they cover the *most common* phishing
 > wording and the *most-impersonated* brands rather than aiming to be exhaustive. The goal is to catch
-> typical attacks while keeping false positives low; the lists can be extended at any time in
+> typical attacks while keeping false positives low. the lists can be extended at any time in
 > [`content-data.ts`](scripts/shared/content-data.ts).
 
 **Matching is whole-word and de-duplicated:** Text is matched case-insensitively with the page's title and
@@ -239,13 +239,12 @@ Content, the popup can't read another tab's DOM directly, so it injects a small,
 ([`extractPageLinks` in `scripts/shared/link-analysis.ts`](scripts/shared/link-analysis.ts)) into the
 active tab with [`chrome.scripting.executeScript`](https://developer.chrome.com/docs/extensions/reference/api/scripting)
 (granted by `activeTab` + `scripting` + the `<all_urls>` host permission). The extractor returns a tiny
-JSON summary: the page URL, the total number of `<a href>` links, and, for the first 500 in document
-order, each link's resolved href and visible text. The risk logic then runs in the popup, sorting every
+JSON summary: the page URL, the total number of `<a href>` links, and each link's resolved href and visible text. The risk logic then runs in the popup, sorting every
 link into one bucket: **internal** (same registrable domain), **external** (a different domain with no
 risk traits), **suspicious**, **redirect**, or **ignore** (a `mailto:` / `tel:` / `javascript:` link or a
 same-page `#` anchor). Pages with no readable DOM (a `chrome://` page, the new-tab page) are reported as
 _Unknown_ and excluded from the verdict, and browser extension stores show an explicit _Restricted_ note
-instead (see [Restricted pages](#restricted-pages)). All checks are offline; no link ever leaves the
+instead (see [Restricted pages](#restricted-pages)). All checks are offline, no link ever leaves the
 browser.
 
 | Check                    | How it's computed                                                                                          | Risk logic                                                                                                          |
@@ -257,10 +256,10 @@ browser.
 
 **What makes a link "suspicious":** A suspicious link points off-site to a destination that itself carries
 a phishing tell, drawn from the standard anti-phishing URL indicators (CISA, the APWG, OWASP): a raw **IP
-address** host; a **punycode / IDN homograph** domain (`xn--`); **credentials embedded in the URL**
-(`https://paypal.com@evil.com`); a **brand look-alike**, where a known brand token appears in the host but
-the registrable domain is not that brand's (`paypal.secure-login.com`); a **URL shortener** that hides the
-real destination; **unusually deep subdomains** (`login.account.secure.verify.evil.tld`); or **stacked
+address** host, a **punycode / IDN homograph** domain (`xn--`), **credentials embedded in the URL**
+(`https://paypal.com@evil.com`), a **brand look-alike**, where a known brand token appears in the host but
+the registrable domain is not that brand's (`paypal.secure-login.com`), a **URL shortener** that hides the
+real destination, **unusually deep subdomains** (`login.account.secure.verify.evil.tld`) or **stacked
 phishing keywords** in the host (two or more of `secure`, `login`, `verify`, `account`… as in
 `secure-account-login.com`). Single signals are kept high-signal to limit false positives (a stated
 project goal): a lone `login.` subdomain, a real brand domain, and an ordinary external link all stay good.
