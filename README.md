@@ -206,21 +206,6 @@ exactly the same whole-word way the English ones do. When a broad term and a mor
 same text (`action required` inside `immediate action required`), only the longer match is counted, so a
 single phrase can't inflate the score.
 
-**How the page is read:** The extractor (`extractPageContent` in `scripts/shared/content-analysis.ts`)
-is written to be fully self-contained, referencing no imports or module-scope helpers, only the page's
-DOM, so it survives being serialized and run in the page's world by `executeScript`. It runs in the
-content script's isolated world, which is enough to read the DOM (it never needs to touch page-script
-state). The popup then judges the returned summary, keeping all the risk logic in one shared, testable
-module alongside the URL and Reputation checks.
-
-**Why Brand Impersonation is gated on a password field:** Most pages mention big brands harmlessly: a
-"Log in with Google" button, a "We accept PayPal" footer, a news article. Flagging every mention would
-be noise. Impersonation only *matters* where it harvests credentials, so the check fires only when the
-page also has a password field, which sharply cuts false positives (a stated project goal). The host is
-compared by its **registrable primary label** (the part before the public suffix), so a brand's many
-legitimate domains and ccTLDs (`google.com`, `google.co.uk`, `microsoftonline.com`) all count as genuine,
-while look-alikes (`paypal-secure.tk`, `microsoft-verify.com`) do not.
-
 **Why the form check distinguishes HTTP from cross-origin:** A password field that POSTs over plain HTTP
 sends credentials in clear text, an unambiguous, hard risk. A password field that POSTs cross-origin
 over HTTPS is *suspicious* but can be legitimate (federated/SSO login often posts to an auth domain), so
@@ -231,19 +216,10 @@ same findings on the page itself. After scanning, the popup injects a second sel
 (`highlightPageMatches`) that gives every flagged phrase (phishing wording, urgent language, and the
 matched brand keywords) a **light red highlight**, and every **suspicious password form** a **red
 outline**. Hovering a mark names its category (for example _"Phishing Indicators"_, _"Urgent Language"_,
-or _"Suspicious Forms"_), so it's clear at a glance why each was flagged. The phrase highlight uses the
-[CSS Custom Highlight API](https://developer.mozilla.org/en-US/docs/Web/API/CSS_Custom_Highlight_API),
-which paints text ranges without inserting any wrapper elements, so it never changes the page's structure;
-because a painted highlight can't carry a tooltip, the popup hit-tests the cursor against the marked ranges
-on hover and shows a small floating label, while a form (a real element) uses a native `title`. The marks
-are non-destructive and reversible (the form outline and any borrowed `title` are restored on the next
-scan), the highlighter runs in the page's **main world** so it shares the page's CSS highlight registry,
-and re-running clears the previous pass so a now-clean page is left unmarked. Each of these marks
+or _"Suspicious Forms"_), so it's clear at a glance why each was flagged.
+Each of these marks
 (Phishing Indicators, Urgent Language, Brand Impersonation, and Suspicious Forms) can be **switched off
-individually** from the **Content highlights** section of the options page, where every toggle shows a
-**live preview chip** of its mark (a sample flagged phrase with the red text highlight, and a mock
-password field with the red form outline) so it's clear what each switch turns off; a disabled category
-is simply left unmarked on the next scan.
+individually** from the **Content highlights** section of the options page.
 
 > **A note on false positives:** Several of these signals also show up on perfectly legitimate pages: your
 > bank's real login genuinely says "verify your account", a real promotion genuinely says "limited time
@@ -253,7 +229,7 @@ is simply left unmarked on the next scan.
 > turn risky (one or two are only a warning), Brand Impersonation fires only when the page also asks for a
 > password, and a cross-origin (HTTPS) password form is capped at a warning rather than called a certain
 > compromise. Because every match is **listed in the popup and highlighted on the page**, you can see
-> exactly what was flagged and judge it in context. A flagged legitimate page is expected now and then;
+> exactly what was flagged and judge it in context. A flagged legitimate page is expected now and then.
 > weigh the Content verdict alongside the URL, Reputation, and Links categories rather than on its own.
 
 ### Links
