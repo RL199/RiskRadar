@@ -85,6 +85,26 @@
   "linkscan_end": { "message": "היעד הסופי" },
   "linkscan_close": { "message": "סגירה" },
 
+  "gate_doc_title": { "message": "בדיקת קישור של Risk Radar" },
+  "gate_hold_note": {
+    "message": "Risk Radar מעכב את הדף הזה בזמן שהוא בודק את המוניטין של הקישור שלחצתם עליו."
+  },
+  "gate_safe_title": { "message": "הקישור עבר את בדיקת המוניטין" },
+  "gate_safe_note": { "message": "ממשיכים לאתר…" },
+  "gate_unsafe_title": { "message": "האתר נכשל בבדיקת המוניטין" },
+  "gate_warn_note": {
+    "message": "אפשר לחזור אחורה למקום בטוח, או להמשיך לאתר על אחריותכם."
+  },
+  "gate_block_note": {
+    "message": "האתר הזה נחסם. חסימת אתרים לא בטוחים מופעלת בהגדרות, ולכן Risk Radar לא יפתח אותו."
+  },
+  "gate_error_title": { "message": "לא ניתן לבדוק את הקישור" },
+  "gate_error_note": {
+    "message": "לא ניתן היה לבדוק את הכתובת הזו. אפשר לחזור לדף הקודם."
+  },
+  "gate_back": { "message": "חזרה" },
+  "gate_continue": { "message": "להמשיך בכל זאת" },
+
   "lbl_protocol": { "message": "פרוטוקול" },
   "lbl_domainAge": { "message": "גיל הדומיין" },
   "lbl_subdomain": { "message": "תת-דומיין" },
@@ -162,6 +182,13 @@
   "set_linkscan": { "message": "בדיקת המוניטין של קישורים שאני לוחץ עליהם" },
   "set_linkscan_help": {
     "message": "כשמופעל, לחיצה על קישור בודקת את המוניטין גם של הקישור עצמו וגם של הכתובת שאליה הוא מוביל בסוף, מפני שהפניות עשויות לשנות אותה בדרך. חלונית קטנה בדף מציגה תוצאה לכל כתובת."
+  },
+  "set_linkscan_mode": { "message": "איך לפתוח את האתר בזמן שהבדיקה רצה" },
+  "set_linkscan_mode_overlay": { "message": "לפתוח את האתר מיד ולהציג את חלונית התוצאות" },
+  "set_linkscan_mode_warn": { "message": "להמתין לבדיקה ולהזהיר אותי אם האתר לא בטוח" },
+  "set_linkscan_mode_block": { "message": "להמתין לבדיקה ולחסום את האתר אם הוא לא בטוח" },
+  "set_linkscan_mode_help": {
+    "message": "פתיחה מיידית לא מעכבת את הגלישה: האתר נטען בזמן שהבדיקה רצה והחלונית מציגה את התוצאות. שתי אפשרויות ההמתנה מעכבות את הלחיצה במסך בדיקה של Risk Radar עד שהתוצאות מוכנות: אזהרה מאפשרת לבחור אם להיכנס לאתר שנכשל בבדיקה, וחסימה לא תפתח אותו."
   },
   "set_warnings": { "message": "אזהרות בטיחות" },
   "set_warnings_help": {

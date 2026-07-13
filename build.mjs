@@ -14,6 +14,7 @@ const entryPoints = [
   "popup/popup.ts",
   "settings/settings.ts",
   "scripts/background/background.ts",
+  "pages/click-gate.ts",
 ].filter((p) => existsSync(join(root, p)));
 
 // Static files copied verbatim into dist/, preserving their relative paths
@@ -26,6 +27,8 @@ const staticPaths = [
   "popup/popup.css",
   "settings/settings.html",
   "settings/settings.css",
+  "pages/click-gate.html",
+  "pages/click-gate.css",
   "assets/icon-plain.svg",
   "assets/icons",
 ];

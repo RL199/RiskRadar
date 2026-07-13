@@ -20,7 +20,7 @@ export default tseslint.config(
 
   // Source TypeScript: browser + extension globals.
   {
-    files: ["popup/**/*.ts", "settings/**/*.ts", "scripts/**/*.ts"],
+    files: ["popup/**/*.ts", "settings/**/*.ts", "scripts/**/*.ts", "pages/**/*.ts"],
     languageOptions: {
       globals: {
         chrome: "readonly",

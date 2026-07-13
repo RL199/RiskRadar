@@ -16,6 +16,13 @@ export type AiScanMode = "auto" | "manual";
 // shows a message that the website is blocked; "none" lets the navigation
 // through with no interruption at all (flagged links stay outlined).
 export type GuardAction = "warn" | "block" | "none";
+// How the link-click reputation scan handles the destination while its checks
+// run (only meaningful when linkClickScan is on). "overlay" opens the site
+// right away and reports the verdicts in the corner overlay; "warn" holds the
+// navigation on the extension's checking page until the verdicts arrive, then
+// asks before entering a site that failed the check; "block" holds it the same
+// way but refuses to enter a failed site.
+export type LinkClickScanMode = "overlay" | "warn" | "block";
 
 // Per-element toggles for the marks the popup draws on the page. Each flag gates
 // one kind of highlight so the user can turn any of them off individually from
@@ -56,6 +63,10 @@ export interface Settings {
   // network lookups (and VirusTotal quota when a key is set), so the user opts
   // in.
   linkClickScan: boolean;
+  // What happens to the destination while those checks run: open it right away
+  // with the overlay, or hold it on a checking page and warn about or block a
+  // site that fails the check. See LinkClickScanMode above.
+  linkClickScanMode: LinkClickScanMode;
   apiKey: string;
   deepseekApiKey: string;
   safeBrowsingApiKey: string;
@@ -95,6 +106,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoScan: false,
   guardAction: "warn",
   linkClickScan: false,
+  linkClickScanMode: "overlay",
   apiKey: "",
   deepseekApiKey: "",
   safeBrowsingApiKey: "",

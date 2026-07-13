@@ -70,6 +70,28 @@
             it finally lands on, since redirects can change it along the way. A small overlay on the
             page shows a verdict for each address.
           </p>
+          <div class="field">
+            <label class="field__label" for="linkscan-mode" data-i18n="set_linkscan_mode"
+              >How to open the site while the check runs</label
+            >
+            <select id="linkscan-mode" class="control">
+              <option value="overlay" data-i18n="set_linkscan_mode_overlay">
+                Open the site right away and show the verdict overlay
+              </option>
+              <option value="warn" data-i18n="set_linkscan_mode_warn">
+                Wait for the check, warn me if the site is not safe
+              </option>
+              <option value="block" data-i18n="set_linkscan_mode_block">
+                Wait for the check, block the site if it is not safe
+              </option>
+            </select>
+            <p class="field__help" data-i18n="set_linkscan_mode_help">
+              Open right away never delays your browsing: the site loads while the check runs and
+              the overlay reports the verdicts. The two wait choices hold the click on a Risk Radar
+              checking screen until the verdicts are in: warn lets you choose whether to enter a
+              site that failed the check, while block refuses to open it.
+            </p>
+          </div>
         </section>
 
         <section class="card card--warnings">

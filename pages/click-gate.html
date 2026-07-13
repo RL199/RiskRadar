@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title data-i18n="gate_doc_title">Risk Radar link check</title>
+    <link rel="stylesheet" href="../styles/theme.css" />
+    <link rel="stylesheet" href="click-gate.css" />
+  </head>
+  <body>
+    <main class="gate">
+      <span class="gate__logo" aria-hidden="true">
+        <img src="../assets/icon-plain.svg" alt="" width="41" height="48" />
+      </span>
+      <h1 id="title" class="gate__title" data-i18n="linkscan_checking">Checking link reputation…</h1>
+      <p id="note" class="gate__note" data-i18n="gate_hold_note">
+        Risk Radar is holding this page while it checks the reputation of the link you clicked.
+      </p>
+      <div id="rows" class="gate__rows"></div>
+      <div class="gate__actions">
+        <button id="back" class="btn-primary" type="button" data-i18n="gate_back">Go back</button>
+        <button id="continue" class="btn-ghost" type="button" data-i18n="gate_continue" hidden>
+          Continue anyway
+        </button>
+      </div>
+    </main>
+    <script type="module" src="click-gate.js"></script>
+  </body>
+</html>

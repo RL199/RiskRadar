@@ -454,10 +454,27 @@ link) runs the same six [Reputation](#reputation) checks the popup uses on **bot
   shorteners, tracking wrappers, and open redirects rewrite the destination mid flight. Judging only
   the visible link would miss where you really ended up.
 
-While the checks run, a small overlay in the corner of the page shows a **loading spinner** beside
-each address, replaced by a colour-coded verdict (**Safe** / **Caution** / **Dangerous** / _Unknown_,
-the reputation category's verdict for that URL) when its checks finish. A clean result dismisses
-itself after a few seconds. A warning or a risky verdict stays on screen until closed.
+**Settings → Scanning → How to open the site while the check runs** picks what happens to the
+destination while those checks are in flight:
+
+- **Open the site right away and show the verdict overlay** (the default). The site loads
+  immediately, and a small overlay in the corner of the page shows a **loading spinner** beside each
+  address, replaced by a colour-coded verdict (**Safe** / **Caution** / **Dangerous** / _Unknown_,
+  the reputation category's verdict for that URL) when its checks finish. A clean result dismisses
+  itself after a few seconds. A warning or a risky verdict stays on screen until closed.
+- **Wait for the check, warn me if the site is not safe.** The click is held on a Risk Radar
+  checking screen (an extension page the tab is parked on) until the verdicts are in. A click whose
+  addresses all come back **Safe** or _Unknown_ continues to the site on its own. if any address
+  comes back **Caution** or **Dangerous**, the screen reports that the site failed the check and
+  offers **Continue anyway** and **Go back**.
+- **Wait for the check, block the site if it is not safe.** The same checking screen, but a site
+  that failed the check is not opened at all. **Go back** is the only way out.
+
+The wait modes trade speed for safety: every link click pauses on the checking screen for as long as
+the slowest reputation lookup takes (typically a second or two), while the default overlay mode never
+delays browsing but means an unsafe site has already started loading by the time its verdict arrives.
+An _Unknown_ verdict never holds a site back: with no API keys configured most checks cannot conclude
+anything, and treating that as unsafe would stop nearly every click.
 
 **How the two URLs are captured:** the background worker listens on
 [`chrome.webNavigation.onBeforeNavigate`](https://developer.chrome.com/docs/extensions/reference/api/webNavigation#event-onBeforeNavigate),
@@ -474,6 +491,15 @@ injected with [`chrome.scripting.executeScript`](https://developer.chrome.com/do
 (`injectImmediately`, so the spinner appears the moment the navigation commits) and draws inside a
 [shadow root](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_shadow_DOM), so
 page CSS can't restyle it and no page style is touched.
+
+**How the wait modes hold the navigation:** Manifest V3 offers no way to pause a navigation while an
+asynchronous check runs (blocking
+[`webRequest`](https://developer.chrome.com/docs/extensions/reference/api/webRequest) is gone, and
+[`declarativeNetRequest`](https://developer.chrome.com/docs/extensions/reference/api/declarativeNetRequest)
+rules cannot wait on network lookups), so the worker instead swaps the just-committed page for the
+extension's own checking page (`pages/click-gate.html`, listed under
+[`web_accessible_resources`](https://developer.chrome.com/docs/extensions/reference/manifest/web-accessible-resources)
+so a web page can be navigated to it) with an injected `location.replace`.
 
 ## Tech stack
 
