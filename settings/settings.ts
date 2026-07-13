@@ -23,6 +23,7 @@ import {
 const themeSelect = document.getElementById("theme") as HTMLSelectElement;
 const langSelect = document.getElementById("lang") as HTMLSelectElement;
 const autoScanInput = document.getElementById("autoscan") as HTMLInputElement;
+const linkClickScanInput = document.getElementById("linkclickscan") as HTMLInputElement;
 const guardActionSelect = document.getElementById("guard-action") as HTMLSelectElement;
 const aiProviderSelect = document.getElementById("ai-provider") as HTMLSelectElement;
 const aiScanModeSelect = document.getElementById("ai-scan-mode") as HTMLSelectElement;
@@ -132,6 +133,7 @@ async function init(): Promise<void> {
   themeSelect.value = settings.theme;
   langSelect.value = settings.lang;
   autoScanInput.checked = settings.autoScan;
+  linkClickScanInput.checked = settings.linkClickScan;
   guardActionSelect.value = settings.guardAction;
   aiProviderSelect.value = settings.aiProvider;
   aiScanModeSelect.value = settings.aiScanMode;
@@ -194,6 +196,14 @@ async function init(): Promise<void> {
   // worker, which watches storage, picks the change up right away.
   autoScanInput.addEventListener("change", async () => {
     settings = { ...settings, autoScan: autoScanInput.checked };
+    await saveSettings(settings);
+    flashSaved();
+  });
+
+  // The link-click scan saves immediately too: the background worker reads the
+  // settings afresh on every navigation, so the next click honours the choice.
+  linkClickScanInput.addEventListener("change", async () => {
+    settings = { ...settings, linkClickScan: linkClickScanInput.checked };
     await saveSettings(settings);
     flashSaved();
   });

@@ -59,6 +59,7 @@
   "tip_link_external": { "message": "קישור חיצוני (דומיין אחר)" },
   "tip_link_suspicious": { "message": "קישור חשוד" },
   "tip_link_redirect": { "message": "הפניה זדונית" },
+  "reason_link_listed": { "message": "היעד נמצא ברשימת אתרי הפישינג" },
   "reason_link_ip": { "message": "היעד הוא כתובת IP" },
   "reason_link_punycode": { "message": "דומיין דמוי punycode או IDN" },
   "reason_link_credentials": { "message": "פרטי התחברות מוטמעים בכתובת" },
@@ -76,6 +77,12 @@
   "block_link_notice": { "message": "האתר הזה נחסם." },
   "block_url_notice": { "message": "האתר הזה נחסם." },
   "tip_url_listed": { "message": "אתר פישינג מוכר" },
+
+  "linkscan_checking": { "message": "בודק מוניטין של הקישור…" },
+  "linkscan_done": { "message": "מוניטין הקישור" },
+  "linkscan_start": { "message": "הקישור שנלחץ" },
+  "linkscan_end": { "message": "היעד הסופי" },
+  "linkscan_close": { "message": "סגירה" },
 
   "lbl_protocol": { "message": "פרוטוקול" },
   "lbl_domainAge": { "message": "גיל הדומיין" },
@@ -149,7 +156,11 @@
   "set_scanning": { "message": "סריקה" },
   "set_autoscan": { "message": "סריקת דפים אוטומטית" },
   "set_autoscan_help": {
-    "message": "כשמופעל, Risk Radar סורק בעצמו כל דף שאתם מבקרים בו, בלי לפתוח את החלון הקופץ: הוא מציג תג סיכון צבעוני על סמל הסרגל ומדגיש ממצאים בדף. הוא מריץ את אותן בדיקות כתובת, מוניטין, תוכן וקישורים שהחלון הקופץ מריץ; ניתוח הבינה המלאכותית לעולם לא רץ אוטומטית."
+    "message": "כשמופעל, Risk Radar סורק בעצמו כל דף שאתם מבקרים בו, בלי לפתוח את החלון הקופץ: הוא מציג תג סיכון צבעוני על סמל הסרגל ומדגיש ממצאים בדף. הוא מריץ את אותן בדיקות כתובת, מוניטין, תוכן וקישורים שהחלון הקופץ מריץ. ניתוח הבינה המלאכותית לעולם לא רץ אוטומטית."
+  },
+  "set_linkscan": { "message": "בדיקת המוניטין של קישורים שאני לוחץ עליהם" },
+  "set_linkscan_help": {
+    "message": "כשמופעל, לחיצה על קישור בודקת את המוניטין גם של הקישור עצמו וגם של הכתובת שאליה הוא מוביל בסוף, מפני שהפניות עשויות לשנות אותה בדרך. חלונית קטנה בדף מציגה תוצאה לכל כתובת."
   },
   "set_warnings": { "message": "אזהרות בטיחות" },
   "set_warnings_help": {
@@ -160,7 +171,7 @@
   "set_guard_action_block": { "message": "לחסום את האתר" },
   "set_guard_action_none": { "message": "לא לעשות דבר" },
   "set_guard_action_help": {
-    "message": "אזהרה מציגה בקשת אישור שאפשר לאשר כדי להמשיך בכל זאת. חסימה מבטלת את הניווט ומציגה הודעה שהאתר נחסם. לא לעשות דבר מאפשר את הניווט ללא הפרעה; קישורים מסומנים עדיין מוקפים בקו מתאר."
+    "message": "אזהרה מציגה בקשת אישור שאפשר לאשר כדי להמשיך בכל זאת. חסימה מבטלת את הניווט ומציגה הודעה שהאתר נחסם. לא לעשות דבר מאפשר את הניווט ללא הפרעה. קישורים מסומנים עדיין מוקפים בקו מתאר."
   },
   "set_ai": { "message": "בינה מלאכותית" },
   "set_ai_provider": { "message": "ספק בינה מלאכותית ברירת מחדל" },
@@ -190,13 +201,13 @@
   "set_reputation": { "message": "מוניטין" },
   "set_safebrowsing_apikey": { "message": "מפתח API של Google Safe Browsing" },
   "set_safebrowsing_apikey_help": {
-    "message": "אופציונלי. בדיקת Safe Browsing פועלת כבר ללא מפתח דרך דוח השקיפות הציבורי של Google; מפתח משדרג אותה ל-Lookup API הרשמי. המפתח חינמי: צרו פרויקט ב-Google Cloud והפעילו את Safe Browsing API. נשמר מקומית במכשיר שלך."
+    "message": "אופציונלי. בדיקת Safe Browsing פועלת כבר ללא מפתח דרך דוח השקיפות הציבורי של Google. מפתח משדרג אותה ל-Lookup API הרשמי. המפתח חינמי: צרו פרויקט ב-Google Cloud והפעילו את Safe Browsing API. נשמר מקומית במכשיר שלך."
   },
   "set_safebrowsing_apikey_link": { "message": "קבלת מפתח ב-Google Cloud Console" },
   "set_safebrowsing_apikey_placeholder": { "message": "AIza..." },
   "set_virustotal_apikey": { "message": "מפתח API של VirusTotal" },
   "set_virustotal_apikey_help": {
-    "message": "נדרש לבדיקת VirusTotal. עם מפתח השורה מציגה ציון inline של malicious/total; בלעדיו הפופאפ מציג בקשת 'נדרש מפתח'. מפתח ציבורי חינמי מספיק לשימוש אישי אך מוגבל בקצב (כ-4 בדיקות לדקה); תוכניות בתשלום מסירות את ההגבלה. נשמר מקומית במכשיר שלך."
+    "message": "נדרש לבדיקת VirusTotal. עם מפתח השורה מציגה ציון inline של malicious/total. בלעדיו הפופאפ מציג בקשת 'נדרש מפתח'. מפתח ציבורי חינמי מספיק לשימוש אישי אך מוגבל בקצב (כ-4 בדיקות לדקה). תוכניות בתשלום מסירות את ההגבלה אך עולות הרבה. נשמר מקומית במכשיר שלך."
   },
   "set_virustotal_apikey_link": { "message": "קבלת מפתח ב-VirusTotal" },
   "set_virustotal_apikey_placeholder": { "message": "מפתח API של VirusTotal" },

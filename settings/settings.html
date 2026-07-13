@@ -47,6 +47,12 @@
 
         <section class="card card--scanning">
           <h2 class="card__title" data-i18n="set_scanning">Scanning</h2>
+          <div class="toggles">
+            <label class="toggle">
+              <span class="toggle__label" data-i18n="set_autoscan">Scan pages automatically</span>
+              <input id="autoscan" class="toggle__input" type="checkbox" />
+            </label>
+          </div>
           <p class="field__help highlights__help" data-i18n="set_autoscan_help">
             When on, Risk Radar scans every page you visit on its own, without opening the popup: it
             shows a colour-coded risk badge on the toolbar icon and highlights findings on the page. It
@@ -55,18 +61,19 @@
           </p>
           <div class="toggles">
             <label class="toggle">
-              <span class="toggle__label" data-i18n="set_autoscan">Scan pages automatically</span>
-              <input id="autoscan" class="toggle__input" type="checkbox" />
+              <span class="toggle__label" data-i18n="set_linkscan">Check the reputation of links I click</span>
+              <input id="linkclickscan" class="toggle__input" type="checkbox" />
             </label>
           </div>
+          <p class="field__help highlights__help" data-i18n="set_linkscan_help">
+            When on, clicking a link checks the reputation of both the link itself and the address
+            it finally lands on, since redirects can change it along the way. A small overlay on the
+            page shows a verdict for each address.
+          </p>
         </section>
 
         <section class="card card--warnings">
           <h2 class="card__title" data-i18n="set_warnings">Safety warnings</h2>
-          <p class="field__help highlights__help" data-i18n="set_warnings_help">
-            Applies both when you click a link flagged as malicious and when you type a risky
-            address in the URL bar.
-          </p>
           <div class="field">
             <label class="field__label" for="guard-action" data-i18n="set_guard_action"
               >What to do when a risky navigation is caught</label
@@ -76,6 +83,10 @@
               <option value="block" data-i18n="set_guard_action_block">Block the website</option>
               <option value="none" data-i18n="set_guard_action_none">Do nothing</option>
             </select>
+            <p class="field__help" data-i18n="set_warnings_help">
+              Applies both when you click a link flagged as malicious and when you type a risky
+              address in the URL bar.
+            </p>
             <p class="field__help" data-i18n="set_guard_action_help">
               Warn shows a confirmation you can accept to continue anyway. Block cancels the
               navigation and shows a message that the website is blocked. Do nothing lets the

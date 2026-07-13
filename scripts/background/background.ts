@@ -37,6 +37,7 @@ import {
   analyzeLinks,
   blockNavigation,
   classifyAddressBarUrl,
+  collectLinkHosts,
   confirmNavigation,
   extractPageLinks,
   highlightPageLinks,
@@ -46,6 +47,12 @@ import {
 } from "../shared/link-analysis";
 import { setActionIcon } from "../shared/icon";
 import { computeTrustScore, type ScoreInput, type SiteCategory } from "../shared/score";
+import {
+  renderClickScanOverlay,
+  type ClickScanPayload,
+  type ClickScanRow,
+  type ClickScanStatus,
+} from "../shared/click-scan";
 
 const ACTIVE_URL =
   "https://raw.githubusercontent.com/Phishing-Database/Phishing.Database/master/phishing-domains-ACTIVE.txt";
@@ -175,18 +182,30 @@ function refreshIfStale(): Promise<void> {
 
 type LookupStatus = "listed" | "clean" | "loading";
 
-async function isListed(host: string): Promise<LookupStatus> {
+// Which of `hosts` are on the blocklist. Each host costs at most two in-memory
+// Set lookups (itself, then its registrable domain, since a listed registrable
+// domain covers its subdomains, e.g. login.evil.tld), so even the thousands of
+// link hosts a large page yields are answered instantly and offline. Returns
+// null while the list is still downloading.
+async function listedAmong(hosts: string[]): Promise<Set<string> | null> {
   await ensureLoaded();
   if (!domainSet) {
     void refreshIfStale(); // first use also kicks off the initial download
-    return "loading";
+    return null;
   }
-  const h = host.toLowerCase();
-  if (domainSet.has(h)) return "listed";
-  // A listed registrable domain covers its subdomains (e.g. login.evil.tld).
-  const { registrable } = splitDomain(h);
-  if (registrable !== h && domainSet.has(registrable)) return "listed";
-  return "clean";
+  const listed = new Set<string>();
+  for (const host of hosts) {
+    const h = host.toLowerCase();
+    const { registrable } = splitDomain(h);
+    if (domainSet.has(h) || (registrable !== h && domainSet.has(registrable))) listed.add(host);
+  }
+  return listed;
+}
+
+async function isListed(host: string): Promise<LookupStatus> {
+  const listed = await listedAmong([host]);
+  if (!listed) return "loading";
+  return listed.size > 0 ? "listed" : "clean";
 }
 
 // ------------------------------- Auto-scan -------------------------------- //
@@ -371,13 +390,16 @@ function linkBlockNotice(link: ClassifiedLink, dict: Dict): string | undefined {
   return `${heading}\n\n${linkTitle(link, dict)}\n\n${dest}${blocked}`;
 }
 
-// Links category: read the page, classify its links, and outline them on the
-// page for the verdict buckets the user left enabled.
+// Links category: read the page, classify its links (each destination host
+// checked against the local Phishing.Database blocklist directly, since the
+// worker owns the cache), and outline them on the page for the verdict buckets
+// the user left enabled.
 async function scanLinksCategory(tabId: number, settings: Settings, dict: Dict): Promise<ScoreInput> {
   const page = await getPageLinks(tabId);
   if (!page) return { status: "unknown" };
 
-  const { classified, total, external, suspicious, redirects } = analyzeLinks(page);
+  const listed = (await listedAmong(collectLinkHosts(page))) ?? undefined;
+  const { classified, total, external, suspicious, redirects } = analyzeLinks(page, listed);
 
   const hl = settings.highlights;
   const enabled: Record<ClassifiedLink["verdict"], boolean> = {
@@ -659,6 +681,168 @@ async function warnOnTypedNavigation(
   }
 }
 
+// ----------------------- Link-click reputation scan ----------------------- //
+//
+// When the user turns on "Check the reputation of links I click" (settings.linkClickScan),
+// following a link runs the same reputation checks the popup's Reputation view
+// uses on both ends of the click: the URL the click started from (the link's
+// href, captured at onBeforeNavigate before any server redirect rewrites it)
+// and the URL the navigation finally committed on (shorteners and redirect
+// wrappers often land somewhere else). A small overlay in the corner of the
+// page shows a spinner while the checks run, then one colour-coded verdict per
+// URL; it hides itself when everything comes back clean and stays up, with a
+// close button, when a warning or a risky verdict comes back.
+
+// The original URL of each tab's pending main-frame navigation, captured at
+// onBeforeNavigate: by onCommitted a server redirect has already rewritten
+// details.url, so this is the only record of where the click started.
+const navStartUrls = new Map<number, string>();
+
+// The last link click per tab (its start URL and commit time), kept briefly so
+// a client-side redirect right after the click (a bouncing interstitial or a
+// meta refresh) is scanned as the same click's new destination rather than
+// missed.
+const clickJourneys = new Map<number, { startUrl: string; at: number }>();
+const CLICK_JOURNEY_MS = 30_000;
+
+// Guards against a superseded scan overwriting a newer one's overlay: each
+// scan takes a fresh token and only the tab's current holder may draw.
+const clickScanTokens = new Map<number, number>();
+let nextClickScanToken = 1;
+
+// The reputation category verdict of one URL, reduced to the overlay's states.
+function toClickScanStatus(status: RowStatus): ClickScanStatus {
+  return status === "good" || status === "warn" || status === "bad" ? status : "unknown";
+}
+
+function clickScanRow(label: string, host: string, status: ClickScanStatus, dict: Dict): ClickScanRow {
+  const text =
+    status === "good"
+      ? dict.verdict_safe ?? "Safe"
+      : status === "warn"
+        ? dict.verdict_caution ?? "Caution"
+        : status === "bad"
+          ? dict.verdict_danger ?? "Dangerous"
+          : status === "unknown"
+            ? dict.val_unknown ?? "Unknown"
+            : "";
+  return { label, host, status, text };
+}
+
+// Draw (or update) the overlay in the tab, unless a newer scan for the same
+// tab has taken over. Injected immediately so the spinner shows as soon as the
+// navigation commits, instead of waiting for the page to finish loading.
+async function drawClickScan(tabId: number, token: number, payload: ClickScanPayload): Promise<void> {
+  if (clickScanTokens.get(tabId) !== token) return;
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      injectImmediately: true,
+      func: renderClickScanOverlay,
+      args: [payload],
+    });
+  } catch {
+    // The tab closed or moved on to a page we can't script; nothing to show.
+  }
+}
+
+// Judge a just-committed navigation: a link click starts a scan of its start
+// and finish URLs; a client redirect shortly after one re-scans the same
+// click's new destination; anything else (typed, reload, form submit) ends the
+// click's journey.
+async function scanClickedLink(
+  details: chrome.webNavigation.WebNavigationTransitionCallbackDetails,
+): Promise<void> {
+  if (details.frameId !== 0) return;
+  // The pending start URL is consumed whatever this navigation turns out to
+  // be, so a stale entry can never describe a later navigation.
+  const navStart = navStartUrls.get(details.tabId);
+  navStartUrls.delete(details.tabId);
+
+  // Back/forward re-visits keep their original transition type but are not
+  // clicks; the "forward_back" qualifier tells them apart.
+  if (details.transitionQualifiers.includes("forward_back")) return;
+
+  let startUrl: string;
+  const now = Date.now();
+  if (details.transitionQualifiers.includes("client_redirect")) {
+    const journey = clickJourneys.get(details.tabId);
+    if (!journey || now - journey.at > CLICK_JOURNEY_MS) return;
+    journey.at = now;
+    startUrl = journey.startUrl;
+  } else if (details.transitionType === "link" && !isAddressBarNavigation(details)) {
+    startUrl = navStart ?? details.url;
+    clickJourneys.set(details.tabId, { startUrl, at: now });
+  } else {
+    clickJourneys.delete(details.tabId);
+    return;
+  }
+
+  let finish: URL;
+  try {
+    finish = new URL(details.url);
+  } catch {
+    return;
+  }
+  if (finish.protocol !== "http:" && finish.protocol !== "https:") return;
+
+  const settings = await loadSettings();
+  if (!settings.linkClickScan) return;
+
+  // The start URL gets its own row only when the click actually moved: with no
+  // redirect the two ends are the same URL and one scan covers both.
+  let start: URL | null = null;
+  try {
+    start = new URL(startUrl);
+  } catch {
+    // Unparseable start; judge the landing URL alone.
+  }
+  if (start && (start.protocol !== "http:" && start.protocol !== "https:")) start = null;
+  if (start && start.href === finish.href) start = null;
+
+  const token = nextClickScanToken++;
+  clickScanTokens.set(details.tabId, token);
+
+  const dict = await loadMessages(settings.lang);
+  const dir = settings.lang === "he" ? "rtl" : "ltr";
+  const startLabel = dict.linkscan_start ?? "Clicked link";
+  const endLabel = dict.linkscan_end ?? "Final destination";
+  const close = dict.linkscan_close ?? "Close";
+
+  const loadingRows: ClickScanRow[] = start
+    ? [
+        clickScanRow(startLabel, start.hostname, "loading", dict),
+        clickScanRow(endLabel, finish.hostname, "loading", dict),
+      ]
+    : [clickScanRow(endLabel, finish.hostname, "loading", dict)];
+  await drawClickScan(details.tabId, token, {
+    title: dict.linkscan_checking ?? "Checking link reputation…",
+    close,
+    dir,
+    done: false,
+    rows: loadingRows,
+  });
+
+  const [startInput, finishInput] = await Promise.all([
+    start ? scanReputationCategory(start, settings) : Promise.resolve(null),
+    scanReputationCategory(finish, settings),
+  ]);
+
+  const doneRows: ClickScanRow[] = [];
+  if (start && startInput) {
+    doneRows.push(clickScanRow(startLabel, start.hostname, toClickScanStatus(startInput.status), dict));
+  }
+  doneRows.push(clickScanRow(endLabel, finish.hostname, toClickScanStatus(finishInput.status), dict));
+
+  await drawClickScan(details.tabId, token, {
+    title: dict.linkscan_done ?? "Link reputation",
+    close,
+    dir,
+    done: true,
+    rows: doneRows,
+  });
+}
+
 // --------------------------------- Wiring --------------------------------- //
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -676,23 +860,44 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   else if (alarm.name === INCREMENT_ALARM) void refreshIncrement();
 });
 
-chrome.runtime.onMessage.addListener((msg: { type?: string; host?: string }, _sender, sendResponse) => {
-  if (msg?.type === "phishingdb-check" && typeof msg.host === "string") {
-    isListed(msg.host).then(
-      (status) => sendResponse({ status }),
-      () => sendResponse({ status: "error" }),
-    );
-    return true; // keep the message channel open for the async response
-  }
-  return undefined;
-});
+chrome.runtime.onMessage.addListener(
+  (msg: { type?: string; host?: string; hosts?: unknown }, _sender, sendResponse) => {
+    if (msg?.type === "phishingdb-check" && typeof msg.host === "string") {
+      isListed(msg.host).then(
+        (status) => sendResponse({ status }),
+        () => sendResponse({ status: "error" }),
+      );
+      return true; // keep the message channel open for the async response
+    }
+    // Batch lookup for the popup's Links view: which of the page's link hosts
+    // are on the blocklist. One message covers the whole page.
+    if (msg?.type === "phishingdb-check-batch" && Array.isArray(msg.hosts)) {
+      const hosts = (msg.hosts as unknown[]).filter((h): h is string => typeof h === "string");
+      listedAmong(hosts).then(
+        (listed) =>
+          sendResponse(listed ? { status: "ok", listed: [...listed] } : { status: "loading" }),
+        () => sendResponse({ status: "error" }),
+      );
+      return true; // keep the message channel open for the async response
+    }
+    return undefined;
+  },
+);
 
 // ----------------------------- Auto-scan wiring ---------------------------- //
 
+// Record where each main-frame navigation starts, before any server redirect
+// rewrites it; the link-click scan reads it back at commit time.
+chrome.webNavigation.onBeforeNavigate.addListener((details) => {
+  if (details.frameId === 0) navStartUrls.set(details.tabId, details.url);
+});
+
 // Warn on a risky URL entered directly in the address bar, the moment it commits
 // (before the page's own scripts get to run). Independent of auto-scan.
+// The same commit also feeds the opt-in link-click reputation scan.
 chrome.webNavigation.onCommitted.addListener((details) => {
   void warnOnTypedNavigation(details);
+  void scanClickedLink(details);
 });
 
 // Scan the active tab once it finishes loading. A fresh load forces a rescan even
@@ -709,10 +914,13 @@ chrome.tabs.onActivated.addListener(({ tabId }) => {
   );
 });
 
-// Forget a closed tab's cached URL / in-flight flag.
+// Forget a closed tab's cached URL / in-flight flag / click-scan state.
 chrome.tabs.onRemoved.addListener((tabId) => {
   lastScanned.delete(tabId);
   scanning.delete(tabId);
+  navStartUrls.delete(tabId);
+  clickJourneys.delete(tabId);
+  clickScanTokens.delete(tabId);
 });
 
 // React to the auto-scan toggle changing in the options page: scan the visible

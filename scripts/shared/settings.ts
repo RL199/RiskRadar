@@ -49,6 +49,13 @@ export interface Settings {
   // "block" cancels the navigation outright and tells the user the website is
   // blocked; "none" does nothing. Flagged links are outlined red regardless.
   guardAction: GuardAction;
+  // When on, following a link runs the reputation checks on both ends of the
+  // click: the URL the click started from and the URL the navigation finally
+  // landed on (redirects can change it along the way), with the verdicts shown
+  // in a small overlay on the page. Off by default: every click then costs
+  // network lookups (and VirusTotal quota when a key is set), so the user opts
+  // in.
+  linkClickScan: boolean;
   apiKey: string;
   deepseekApiKey: string;
   safeBrowsingApiKey: string;
@@ -67,15 +74,17 @@ export interface Settings {
   highlights: HighlightSettings;
 }
 
-// Every highlight is on by default — the marks are the extension's main signal,
-// so the user opts out rather than in.
+// The warning marks are on by default (they are the extension's main signal,
+// so the user opts out rather than in). The benign link buckets (internal and
+// external) are informational rather than warnings, so they start off and the
+// user opts in.
 export const DEFAULT_HIGHLIGHTS: HighlightSettings = {
   phishingIndicators: true,
   urgentLanguage: true,
   brandImpersonation: true,
   suspiciousForms: true,
-  internalLinks: true,
-  externalLinks: true,
+  internalLinks: false,
+  externalLinks: false,
   suspiciousLinks: true,
   maliciousRedirects: true,
 };
@@ -85,6 +94,7 @@ export const DEFAULT_SETTINGS: Settings = {
   lang: "en",
   autoScan: false,
   guardAction: "warn",
+  linkClickScan: false,
   apiKey: "",
   deepseekApiKey: "",
   safeBrowsingApiKey: "",

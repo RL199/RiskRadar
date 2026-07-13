@@ -59,6 +59,7 @@
   "tip_link_external": { "message": "External link (different domain)" },
   "tip_link_suspicious": { "message": "Suspicious link" },
   "tip_link_redirect": { "message": "Malicious redirect" },
+  "reason_link_listed": { "message": "destination is on the phishing blocklist" },
   "reason_link_ip": { "message": "host is an IP address" },
   "reason_link_punycode": { "message": "punycode or IDN homograph domain" },
   "reason_link_credentials": { "message": "credentials embedded in the URL" },
@@ -76,6 +77,12 @@
   "block_link_notice": { "message": "This website is blocked." },
   "block_url_notice": { "message": "This website is blocked." },
   "tip_url_listed": { "message": "Known phishing site" },
+
+  "linkscan_checking": { "message": "Checking link reputation…" },
+  "linkscan_done": { "message": "Link reputation" },
+  "linkscan_start": { "message": "Clicked link" },
+  "linkscan_end": { "message": "Final destination" },
+  "linkscan_close": { "message": "Close" },
 
   "lbl_protocol": { "message": "Protocol" },
   "lbl_domainAge": { "message": "Domain Age" },
@@ -149,7 +156,11 @@
   "set_scanning": { "message": "Scanning" },
   "set_autoscan": { "message": "Scan pages automatically" },
   "set_autoscan_help": {
-    "message": "When on, Risk Radar scans every page you visit on its own, without opening the popup: it shows a colour-coded risk badge on the toolbar icon and highlights findings on the page. It runs the same URL, reputation, content, and link checks the popup does; the AI analysis is never run automatically."
+    "message": "When on, Risk Radar scans every page you visit on its own, without opening the popup: it shows a colour-coded risk badge on the toolbar icon and highlights findings on the page. It runs the same URL, reputation, content, and link checks the popup does. The AI analysis is never run automatically."
+  },
+  "set_linkscan": { "message": "Check the reputation of links I click" },
+  "set_linkscan_help": {
+    "message": "When on, clicking a link checks the reputation of both the link itself and the address it finally lands on, since redirects can change it along the way. A small overlay on the page shows a verdict for each address."
   },
   "set_warnings": { "message": "Safety warnings" },
   "set_warnings_help": {
@@ -160,7 +171,7 @@
   "set_guard_action_block": { "message": "Block the website" },
   "set_guard_action_none": { "message": "Do nothing" },
   "set_guard_action_help": {
-    "message": "Warn shows a confirmation you can accept to continue anyway. Block cancels the navigation and shows a message that the website is blocked. Do nothing lets the navigation through without interruption; flagged links are still outlined."
+    "message": "Warn shows a confirmation you can accept to continue anyway. Block cancels the navigation and shows a message that the website is blocked. Do nothing lets the navigation through without interruption. Flagged links are still outlined."
   },
   "set_ai": { "message": "AI" },
   "set_ai_provider": { "message": "Default AI provider" },
@@ -190,13 +201,13 @@
   "set_reputation": { "message": "Reputation" },
   "set_safebrowsing_apikey": { "message": "Google Safe Browsing API key" },
   "set_safebrowsing_apikey_help": {
-    "message": "Optional. Safe Browsing already works without a key via Google's public Transparency Report; a key upgrades it to the official Lookup API. The key is free: create a project in Google Cloud and enable the Safe Browsing API. Stored locally on your device."
+    "message": "Optional. Safe Browsing already works without a key via Google's public Transparency Report. A key upgrades it to the official Lookup API. The key is free: create a project in Google Cloud and enable the Safe Browsing API. Stored locally on your device."
   },
   "set_safebrowsing_apikey_link": { "message": "Get a key in the Google Cloud Console" },
   "set_safebrowsing_apikey_placeholder": { "message": "AIza..." },
   "set_virustotal_apikey": { "message": "VirusTotal API key" },
   "set_virustotal_apikey_help": {
-    "message": "Needed for the VirusTotal check. With a key the row shows an inline malicious/total verdict; without one the popup shows a 'Key needed' prompt. A free public key is enough for personal use but is rate limited (about 4 lookups per minute); paid plans raise the limits. Stored locally on your device."
+    "message": "Needed for the VirusTotal check. With a key the row shows an inline malicious/total verdict. Without one the popup shows a 'Key needed' prompt. A free public key is enough for personal use but is rate limited (about 4 lookups per minute). Paid plans raise the limits but cost heavily. Stored locally on your device."
   },
   "set_virustotal_apikey_link": { "message": "Get a key at VirusTotal" },
   "set_virustotal_apikey_placeholder": { "message": "VirusTotal API key" },

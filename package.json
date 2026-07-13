@@ -10,13 +10,15 @@
   "scripts": {
     "build": "node build.mjs",
     "watch": "node build.mjs --watch",
-    "typecheck": "tsc --noEmit",
+    "bench:phish": "node test/run-bench.mjs",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/chrome": "^0.2.0",
+    "@types/node": "^26.1.1",
     "esbuild": "^0.28.1",
     "eslint": "^10.5.0",
     "typescript": "^6.0.3",

@@ -2,8 +2,8 @@ import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  // Don't lint build output or dependencies.
-  { ignores: ["dist/", "node_modules/"] },
+  // Don't lint build output, benchmark downloads, or dependencies.
+  { ignores: ["dist/", "node_modules/", "test/data/"] },
 
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -40,6 +40,20 @@ export default tseslint.config(
     files: ["build.mjs", "eslint.config.js", "assets/**/*.mjs"],
     languageOptions: {
       globals: { process: "readonly", console: "readonly" },
+    },
+  },
+
+  // Node test harness (runs in Node 24, which has the web fetch globals).
+  {
+    files: ["test/**/*.ts", "test/**/*.mjs"],
+    languageOptions: {
+      globals: {
+        process: "readonly",
+        console: "readonly",
+        fetch: "readonly",
+        URL: "readonly",
+        TextDecoder: "readonly",
+      },
     },
   },
 );

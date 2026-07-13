@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0]
+
+### Added
+- A phishing benchmark harness (`npm run bench:phish`, `test/phish-bench.ts`) that runs the shipped
+  URL judgement (`classifyAddressBarUrl` plus the cached Phishing.Database blocklist) against live
+  phishing feeds ([OpenPhish](https://openphish.com/phishing_feeds.html),
+  [Phishing.Database](https://github.com/Phishing-Database/Phishing.Database), or a local
+  [PhishTank](https://phishtank.org/developer_info.php) CSV) and the benign
+  [Tranco top sites](https://tranco-list.eu/) list, reporting detection rate, false positive rate,
+  and a per reason breakdown. Dev tooling only, no extension behaviour change.
+- In settings, a **Check the reputation of links I click** toggle in the **Scanning** section, off by default.
+  When on, following a link runs the six reputation checks (Google Safe Browsing, VirusTotal, Sucuri
+  SiteCheck, Phishing Database, DNS blacklists, and server IP reputation) on both the clicked URL and
+  the URL the navigation finally lands on, including a client side redirect right after the click,
+  since shorteners and redirect wrappers often rewrite the destination mid flight. A small corner
+  overlay shows a spinner while the checks run and then a colour coded verdict per address, dismissing
+  itself when everything is clean and staying up with a close button when a warning or risky verdict
+  appears.
+- The **Links** category now checks every link on the page against the locally cached
+  [Phishing.Database](https://github.com/Phishing-Database/Phishing.Database) blocklist, in both the
+  popup and automatic scanning, with all of the page's link hosts resolved through the background
+  worker in a single batch message so even thousands of links are checked instantly and offline.
+  A link to a listed domain is flagged **Suspicious** with a "destination is on the phishing blocklist"
+  reason that wins over every other bucket, and a single such link already turns the **Suspicious
+  Links** row risky. Flagged links get the same red outline, hover label, and click guard (warn or
+  block) as other red links.
+
+### Changed
+- The **Internal Links** and **External Links** highlight toggles in the **Link highlights** settings
+  section are now **off by default**. These two buckets are informational rather than warnings, so
+  their outlines are opt-in; the Suspicious Links and Malicious Redirects highlights stay on by
+  default.
+- The link scanner now reads up to 2,000 links per page (previously 500).
+
 ## [1.0.2]
 
 ### Added
