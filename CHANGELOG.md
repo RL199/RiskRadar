@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1]
+
+### Added
+- Two new tells in the **Suspicious Links** classification: a **plain `http:` destination** (the
+  link's traffic is unencrypted) and **IPv6 literal hosts** (`http://[2001:db8::1]/`), which the
+  existing raw-IP tell (previously IPv4 only) now also catches.
+
+### Fixed
+- The **displayed-vs-real URL mismatch** tell (Malicious Redirects) missed links whose visible text
+  is a raw-IP URL, common on threat-feed listings where the text reads
+  `http://105.224.66.14:53221/bin.sh` but the href opens a different page.
+
+
 ## [1.1.0]
 
 ### Added

@@ -67,8 +67,9 @@
   "reason_link_shortener": { "message": "shortened link hides its destination" },
   "reason_link_manySub": { "message": "unusually deep subdomains" },
   "reason_link_keyword": { "message": "phishing keywords in the domain" },
+  "reason_link_http": { "message": "unencrypted HTTP link" },
   "reason_link_redirectParam": { "message": "redirects elsewhere through a URL parameter" },
-  "reason_link_textMismatch": { "message": "link text shows a different domain than it opens" },
+  "reason_link_textMismatch": { "message": "link text shows a different destination than it opens" },
 
   "warn_link_heading": { "message": "Risk Radar safety warning" },
   "warn_link_destination": { "message": "Destination" },

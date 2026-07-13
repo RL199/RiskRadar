@@ -67,8 +67,9 @@
   "reason_link_shortener": { "message": "קישור מקוצר שמסתיר את היעד" },
   "reason_link_manySub": { "message": "ריבוי תת-דומיינים חריג" },
   "reason_link_keyword": { "message": "מילות פישינג בדומיין" },
+  "reason_link_http": { "message": "קישור HTTP לא מוצפן" },
   "reason_link_redirectParam": { "message": "מפנה לאתר אחר דרך פרמטר בכתובת" },
-  "reason_link_textMismatch": { "message": "טקסט הקישור מציג דומיין שונה מזה שייפתח" },
+  "reason_link_textMismatch": { "message": "טקסט הקישור מציג יעד שונה מזה שייפתח" },
 
   "warn_link_heading": { "message": "אזהרת בטיחות של Risk Radar" },
   "warn_link_destination": { "message": "יעד" },
