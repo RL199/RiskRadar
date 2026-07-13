@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - API key fields on the settings page now save automatically while you type or paste, after a short
-  pause, like every other setting on the page. The **Save** button is gone; the **Saved** flash in
+  pause, like every other setting on the page. The **Save** button is gone. the **Saved** flash in
   the header still confirms each write.
 
 
