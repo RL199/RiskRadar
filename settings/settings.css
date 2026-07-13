@@ -280,6 +280,11 @@ select.control {
   margin-bottom: 14px;
 }
 
+/* A help paragraph closing a card needs no extra gap below it. */
+.card > .highlights__help:last-child {
+  margin-bottom: 0;
+}
+
 .toggles {
   display: flex;
   flex-direction: column;

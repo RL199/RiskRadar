@@ -78,6 +78,12 @@
   "block_url_notice": { "message": "This website is blocked." },
   "tip_url_listed": { "message": "Known phishing site" },
 
+  "linkscan_checking": { "message": "Checking link reputation…" },
+  "linkscan_done": { "message": "Link reputation" },
+  "linkscan_start": { "message": "Clicked link" },
+  "linkscan_end": { "message": "Final destination" },
+  "linkscan_close": { "message": "Close" },
+
   "lbl_protocol": { "message": "Protocol" },
   "lbl_domainAge": { "message": "Domain Age" },
   "lbl_subdomain": { "message": "Subdomain" },
@@ -151,6 +157,10 @@
   "set_autoscan": { "message": "Scan pages automatically" },
   "set_autoscan_help": {
     "message": "When on, Risk Radar scans every page you visit on its own, without opening the popup: it shows a colour-coded risk badge on the toolbar icon and highlights findings on the page. It runs the same URL, reputation, content, and link checks the popup does; the AI analysis is never run automatically."
+  },
+  "set_linkscan": { "message": "Check the reputation of links I click" },
+  "set_linkscan_help": {
+    "message": "When on, clicking a link checks the reputation of both the link itself and the address it finally lands on, since redirects can change it along the way. A small overlay on the page shows a verdict for each address."
   },
   "set_warnings": { "message": "Safety warnings" },
   "set_warnings_help": {
