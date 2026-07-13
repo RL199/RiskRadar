@@ -266,12 +266,15 @@ blocklist**. This check wins over every other bucket, so a listed link is flagge
 the page's own domain, and because it is authoritative rather than heuristic, a single blocklisted link
 already turns the row risky. The remaining tells are heuristic: a link that points off-site to a
 destination carrying a phishing indicator drawn from standard anti-phishing guidance (CISA, the APWG,
-OWASP): a raw **IP address** host, a **punycode / IDN homograph** domain (`xn--`), **credentials embedded
+OWASP): a raw **IP address** host (dotted IPv4 or a bracketed IPv6 literal like `http://[2001:db8::1]/`),
+a **punycode / IDN homograph** domain (`xn--`), **credentials embedded
 in the URL** (`https://paypal.com@evil.com`), a **brand look-alike**, where a known brand token appears in
 the host but the registrable domain is not that brand's (`paypal.secure-login.com`), a **URL shortener**
-that hides the real destination, **unusually deep subdomains** (`login.account.secure.verify.evil.tld`) or
+that hides the real destination, **unusually deep subdomains** (`login.account.secure.verify.evil.tld`),
 **stacked phishing keywords** in the host (two or more of `secure`, `login`, `verify`, `account`… as in
-`secure-account-login.com`). Single signals are kept high-signal to limit false positives (a stated
+`secure-account-login.com`), or a **plain `http:` destination**, whose traffic
+[can be read and altered in transit](https://web.dev/articles/why-https-matters). Single signals are kept
+high-signal to limit false positives (a stated
 project goal): a lone `login.` subdomain, a real brand domain, and an ordinary external link all stay good.
 
 **What counts as a "malicious redirect":** A redirect is a link that **disguises where it really goes**,
@@ -279,8 +282,11 @@ caught before the internal/external check so an open redirect hosted on the page
 still flagged. Two patterns are detected: an **open-redirect parameter** carrying an absolute off-domain
 URL (`https://trusted.com/out?url=https://evil.com`, scanning common parameter names like `url`, `next`,
 `redirect`, `dest`, `continue` in both the query and the fragment) and a **displayed-vs-real URL
-mismatch**, where the visible link text is presented as one domain (`https://www.mybank.com/login`) while
-the href opens another. A redirect that stays within the same domain family (a `continue=` back to a
+mismatch**, where the visible link text is presented as one destination (`https://www.mybank.com/login`)
+while the href opens another. The displayed destination may be a domain or a raw IP: threat-feed style
+listings whose visible text is a raw-IP malware URL (`http://105.224.66.14:53221/bin.sh`) while the href
+opens a different page are caught too, with IP hosts compared exactly and domains compared by registrable
+domain. A redirect that stays within the same domain family (a `continue=` back to a
 sibling subdomain) is not flagged.
 
 **The look-alike token list and shorteners:** The distinctive brand tokens the look-alike check watches
@@ -293,7 +299,7 @@ time.
 **Marking links on the page:** After scanning, each mark
 lines up with its verdict: **internal links get a subtle green outline**, **suspicious links and malicious
 redirects a red one**, and **every mark carries a hover label** naming exactly what it is, for example _"Internal link (same domain)"_, _"Suspicious link: domain imitates a known brand"_,
-or _"Malicious redirect: link text shows a different domain than it opens"_. **Benign external links are counted but deliberately not painted red:** an ordinary page links out
+or _"Malicious redirect: link text shows a different destination than it opens"_. **Benign external links are counted but deliberately not painted red:** an ordinary page links out
 to many legitimate sites (CDNs, social, references), so flagging every external link would bury the real
 warnings. only off-site links with an actual phishing tell are marked. Each link bucket (Internal,
 External, Suspicious, and Malicious Redirects) can be **toggled individually** from the **Link
@@ -448,10 +454,27 @@ link) runs the same six [Reputation](#reputation) checks the popup uses on **bot
   shorteners, tracking wrappers, and open redirects rewrite the destination mid flight. Judging only
   the visible link would miss where you really ended up.
 
-While the checks run, a small overlay in the corner of the page shows a **loading spinner** beside
-each address, replaced by a colour-coded verdict (**Safe** / **Caution** / **Dangerous** / _Unknown_,
-the reputation category's verdict for that URL) when its checks finish. A clean result dismisses
-itself after a few seconds. A warning or a risky verdict stays on screen until closed.
+**Settings → Scanning → How to open the site while the check runs** picks what happens to the
+destination while those checks are in flight:
+
+- **Open the site right away and show the verdict overlay** (the default). The site loads
+  immediately, and a small overlay in the corner of the page shows a **loading spinner** beside each
+  address, replaced by a colour-coded verdict (**Safe** / **Caution** / **Dangerous** / _Unknown_,
+  the reputation category's verdict for that URL) when its checks finish. A clean result dismisses
+  itself after a few seconds. A warning or a risky verdict stays on screen until closed.
+- **Wait for the check, warn me if the site is not safe.** The click is held on a Risk Radar
+  checking screen (an extension page the tab is parked on) until the verdicts are in. A click whose
+  addresses all come back **Safe** or _Unknown_ continues to the site on its own. if any address
+  comes back **Caution** or **Dangerous**, the screen reports that the site failed the check and
+  offers **Continue anyway** and **Go back**.
+- **Wait for the check, block the site if it is not safe.** The same checking screen, but a site
+  that failed the check is not opened at all. **Go back** is the only way out.
+
+The wait modes trade speed for safety: every link click pauses on the checking screen for as long as
+the slowest reputation lookup takes (typically a second or two), while the default overlay mode never
+delays browsing but means an unsafe site has already started loading by the time its verdict arrives.
+An _Unknown_ verdict never holds a site back: with no API keys configured most checks cannot conclude
+anything, and treating that as unsafe would stop nearly every click.
 
 **How the two URLs are captured:** the background worker listens on
 [`chrome.webNavigation.onBeforeNavigate`](https://developer.chrome.com/docs/extensions/reference/api/webNavigation#event-onBeforeNavigate),
@@ -468,6 +491,15 @@ injected with [`chrome.scripting.executeScript`](https://developer.chrome.com/do
 (`injectImmediately`, so the spinner appears the moment the navigation commits) and draws inside a
 [shadow root](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_shadow_DOM), so
 page CSS can't restyle it and no page style is touched.
+
+**How the wait modes hold the navigation:** Manifest V3 offers no way to pause a navigation while an
+asynchronous check runs (blocking
+[`webRequest`](https://developer.chrome.com/docs/extensions/reference/api/webRequest) is gone, and
+[`declarativeNetRequest`](https://developer.chrome.com/docs/extensions/reference/api/declarativeNetRequest)
+rules cannot wait on network lookups), so the worker instead swaps the just-committed page for the
+extension's own checking page (`pages/click-gate.html`, listed under
+[`web_accessible_resources`](https://developer.chrome.com/docs/extensions/reference/manifest/web-accessible-resources)
+so a web page can be navigated to it) with an injected `location.replace`.
 
 ## Tech stack
 

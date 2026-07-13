@@ -688,10 +688,21 @@ async function warnOnTypedNavigation(
 // uses on both ends of the click: the URL the click started from (the link's
 // href, captured at onBeforeNavigate before any server redirect rewrites it)
 // and the URL the navigation finally committed on (shorteners and redirect
-// wrappers often land somewhere else). A small overlay in the corner of the
-// page shows a spinner while the checks run, then one colour-coded verdict per
-// URL; it hides itself when everything comes back clean and stays up, with a
-// close button, when a warning or a risky verdict comes back.
+// wrappers often land somewhere else).
+//
+// What happens to the site while the checks run follows settings.linkClickScanMode:
+//  - "overlay": the site opens right away; a small overlay in the corner shows
+//    a spinner while the checks run, then one colour-coded verdict per URL. It
+//    hides itself when everything comes back clean and stays up, with a close
+//    button, when a warning or a risky verdict comes back.
+//  - "warn" / "block": the tab is parked on the extension's checking page
+//    (pages/click-gate.html) instead of loading the site. The gate asks this
+//    worker to run the same checks (the clickgate-scan message), then enters
+//    the site when it passes; a site that fails is either offered behind a
+//    "Continue anyway" confirmation ("warn") or refused outright ("block").
+//    Before entering, the gate registers the destination here (the
+//    clickgate-approve message) so the resulting navigation is let through
+//    instead of being gated again.
 
 // The original URL of each tab's pending main-frame navigation, captured at
 // onBeforeNavigate: by onCommitted a server redirect has already rewritten
@@ -709,6 +720,12 @@ const CLICK_JOURNEY_MS = 30_000;
 // scan takes a fresh token and only the tab's current holder may draw.
 const clickScanTokens = new Map<number, number>();
 let nextClickScanToken = 1;
+
+// The URL the click gate approved per tab (the check passed, or the user chose
+// to continue). The next commit of exactly that URL in that tab is let through
+// instead of being gated again; consumed on first use so it can never cover a
+// later navigation.
+const approvedClickUrls = new Map<number, string>();
 
 // The reputation category verdict of one URL, reduced to the overlay's states.
 function toClickScanStatus(status: RowStatus): ClickScanStatus {
@@ -746,6 +763,35 @@ async function drawClickScan(tabId: number, token: number, payload: ClickScanPay
   }
 }
 
+// Park the tab on the extension's click-gate page, which runs the checks and
+// decides whether the site may open. The gate URL is swapped in with
+// location.replace so it takes over the just-committed site's history entry:
+// Back from the gate then lands on the page the click started from, not on the
+// unchecked site. If the page can't be scripted the tab is pointed at the gate
+// with tabs.update instead, which parks it all the same at the cost of one
+// extra history entry.
+async function holdForClickGate(tabId: number, targetUrl: string, startUrl: string | null): Promise<void> {
+  const gate = new URL(chrome.runtime.getURL("pages/click-gate.html"));
+  gate.searchParams.set("target", targetUrl);
+  if (startUrl) gate.searchParams.set("start", startUrl);
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      injectImmediately: true,
+      func: (url: string) => {
+        location.replace(url);
+      },
+      args: [gate.href],
+    });
+  } catch {
+    try {
+      await chrome.tabs.update(tabId, { url: gate.href });
+    } catch {
+      // Tab closed mid-navigation; nothing left to hold.
+    }
+  }
+}
+
 // Judge a just-committed navigation: a link click starts a scan of its start
 // and finish URLs; a client redirect shortly after one re-scans the same
 // click's new destination; anything else (typed, reload, form submit) ends the
@@ -758,6 +804,14 @@ async function scanClickedLink(
   // be, so a stale entry can never describe a later navigation.
   const navStart = navStartUrls.get(details.tabId);
   navStartUrls.delete(details.tabId);
+
+  // A navigation the click gate just approved (the check passed, or the user
+  // confirmed entering anyway) is let through untouched; anything else would
+  // send the tab straight back to the gate.
+  if (approvedClickUrls.get(details.tabId) === details.url) {
+    approvedClickUrls.delete(details.tabId);
+    return;
+  }
 
   // Back/forward re-visits keep their original transition type but are not
   // clicks; the "forward_back" qualifier tells them apart.
@@ -799,6 +853,15 @@ async function scanClickedLink(
   }
   if (start && (start.protocol !== "http:" && start.protocol !== "https:")) start = null;
   if (start && start.href === finish.href) start = null;
+
+  // The wait modes park the tab on the checking page instead of letting the
+  // site load; the gate takes over from here (checks, verdict, enter or not).
+  // The site may render for a moment before the gate replaces it, since a
+  // commit cannot be cancelled, only redirected.
+  if (settings.linkClickScanMode !== "overlay") {
+    await holdForClickGate(details.tabId, details.url, start ? start.href : null);
+    return;
+  }
 
   const token = nextClickScanToken++;
   clickScanTokens.set(details.tabId, token);
@@ -861,7 +924,11 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 chrome.runtime.onMessage.addListener(
-  (msg: { type?: string; host?: string; hosts?: unknown }, _sender, sendResponse) => {
+  (
+    msg: { type?: string; host?: string; hosts?: unknown; target?: string; start?: string; url?: string },
+    sender,
+    sendResponse,
+  ) => {
     if (msg?.type === "phishingdb-check" && typeof msg.host === "string") {
       isListed(msg.host).then(
         (status) => sendResponse({ status }),
@@ -879,6 +946,45 @@ chrome.runtime.onMessage.addListener(
         () => sendResponse({ status: "error" }),
       );
       return true; // keep the message channel open for the async response
+    }
+    // The click gate asking for the reputation verdicts of a held click's two
+    // ends. Runs the same checks the overlay path runs and answers with the
+    // overlay's status per URL.
+    if (msg?.type === "clickgate-scan" && typeof msg.target === "string") {
+      const startRaw = typeof msg.start === "string" ? msg.start : null;
+      (async () => {
+        let finish: URL;
+        try {
+          finish = new URL(msg.target as string);
+        } catch {
+          return { status: "error" };
+        }
+        let start: URL | null = null;
+        try {
+          if (startRaw) start = new URL(startRaw);
+        } catch {
+          // Unparseable start; judge the destination alone.
+        }
+        const settings = await loadSettings();
+        const [startInput, finishInput] = await Promise.all([
+          start ? scanReputationCategory(start, settings) : Promise.resolve(null),
+          scanReputationCategory(finish, settings),
+        ]);
+        return {
+          status: "ok",
+          start: startInput ? toClickScanStatus(startInput.status) : undefined,
+          finish: toClickScanStatus(finishInput.status),
+        };
+      })().then(sendResponse, () => sendResponse({ status: "error" }));
+      return true; // keep the message channel open for the async response
+    }
+    // The click gate about to enter a destination: remember it so the commit it
+    // causes is let through instead of being sent back to the gate.
+    if (msg?.type === "clickgate-approve" && typeof msg.url === "string") {
+      const tabId = sender.tab?.id;
+      if (typeof tabId === "number") approvedClickUrls.set(tabId, msg.url);
+      sendResponse({ status: "ok" });
+      return undefined; // answered synchronously
     }
     return undefined;
   },
@@ -921,6 +1027,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   navStartUrls.delete(tabId);
   clickJourneys.delete(tabId);
   clickScanTokens.delete(tabId);
+  approvedClickUrls.delete(tabId);
 });
 
 // React to the auto-scan toggle changing in the options page: scan the visible

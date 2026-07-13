@@ -9,6 +9,7 @@ import {
   type GuardAction,
   type HighlightSettings,
   type LangPref,
+  type LinkClickScanMode,
   type Settings,
   type ThemePref,
 } from "../scripts/shared/settings";
@@ -24,6 +25,7 @@ const themeSelect = document.getElementById("theme") as HTMLSelectElement;
 const langSelect = document.getElementById("lang") as HTMLSelectElement;
 const autoScanInput = document.getElementById("autoscan") as HTMLInputElement;
 const linkClickScanInput = document.getElementById("linkclickscan") as HTMLInputElement;
+const linkScanModeSelect = document.getElementById("linkscan-mode") as HTMLSelectElement;
 const guardActionSelect = document.getElementById("guard-action") as HTMLSelectElement;
 const aiProviderSelect = document.getElementById("ai-provider") as HTMLSelectElement;
 const aiScanModeSelect = document.getElementById("ai-scan-mode") as HTMLSelectElement;
@@ -134,6 +136,10 @@ async function init(): Promise<void> {
   langSelect.value = settings.lang;
   autoScanInput.checked = settings.autoScan;
   linkClickScanInput.checked = settings.linkClickScan;
+  linkScanModeSelect.value = settings.linkClickScanMode;
+  // The mode only matters while the link-click scan is on, so it follows the
+  // toggle's state (greyed out while the scan is off).
+  linkScanModeSelect.disabled = !settings.linkClickScan;
   guardActionSelect.value = settings.guardAction;
   aiProviderSelect.value = settings.aiProvider;
   aiScanModeSelect.value = settings.aiScanMode;
@@ -204,6 +210,14 @@ async function init(): Promise<void> {
   // settings afresh on every navigation, so the next click honours the choice.
   linkClickScanInput.addEventListener("change", async () => {
     settings = { ...settings, linkClickScan: linkClickScanInput.checked };
+    linkScanModeSelect.disabled = !linkClickScanInput.checked;
+    await saveSettings(settings);
+    flashSaved();
+  });
+
+  // Same for the scan's mode: the next click follows the new choice.
+  linkScanModeSelect.addEventListener("change", async () => {
+    settings = { ...settings, linkClickScanMode: linkScanModeSelect.value as LinkClickScanMode };
     await saveSettings(settings);
     flashSaved();
   });

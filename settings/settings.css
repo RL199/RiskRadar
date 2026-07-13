@@ -264,6 +264,13 @@ select.control {
   cursor: pointer;
 }
 
+/* A control whose feature toggle is off (e.g. the link-click scan mode while
+   the scan itself is disabled) stays visible but reads as inactive. */
+select.control:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 /* API key */
 .apikey {
   display: flex;

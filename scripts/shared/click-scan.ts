@@ -5,6 +5,8 @@
 // holds the small JSON payload the worker builds and the self-contained
 // overlay renderer it injects into the tab (chrome.scripting.executeScript),
 // following the same pattern as the injected helpers in link-analysis.ts.
+// The overlay belongs to the scan's "overlay" mode (linkClickScanMode); the
+// wait modes park the tab on pages/click-gate.ts instead and never draw it.
 
 // One scanned URL's state: "loading" while its checks are in flight, then the
 // reputation category's verdict.

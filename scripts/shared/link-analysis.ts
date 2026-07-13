@@ -8,20 +8,23 @@
 //  - internal:   same registrable domain as the page. Reassuring; marked green.
 //  - external:   a different domain with no risk traits. Counted; marked blue.
 //  - suspicious: a link whose destination itself looks dangerous (a host on the
-//                locally cached Phishing.Database blocklist, an IP-literal host,
-//                a punycode/IDN homograph, credentials embedded in the URL, a
-//                brand look-alike domain, a URL shortener, unusually deep
-//                subdomains, or stacked phishing keywords). Marked red.
+//                locally cached Phishing.Database blocklist, an IP-literal host
+//                (IPv4 or IPv6), a punycode/IDN homograph, credentials embedded
+//                in the URL, a brand look-alike domain, a URL shortener,
+//                unusually deep subdomains, stacked phishing keywords, or a
+//                plain unencrypted http: destination). Marked red.
 //  - redirect:   a link that hides or bounces its real destination (an open
-//                redirect parameter carrying an off-site URL, or visible text that
-//                claims one domain while the href points to another). Marked red.
+//                redirect parameter carrying an off-site URL, or visible text
+//                that claims one destination, a domain or a raw IP, while the
+//                href points to another). Marked red.
 //  - ignore:     not a real navigation (mailto:/tel:/javascript:, or an in-page
 //                "#" anchor on the current document).
 //
 // Grounding: these are the long-documented phishing URL indicators from
 // anti-phishing guidance (CISA, the APWG, OWASP): IP literals, "@" userinfo,
 // punycode homographs, look-alike subdomains, link shorteners, open redirects,
-// and the displayed URL not matching the actual one. On top of those heuristics,
+// unencrypted plain-http destinations, and the displayed URL not matching the
+// actual one. On top of those heuristics,
 // every destination host is also checked against the Phishing.Database blocklist
 // the background worker keeps on the device: the caller resolves the page's
 // hosts against it in one batch (collectLinkHosts) and hands the listed subset
@@ -84,6 +87,12 @@ const URL_SHORTENERS = new Set([
   "trib.al", "ift.tt", "adf.ly",
 ]);
 
+// An IP-literal host, IPv4 or IPv6. The URL parser keeps the brackets on an
+// IPv6 hostname (e.g. "[2001:db8::1]"), so the leading "[" is a reliable tell.
+function isIpHost(hostname: string): boolean {
+  return IPV4_RE.test(hostname) || hostname.startsWith("[");
+}
+
 // A whole-label token of `hostname` matches a known brand while the registrable
 // label itself is not that brand. That is the brand-in-subdomain look-alike trick
 // (paypal.secure-login.com), distinct from being on the brand's own domain.
@@ -98,7 +107,7 @@ function isBrandLookalike(hostname: string): boolean {
 // Subdomain nesting far beyond the norm (login.account.secure.verify.evil.tld).
 // The threshold is set high so ordinary multi-label CDN hosts don't trip it.
 function hasDeepSubdomain(hostname: string): boolean {
-  if (IPV4_RE.test(hostname)) return false;
+  if (isIpHost(hostname)) return false;
   const { sub } = splitDomain(hostname);
   return sub ? sub.split(".").length >= 4 : false;
 }
@@ -111,16 +120,35 @@ function hostKeywordHits(hostname: string): number {
   return SUSPICIOUS_KEYWORDS.filter((kw) => host.includes(kw)).length;
 }
 
-// Whether the visible text is presented as a URL (starts with http(s):// or
-// www.) but names a different registrable domain than the href actually opens.
-// That is the displayed-vs-real URL spoof.
-function isTextMismatch(text: string, hrefReg: string): boolean {
-  const t = text.trim();
-  if (!/^(?:https?:\/\/|www\.)/i.test(t)) return false;
-  const m = t.match(/^(?:https?:\/\/)?(?:www\.)?([a-z0-9.-]+\.[a-z]{2,})/i);
-  if (!m) return false;
-  const reg = splitDomain(m[1].toLowerCase()).registrable;
-  return Boolean(reg) && reg !== hrefReg;
+// The host named by the visible text when the text is presented as a URL
+// (starts with http(s):// or www.), or null when it isn't. Only the text's
+// first whitespace-separated token is parsed, so a URL followed by prose still
+// yields its host. Parsing with the URL parser (instead of a domain regex)
+// handles ports, userinfo, bracketed IPv6 literals, and raw IPv4 hosts, which
+// a TLD-shaped pattern would miss.
+function textUrlHost(text: string): string | null {
+  const t = text.trim().split(/\s+/)[0];
+  if (!/^(?:https?:\/\/|www\.)/i.test(t)) return null;
+  try {
+    return new URL(/^https?:\/\//i.test(t) ? t : `http://${t}`).hostname;
+  } catch {
+    return null;
+  }
+}
+
+// Whether the visible text is presented as a URL but names a different
+// destination than the href actually opens. That is the displayed-vs-real URL
+// spoof. Domains compare by registrable domain (www.mybank.com matches
+// mybank.com); an IP literal on either side has no registrable domain, so IPs
+// compare as whole hosts. Catching IP-literal display text matters in
+// practice: malware URLs are commonly listed as raw-IP links whose href opens
+// somewhere else entirely.
+function isTextMismatch(text: string, hrefHost: string): boolean {
+  const textHost = textUrlHost(text);
+  if (!textHost) return false;
+  if (isIpHost(textHost) || isIpHost(hrefHost)) return textHost !== hrefHost;
+  const reg = splitDomain(textHost).registrable;
+  return Boolean(reg) && reg !== splitDomain(hrefHost).registrable;
 }
 
 // If a redirect parameter (in the query or fragment) carries an absolute URL to
@@ -192,23 +220,36 @@ export function classifyLink(
 
   // Deceptive / redirecting links next: an open redirect can sit on the page's
   // own trusted domain, so this has to win over the internal check below.
-  if (isTextMismatch(raw.text, linkReg)) {
+  if (isTextMismatch(raw.text, host)) {
     return { verdict: "redirect", host, reasonKey: "reason_link_textMismatch" };
   }
   const target = redirectTargetHost(url, linkReg);
   if (target) return { verdict: "redirect", host: target, reasonKey: "reason_link_redirectParam" };
 
-  // Internal link: same registrable domain as the page.
-  if (linkReg && linkReg === pageReg) return { verdict: "internal", host };
+  // Internal link: same registrable domain as the page. An IP-literal host has
+  // no registrable domain (splitDomain would fabricate one from the last two
+  // octets, making 1.2.3.4 and 9.9.3.4 look related), so an IP on either side
+  // counts as internal only when both hosts match exactly.
+  const internal =
+    isIpHost(host) || isIpHost(pageUrl.hostname)
+      ? host === pageUrl.hostname
+      : Boolean(linkReg) && linkReg === pageReg;
+  if (internal) return { verdict: "internal", host };
 
   // External: judge how dangerous the destination looks, worst tell first.
   if (url.username) return { verdict: "suspicious", host, reasonKey: "reason_link_credentials" };
-  if (IPV4_RE.test(host)) return { verdict: "suspicious", host, reasonKey: "reason_link_ip" };
+  if (isIpHost(host)) return { verdict: "suspicious", host, reasonKey: "reason_link_ip" };
   if (host.includes("xn--")) return { verdict: "suspicious", host, reasonKey: "reason_link_punycode" };
   if (isBrandLookalike(host)) return { verdict: "suspicious", host, reasonKey: "reason_link_lookalike" };
   if (URL_SHORTENERS.has(linkReg)) return { verdict: "suspicious", host, reasonKey: "reason_link_shortener" };
   if (hasDeepSubdomain(host)) return { verdict: "suspicious", host, reasonKey: "reason_link_manySub" };
   if (hostKeywordHits(host) >= 2) return { verdict: "suspicious", host, reasonKey: "reason_link_keyword" };
+  // Plain http: the destination is unencrypted, so the traffic can be read or
+  // altered in transit. The weakest tell here, checked last so any stronger
+  // reason above names the link instead. Internal links are exempt (returned
+  // above): on a plain-http site every same-site link is http, and the URL &
+  // Domain view already flags the page's own protocol.
+  if (url.protocol === "http:") return { verdict: "suspicious", host, reasonKey: "reason_link_http" };
 
   return { verdict: "external", host };
 }
@@ -224,10 +265,15 @@ const NO_PAGE = new URL("https://address-bar.riskradar.invalid/");
 // tells (IP host, punycode, embedded credentials, brand look-alike, shortener,
 // deep subdomains, stacked keywords, and off-domain redirect parameters) all
 // still hold for a raw URL. The blocklist tell is not applied here either: the
-// background worker checks the typed host against its cached list itself. A
-// non-http(s) URL classifies as "ignore".
+// background worker checks the typed host against its cached list itself. The
+// plain-http tell is also link-only: as an address-bar guard it would prompt on
+// every http site the user deliberately visits, which the browser's own "Not
+// secure" chip already covers, so an http-only hit falls back to plain
+// external. A non-http(s) URL classifies as "ignore".
 export function classifyAddressBarUrl(rawUrl: string): ClassifiedLink {
-  return classifyLink({ href: rawUrl, text: "" }, NO_PAGE);
+  const link = classifyLink({ href: rawUrl, text: "" }, NO_PAGE);
+  if (link.reasonKey === "reason_link_http") return { verdict: "external", host: link.host };
+  return link;
 }
 
 // The distinct http(s) hostnames among the page's links, for the batch
@@ -289,13 +335,16 @@ export function analyzeLinks(page: PageLinks, listed?: ReadonlySet<string>): {
 
   // Heuristic tells turn risky only when stacked (3+), but a single link to a
   // blocklisted domain is an authoritative hit, so it is risky on its own.
+  // Plain-http links don't join the stack: unencrypted links are common on
+  // benign pages, so on their own they cap the row at a warning.
   const hasListed = suspicious.some((c) => c.reasonKey === "reason_link_listed");
+  const strongCount = suspicious.filter((c) => c.reasonKey !== "reason_link_http").length;
   const suspiciousRow: AnalyzedRow =
     suspicious.length === 0
       ? { key: "val_none", status: "good" }
       : {
           text: String(suspicious.length),
-          status: hasListed || suspicious.length >= 3 ? "bad" : "warn",
+          status: hasListed || strongCount >= 3 ? "bad" : "warn",
           detail: hosts(suspicious),
         };
 

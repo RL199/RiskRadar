@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1]
+
+### Added
+- The **Check the reputation of links I click** scan now has a **How to open the site while the
+  check runs** choice in **Settings → Scanning**, with three modes. **Open the site right away and
+  show the verdict overlay** (the default) keeps the existing behaviour: the site loads immediately
+  and the corner overlay reports the verdicts. The two new wait modes park the tab on a Risk Radar
+  checking page until the verdicts are in: a click whose addresses come back safe or unknown enters
+  the site on its own, while one that comes back with a caution or dangerous verdict either offers a
+  **Continue anyway** choice (**warn me if the site is not safe**) or is refused outright (**block
+  the site if it is not safe**). The checking page replaces the held site's history entry, so **Go
+  back** returns to the page the click started from rather than to the unchecked site.
+- Two new tells in the **Suspicious Links** classification: a **plain `http:` destination** (the
+  link's traffic is unencrypted) and **IPv6 literal hosts** (`http://[2001:db8::1]/`), which the
+  existing raw-IP tell (previously IPv4 only) now also catches.
+
+### Fixed
+- The **displayed-vs-real URL mismatch** tell (Malicious Redirects) missed links whose visible text
+  is a raw-IP URL, common on threat-feed listings where the text reads
+  `http://105.224.66.14:53221/bin.sh` but the href opens a different page.
+
+
 ## [1.1.0]
 
 ### Added

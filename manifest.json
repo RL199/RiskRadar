@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "__MSG_appName__",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "description": "__MSG_appDesc__",
     "default_locale": "en",
     "homepage_url": "https://github.com/RL199/RiskRadar",
@@ -30,5 +30,11 @@
     "options_ui": {
         "page": "settings/settings.html",
         "open_in_tab": true
-    }
+    },
+    "web_accessible_resources": [
+        {
+            "resources": ["pages/click-gate.html"],
+            "matches": ["<all_urls>"]
+        }
+    ]
 }

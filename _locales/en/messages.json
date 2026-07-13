@@ -67,8 +67,9 @@
   "reason_link_shortener": { "message": "shortened link hides its destination" },
   "reason_link_manySub": { "message": "unusually deep subdomains" },
   "reason_link_keyword": { "message": "phishing keywords in the domain" },
+  "reason_link_http": { "message": "unencrypted HTTP link" },
   "reason_link_redirectParam": { "message": "redirects elsewhere through a URL parameter" },
-  "reason_link_textMismatch": { "message": "link text shows a different domain than it opens" },
+  "reason_link_textMismatch": { "message": "link text shows a different destination than it opens" },
 
   "warn_link_heading": { "message": "Risk Radar safety warning" },
   "warn_link_destination": { "message": "Destination" },
@@ -83,6 +84,26 @@
   "linkscan_start": { "message": "Clicked link" },
   "linkscan_end": { "message": "Final destination" },
   "linkscan_close": { "message": "Close" },
+
+  "gate_doc_title": { "message": "Risk Radar link check" },
+  "gate_hold_note": {
+    "message": "Risk Radar is holding this page while it checks the reputation of the link you clicked."
+  },
+  "gate_safe_title": { "message": "The link passed the reputation check" },
+  "gate_safe_note": { "message": "Taking you to the site…" },
+  "gate_unsafe_title": { "message": "This site failed the reputation check" },
+  "gate_warn_note": {
+    "message": "You can go back to safety, or continue to the site at your own risk."
+  },
+  "gate_block_note": {
+    "message": "This website is blocked. Blocking unsafe sites is turned on in the settings, so Risk Radar will not open it."
+  },
+  "gate_error_title": { "message": "Couldn't check this link" },
+  "gate_error_note": {
+    "message": "This address could not be checked. You can go back to the previous page."
+  },
+  "gate_back": { "message": "Go back" },
+  "gate_continue": { "message": "Continue anyway" },
 
   "lbl_protocol": { "message": "Protocol" },
   "lbl_domainAge": { "message": "Domain Age" },
@@ -161,6 +182,13 @@
   "set_linkscan": { "message": "Check the reputation of links I click" },
   "set_linkscan_help": {
     "message": "When on, clicking a link checks the reputation of both the link itself and the address it finally lands on, since redirects can change it along the way. A small overlay on the page shows a verdict for each address."
+  },
+  "set_linkscan_mode": { "message": "How to open the site while the check runs" },
+  "set_linkscan_mode_overlay": { "message": "Open the site right away and show the verdict overlay" },
+  "set_linkscan_mode_warn": { "message": "Wait for the check, warn me if the site is not safe" },
+  "set_linkscan_mode_block": { "message": "Wait for the check, block the site if it is not safe" },
+  "set_linkscan_mode_help": {
+    "message": "Open right away never delays your browsing: the site loads while the check runs and the overlay reports the verdicts. The two wait choices hold the click on a Risk Radar checking screen until the verdicts are in: warn lets you choose whether to enter a site that failed the check, while block refuses to open it."
   },
   "set_warnings": { "message": "Safety warnings" },
   "set_warnings_help": {
