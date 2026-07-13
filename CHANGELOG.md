@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0]
 
 ### Added
+- A phishing benchmark harness (`npm run bench:phish`, `test/phish-bench.ts`) that runs the shipped
+  URL judgement (`classifyAddressBarUrl` plus the cached Phishing.Database blocklist) against live
+  phishing feeds ([OpenPhish](https://openphish.com/phishing_feeds.html),
+  [Phishing.Database](https://github.com/Phishing-Database/Phishing.Database), or a local
+  [PhishTank](https://phishtank.org/developer_info.php) CSV) and the benign
+  [Tranco top sites](https://tranco-list.eu/) list, reporting detection rate, false positive rate,
+  and a per reason breakdown. Dev tooling only, no extension behaviour change.
 - In settings, a **Check the reputation of links I click** toggle in the **Scanning** section, off by default.
   When on, following a link runs the six reputation checks (Google Safe Browsing, VirusTotal, Sucuri
   SiteCheck, Phishing Database, DNS blacklists, and server IP reputation) on both the clicked URL and
