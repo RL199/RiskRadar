@@ -137,7 +137,8 @@ never a hard "risky", because the signal is circumstantial. It's a complementary
 not a primary trust signal.
 
 **API keys:** The two keyed paths live under **Settings → Reputation** and are stored on-device in
-`chrome.storage.local`. VirusTotal requires a (free-tier) key for its inline `malicious / total`
+`chrome.storage.local`. Like every other control on the settings page, key fields save on their own:
+typing or pasting a key stores it after a short pause, so there is no Save button. VirusTotal requires a (free-tier) key for its inline `malicious / total`
 verdict. without one the row shows a _Key needed_ prompt with an **Add key** button that opens a modal
 to enter it inline (no need to open Settings). the key is saved and the row re-runs immediately. Safe
 Browsing's key is optional: it switches the check from the public Transparency Report to Google's
