@@ -17,11 +17,20 @@
 //
 // Usage (from the repo root):
 //   npm run bench:phish                          OpenPhish vs Tranco top 10k
-//   npm run bench:phish -- --phish phishdb       Phishing.Database URL sample
+//   npm run bench:phish -- --phish openphish-all every OpenPhish URL seen so far
+//   npm run bench:phish -- --phish phishdb       Phishing.Database head sample
+//   npm run bench:phish -- --phish phishdb-random  random sample of the full file
 //   npm run bench:phish -- --phish tank.csv      a downloaded PhishTank CSV
 //   npm run bench:phish -- --benign none         skip the false positive half
 //   npm run bench:phish -- --refresh             redownload cached feeds
 //   npm run bench:phish -- --json                machine readable summary
+//
+// The OpenPhish free feed is a rolling window of only a few hundred current
+// URLs (the full archive is their paid database), so every fresh snapshot is
+// also merged into test/data/openphish-corpus.txt; "openphish-all" evaluates
+// that growing corpus. "phishdb" takes the head of the 65 MB links file (fast
+// but alphabetically skewed toward IP hosts); "phishdb-random" streams the
+// whole file once and reservoir-samples it uniformly.
 //
 // Interpreting the numbers: the heuristics are deliberately tuned for a low
 // false positive rate (a stated project goal), so they alone are not expected
@@ -95,6 +104,7 @@ function parseArgs(argv: string[]): Options {
   }
   // The full Phishing.Database links file is ~65 MB; sample it by default.
   if (opts.phish === "phishdb" && opts.limit === 0) opts.limit = 20_000;
+  if (opts.phish === "phishdb-random" && opts.limit === 0) opts.limit = 5_000;
   return opts;
 }
 
@@ -130,13 +140,77 @@ async function fetchFirstLines(url: string, maxLines: number): Promise<string> {
   return lines.join("\n");
 }
 
+// Stream a large text file end to end and keep a uniform random sample of k
+// URL lines (reservoir sampling, algorithm R), so a sample of the 65 MB
+// Phishing.Database links file is not biased toward its alphabetical head.
+async function fetchReservoirLines(url: string, k: number): Promise<string> {
+  const res = await fetch(url, { redirect: "follow" });
+  if (!res.ok || !res.body) throw new Error(`${url}: HTTP ${res.status}`);
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  const sample: string[] = [];
+  let seen = 0;
+  const consider = (raw: string): void => {
+    const line = raw.trim();
+    if (!line || !/^https?:\/\//i.test(line)) return;
+    seen++;
+    if (sample.length < k) sample.push(line);
+    else {
+      const j = Math.floor(Math.random() * seen);
+      if (j < k) sample[j] = line;
+    }
+  };
+  let buf = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let nl: number;
+    while ((nl = buf.indexOf("\n")) >= 0) {
+      consider(buf.slice(0, nl));
+      buf = buf.slice(nl + 1);
+    }
+  }
+  consider(buf);
+  return sample.join("\n");
+}
+
+// Merge an OpenPhish snapshot into the growing local corpus. The free feed
+// only ever shows the current window, so keeping every URL we have seen is
+// the only way to build a large OpenPhish set over time.
+async function updateOpenphishCorpus(snapshot: string): Promise<string> {
+  const file = join(DATA_DIR, "openphish-corpus.txt");
+  const urls = new Set<string>();
+  try {
+    for (const raw of (await readFile(file, "utf8")).split("\n")) {
+      const line = raw.trim();
+      if (line) urls.add(line);
+    }
+  } catch {
+    // no corpus yet
+  }
+  for (const raw of snapshot.split("\n")) {
+    const line = raw.trim();
+    if (line && /^https?:\/\//i.test(line)) urls.add(line);
+  }
+  const text = [...urls].join("\n");
+  await mkdir(DATA_DIR, { recursive: true });
+  await writeFile(file, text, "utf8");
+  return text;
+}
+
 // Fetch through a small on disk cache so repeated runs don't hammer the feeds.
-async function cached(name: string, refresh: boolean, load: () => Promise<string>): Promise<string> {
+async function cached(
+  name: string,
+  refresh: boolean,
+  load: () => Promise<string>,
+  ttlMs: number = CACHE_TTL_MS,
+): Promise<string> {
   const file = join(DATA_DIR, name);
   if (!refresh) {
     try {
       const info = await stat(file);
-      if (Date.now() - info.mtimeMs < CACHE_TTL_MS) return await readFile(file, "utf8");
+      if (Date.now() - info.mtimeMs < ttlMs) return await readFile(file, "utf8");
     } catch {
       // no cache yet
     }
@@ -199,15 +273,32 @@ function parseBenignList(text: string): string[] {
 }
 
 async function loadPhishingUrls(opts: Options): Promise<{ label: string; urls: string[] }> {
-  if (opts.phish === "openphish") {
-    const text = await cached("openphish-feed.txt", opts.refresh, () => fetchText(OPENPHISH_URL));
-    return { label: "OpenPhish feed", urls: parseUrlList(text, false) };
+  if (opts.phish === "openphish" || opts.phish === "openphish-all") {
+    // The feed refreshes every few hours, so cache it briefly and fold every
+    // snapshot into the corpus, whichever source is being evaluated.
+    const snapshot = await cached(
+      "openphish-feed.txt",
+      opts.refresh,
+      () => fetchText(OPENPHISH_URL),
+      6 * 60 * 60 * 1000,
+    );
+    const corpus = await updateOpenphishCorpus(snapshot);
+    if (opts.phish === "openphish-all") {
+      return { label: "OpenPhish corpus (all snapshots seen)", urls: parseUrlList(corpus, false) };
+    }
+    return { label: "OpenPhish feed", urls: parseUrlList(snapshot, false) };
   }
   if (opts.phish === "phishdb") {
     const text = await cached(`phishdb-links-${opts.limit}.txt`, opts.refresh, () =>
       fetchFirstLines(PHISHDB_LINKS_URL, opts.limit),
     );
-    return { label: "Phishing.Database active links (sample)", urls: parseUrlList(text, false) };
+    return { label: "Phishing.Database active links (head sample)", urls: parseUrlList(text, false) };
+  }
+  if (opts.phish === "phishdb-random") {
+    const text = await cached(`phishdb-random-${opts.limit}.txt`, opts.refresh, () =>
+      fetchReservoirLines(PHISHDB_LINKS_URL, opts.limit),
+    );
+    return { label: "Phishing.Database active links (random sample)", urls: parseUrlList(text, false) };
   }
   const text = await readFile(opts.phish, "utf8");
   return {
@@ -354,7 +445,7 @@ if (opts.json) {
 } else {
   console.log("RiskRadar phishing benchmark (classifyAddressBarUrl + Phishing.Database blocklist)");
   console.log(blocklist ? `Blocklist: ${blocklist.size} active phishing domains` : "Blocklist: disabled (--no-blocklist)");
-  if (opts.phish === "phishdb" && blocklist) {
+  if (opts.phish.startsWith("phishdb") && blocklist) {
     console.log("Note: this phishing set and the blocklist share a source, so the blocklist");
     console.log("rate is close to 100% by construction; only the heuristic rate is informative.");
   }

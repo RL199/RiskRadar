@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://chromewebstore.google.com/detail/risk-radar/hddlacmehallgcmhcbigkhjggjpkcnml"><strong>Install from the Chrome Web Store &rarr;</strong></a>
+  <a href="https://chromewebstore.google.com/detail/risk-radar/hddlacmehallgcmhcbigkhjggjpkcnml"><strong>Install from the Chrome Web Store →</strong></a>
 </p>
 
 ## Overview
@@ -23,10 +23,11 @@ third-party reputation services, and an AI model to surface threats before they 
 
 - **URL analysis:** protocol, domain, and structure checks (e.g. HTTP vs. HTTPS).
 - **Content scanning:** inspects the page DOM for suspicious patterns, and marks the matches on the page.
-- **Link scanning:** classifies the page's links into internal, external, suspicious, and malicious redirects, marks them on the page (optional), and warns before following a red (suspicious or malicious-redirect) link.
+- **Link scanning:** classifies the page's links into internal, external, suspicious, and malicious redirects, checking every destination against the on-device [Phishing.Database](https://github.com/Phishing-Database/Phishing.Database) blocklist as well as heuristic phishing tells, marks them on the page (optional), and warns before following a red (suspicious or malicious-redirect) link.
 - **Reputation integration:** Google Safe Browsing, VirusTotal, Sucuri SiteCheck, threat-filtering DNS (Cloudflare, Quad9), and server-IP reputation (SANS ISC / DShield).
 - **AI analysis (optional):** on-demand phishing / social-engineering assessment of the page by a large language model (Claude or DeepSeek, your choice).
 - **Automatic scanning (optional):** scan every page as you browse without opening the popup, surfacing the verdict as a colour-coded badge and a matching tint on the toolbar icon, and applying the on-page highlights.
+- **Link click reputation check (optional):** when you follow a link, run the reputation checks on both ends of the click, the link you clicked and the address it finally landed on (redirects often change it), showing a loading spinner and then a verdict per address in a small overlay on the page.
 - **Safety warnings:** interrupts a risky navigation, both when following a malicious link and when a risky address is typed into the URL bar. A single action setting in the options page decides what happens when one is caught: **Warn** (the default) shows a confirmation you can accept to continue anyway, **Block** cancels the navigation and shows a message that the website is blocked, and **Do nothing** lets the navigation through without interruption.
 - **Clear results:** a trust score plus risk indicators, explained at varying levels of detail.
 
@@ -81,11 +82,11 @@ site scores high while a single authoritative red flag can never be averaged awa
 
 | Check                   | How it's computed                                                  | Risk logic                                                                          |
 | ----------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| **Protocol**            | `URL.protocol` of the active tab                                   | `https` → good; `http` → risky (traffic is unencrypted).                            |
-| **Domain Age**          | Registration date via [RDAP](https://about.rdap.org/) (see below)  | `< 30 days` → risky; `< 6 months` → warning; otherwise good. Unknown registries are reported as _Unknown_. |
-| **Subdomain**           | Hostname split into subdomain + registrable domain                 | Raw IP host → risky; deeply nested subdomains → warning; `www` or a single label → good. |
-| **URL Length**          | Character count of the full URL                                    | `< 54` Short → good; `≤ 100` Medium → still good; `> 100` Long → warning.                 |
-| **Suspicious Keywords** | Host, path, and query scanned against a short phishing wordlist          | None → good; 1 to 2 matches → warning; 3+ matches → risky. Matches are listed.         |
+| **Protocol**            | `URL.protocol` of the active tab                                   | `https` → good. `http` → risky (traffic is unencrypted).                            |
+| **Domain Age**          | Registration date via [RDAP](https://about.rdap.org/) (see below)  | `< 30 days` → risky. `< 6 months` → warning. Otherwise good. Unknown registries are reported as _Unknown_. |
+| **Subdomain**           | Hostname split into subdomain + registrable domain                 | Raw IP host → risky. Deeply nested subdomains → warning. `www` or a single label → good. |
+| **URL Length**          | Character count of the full URL                                    | `< 54` Short → good. `≤ 100` Medium → still good. `> 100` Long → warning.                 |
+| **Suspicious Keywords** | Host, path, and query scanned against a short phishing wordlist          | None → good. 1 to 2 matches → warning. 3+ matches → risky. Matches are listed.         |
 
 **Domain age lookup:** Classic WHOIS runs over TCP port 43 and can't be reached from a browser,
 so domain age is resolved with **RDAP**, the JSON-based successor to WHOIS. The extension queries
@@ -105,12 +106,12 @@ checks that ran.
 
 | Check                     | How it's computed                                                                                                         | Risk logic                                                                                                                  |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Google Safe Browsing**  | **Keyless by default:** the host is checked against Google's public [Transparency Report](https://transparencyreport.google.com/safe-browsing/search) endpoint (the backend of the "Safe Browsing site status" page). With a key, the official [Lookup API v4](https://developers.google.com/safe-browsing/v4/lookup-api) (`threatMatches:find`) is used instead. | Listed as a threat → risky (shown as _Unsafe_, or the matched threat with a key); clean → good; no data / error → _Unknown_. |
-| **VirusTotal**            | **Keyed:** [VirusTotal API v3](https://docs.virustotal.com/reference/domain-info) (`/domains/<host>`) is queried with a key from Settings and `last_analysis_stats` read. (VirusTotal has no keyless lookup; both its API and web UI require authentication/reCAPTCHA.) | `malicious >= 5` → risky; `1 to 4` malicious (or any `suspicious`) → warning; otherwise good, showing `malicious / total` vendor verdicts. A couple of noisy engines can't brand a clean site as risky. No key → _Not checked_ (excluded from the verdict). |
-| **Sucuri SiteCheck**      | **Keyless:** the host is scanned via [Sucuri SiteCheck](https://sitecheck.sucuri.net/)'s public API (`/api/v3/?scan=<host>`), which aggregates several vendor blacklists (Google, Sucuri Labs, Norton, McAfee, ESET, Yandex, PhishTank…) plus its own malware checks. | A `blacklists` hit → _Blacklisted_ → risky; a `warnings.security` malware finding → _Unsafe_ → risky; a clean scan → good. A failed/timed-out scan → _Unknown_. |
-| **Phishing Database**     | **Keyless:** the host is checked against a local, offline copy of the [Phishing.Database](https://github.com/Phishing-Database/Phishing.Database) project's active phishing-domain list (~600k domains), cached and kept current by the background worker (see below). | Host (or its registrable domain) on the list → _Listed_ → risky; not on it → _Not listed_ → good. While the first download is in progress → _Updating…_ (excluded). |
-| **Blacklist Status**      | **Keyless:** the host is resolved over [DNS-over-HTTPS](https://datatracker.ietf.org/doc/html/rfc8484) through two threat-filtering resolvers, Cloudflare (`security.cloudflare-dns.com`) and [Quad9](https://quad9.net/) (`dns.quad9.net`), and compared with a non-filtering baseline (`dns.google`). | Either resolver sinkholes a host that otherwise resolves (a `0.0.0.0` answer or `NXDOMAIN`) → _Blacklisted_ → risky; both resolve normally → _Clean_ → good. Lookup error → _Unknown_. |
-| **Server IP Reputation**  | **Keyless:** the host is resolved to its server IP, which is looked up in the [SANS ISC / DShield](https://isc.sans.edu/) database (`isc.sans.edu/api/ip/<ip>?json`), a feed of addresses reported attacking internet honeypots. | The IP has attack reports → _Reported_ → warning; none → good. A shared **CDN/cloud** IP (Cloudflare, Akamai, AWS…) is reported as _Shared CDN_ → _Unknown_ and excluded, since it isn't the site's own server. Lookup error → _Unknown_. |
+| **Google Safe Browsing**  | **Keyless by default:** the host is checked against Google's public [Transparency Report](https://transparencyreport.google.com/safe-browsing/search) endpoint (the backend of the "Safe Browsing site status" page). With a key, the official [Lookup API v4](https://developers.google.com/safe-browsing/v4/lookup-api) (`threatMatches:find`) is used instead. | Listed as a threat → risky (shown as _Unsafe_, or the matched threat with a key). Clean → good. No data / error → _Unknown_. |
+| **VirusTotal**            | **Keyed:** [VirusTotal API v3](https://docs.virustotal.com/reference/domain-info) (`/domains/<host>`) is queried with a key from Settings and `last_analysis_stats` read. (VirusTotal has no keyless lookup, as both its API and web UI require authentication/reCAPTCHA.) | `malicious >= 5` → risky. `1 to 4` malicious (or any `suspicious`) → warning. Otherwise good, showing `malicious / total` vendor verdicts. A couple of noisy engines can't brand a clean site as risky. No key → _Not checked_ (excluded from the verdict). |
+| **Sucuri SiteCheck**      | **Keyless:** the host is scanned via [Sucuri SiteCheck](https://sitecheck.sucuri.net/)'s public API (`/api/v3/?scan=<host>`), which aggregates several vendor blacklists (Google, Sucuri Labs, Norton, McAfee, ESET, Yandex, PhishTank…) plus its own malware checks. | A `blacklists` hit → _Blacklisted_ → risky. A `warnings.security` malware finding → _Unsafe_ → risky. A clean scan → good. A failed/timed-out scan → _Unknown_. |
+| **Phishing Database**     | **Keyless:** the host is checked against a local, offline copy of the [Phishing.Database](https://github.com/Phishing-Database/Phishing.Database) project's active phishing-domain list (~600k domains), cached and kept current by the background worker (see below). | Host (or its registrable domain) on the list → _Listed_ → risky. Not on it → _Not listed_ → good. While the first download is in progress → _Updating…_ (excluded). |
+| **Blacklist Status**      | **Keyless:** the host is resolved over [DNS-over-HTTPS](https://datatracker.ietf.org/doc/html/rfc8484) through two threat-filtering resolvers, Cloudflare (`security.cloudflare-dns.com`) and [Quad9](https://quad9.net/) (`dns.quad9.net`), and compared with a non-filtering baseline (`dns.google`). | Either resolver sinkholes a host that otherwise resolves (a `0.0.0.0` answer or `NXDOMAIN`) → _Blacklisted_ → risky. Both resolve normally → _Clean_ → good. Lookup error → _Unknown_. |
+| **Server IP Reputation**  | **Keyless:** the host is resolved to its server IP, which is looked up in the [SANS ISC / DShield](https://isc.sans.edu/) database (`isc.sans.edu/api/ip/<ip>?json`), a feed of addresses reported attacking internet honeypots. | The IP has attack reports → _Reported_ → warning. None → good. A shared **CDN/cloud** IP (Cloudflare, Akamai, AWS…) is reported as _Shared CDN_ → _Unknown_ and excluded, since it isn't the site's own server. Lookup error → _Unknown_. |
 
 **Phishing.Database cache:** [Phishing.Database](https://github.com/Phishing-Database/Phishing.Database)
 is a first-class keyless source, but it ships as bulk flat files (the active domain list is ~10 MB) with
@@ -157,10 +158,10 @@ content ever leaves the browser.
 
 | Check                    | How it's computed                                                                                                                                            | Risk logic                                                                                                  |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| **Phishing Indicators**  | The page title + visible text are scanned for a curated list of **credential-bait phrases** ("verify your account", "confirm your password", "unusual sign-in activity"…). | None → good; 1 to 2 matches → warning; 3+ → risky. The count is shown, and the matched phrases are listed under the row.                                   |
-| **Suspicious Forms**     | Every `<form>` containing an `<input type="password">` is checked: does it submit to a **different registrable domain** (cross-origin) or over **plain HTTP**?       | No such form → good; a cross-origin (HTTPS) password POST → warning; a cleartext **HTTP** password POST → risky. The count is shown, and the kind of leak (cleartext HTTP and/or cross-domain) is listed under the row. |
-| **Urgent Language**      | The title + text are scanned for **time-pressure / fear wording** ("act now", "within 24 hours", "final notice", "your account will be suspended"…).            | None → good; 1 to 2 matches → warning; 3+ → risky. The count is shown, and the matched phrases are listed under the row.                                   |
-| **Brand Impersonation**  | A well-known brand (Microsoft, Google, Amazon, Apple, PayPal, banks, couriers…) is named in the title/text while the host **isn't** one of that brand's own domains, **and** the page asks for a password. | Mismatch on a credential-entry page → risky, naming the impersonated brand and listing the brand wording that matched; otherwise good.                 |
+| **Phishing Indicators**  | The page title + visible text are scanned for a curated list of **credential-bait phrases** ("verify your account", "confirm your password", "unusual sign-in activity"…). | None → good. 1 to 2 matches → warning. 3+ → risky. The count is shown, and the matched phrases are listed under the row.                                   |
+| **Suspicious Forms**     | Every `<form>` containing an `<input type="password">` is checked: does it submit to a **different registrable domain** (cross-origin) or over **plain HTTP**?       | No such form → good. A cross-origin (HTTPS) password POST → warning. A cleartext **HTTP** password POST → risky. The count is shown, and the kind of leak (cleartext HTTP and/or cross-domain) is listed under the row. |
+| **Urgent Language**      | The title + text are scanned for **time-pressure / fear wording** ("act now", "within 24 hours", "final notice", "your account will be suspended"…).            | None → good. 1 to 2 matches → warning. 3+ → risky. The count is shown, and the matched phrases are listed under the row.                                   |
+| **Brand Impersonation**  | A well-known brand (Microsoft, Google, Amazon, Apple, PayPal, banks, couriers…) is named in the title/text while the host **isn't** one of that brand's own domains, **and** the page asks for a password. | Mismatch on a credential-entry page → risky, naming the impersonated brand and listing the brand wording that matched. Otherwise good.                 |
 
 **The wordlists ("small database"):** The phrases and brands the three text checks match against live in
 their own module, [`scripts/shared/content-data.ts`](scripts/shared/content-data.ts), separate from the
@@ -239,28 +240,37 @@ Content, the popup can't read another tab's DOM directly, so it injects a small,
 ([`extractPageLinks` in `scripts/shared/link-analysis.ts`](scripts/shared/link-analysis.ts)) into the
 active tab with [`chrome.scripting.executeScript`](https://developer.chrome.com/docs/extensions/reference/api/scripting)
 (granted by `activeTab` + `scripting` + the `<all_urls>` host permission). The extractor returns a tiny
-JSON summary: the page URL, the total number of `<a href>` links, and each link's resolved href and visible text. The risk logic then runs in the popup, sorting every
-link into one bucket: **internal** (same registrable domain), **external** (a different domain with no
-risk traits), **suspicious**, **redirect**, or **ignore** (a `mailto:` / `tel:` / `javascript:` link or a
-same-page `#` anchor). Pages with no readable DOM (a `chrome://` page, the new-tab page) are reported as
-_Unknown_ and excluded from the verdict, and browser extension stores show an explicit _Restricted_ note
-instead (see [Restricted pages](#restricted-pages)). All checks are offline, no link ever leaves the
-browser.
+JSON summary: the page URL, the total number of `<a href>` links, and each link's resolved href and
+visible text (the first 2,000 links on the page are collected). The risk logic then runs in the popup,
+sorting every link into one bucket: **internal** (same registrable domain), **external** (a different
+domain with no risk traits), **suspicious**, **redirect**, or **ignore** (a `mailto:` / `tel:` /
+`javascript:` link or a same-page `#` anchor). Besides the heuristic tells below, every destination host
+is checked against the local [Phishing.Database](https://github.com/Phishing-Database/Phishing.Database)
+blocklist in a single batch message to the background worker, which owns the cached list (see the
+Phishing.Database cache note under [Reputation](#reputation)). Because the list sits on the device,
+classifying even thousands of links stays instant. Pages with no readable DOM (a `chrome://` page, the
+new-tab page) are reported as _Unknown_ and excluded from the verdict, and browser extension stores show
+an explicit _Restricted_ note instead (see [Restricted pages](#restricted-pages)). All checks are
+offline, no link ever leaves the browser.
 
 | Check                    | How it's computed                                                                                          | Risk logic                                                                                                          |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| **Total Links**          | Count of every `<a href>` on the page.                                                                     | Informational; never affects the verdict.                                                                          |
+| **Total Links**          | Count of every `<a href>` on the page.                                                                     | Informational. Never affects the verdict.                                                                          |
 | **External Links**       | Links whose **registrable domain differs** from the page's.                                                | Normal and expected → good. The distinct external domains are listed.                                              |
-| **Suspicious Links**     | External links whose **destination itself** looks dangerous (see below).                                   | None → good; 1 to 2 → warning; 3+ → risky. The flagged hosts are listed.                                           |
-| **Malicious Redirects**  | Links that **hide or bounce** their true destination (see below).                                          | None → good; a parameter bounce → warning; a displayed-vs-real URL mismatch → risky. The destinations are listed.  |
+| **Suspicious Links**     | Links whose **destination itself** is dangerous: on the phishing blocklist, or carrying a heuristic tell (see below). | None → good. 1 to 2 → warning. 3+, or **any blocklisted destination**, → risky. The flagged hosts are listed.      |
+| **Malicious Redirects**  | Links that **hide or bounce** their true destination (see below).                                          | None → good. A parameter bounce → warning. A displayed-vs-real URL mismatch → risky. The destinations are listed.  |
 
-**What makes a link "suspicious":** A suspicious link points off-site to a destination that itself carries
-a phishing tell, drawn from the standard anti-phishing URL indicators (CISA, the APWG, OWASP): a raw **IP
-address** host, a **punycode / IDN homograph** domain (`xn--`), **credentials embedded in the URL**
-(`https://paypal.com@evil.com`), a **brand look-alike**, where a known brand token appears in the host but
-the registrable domain is not that brand's (`paypal.secure-login.com`), a **URL shortener** that hides the
-real destination, **unusually deep subdomains** (`login.account.secure.verify.evil.tld`) or **stacked
-phishing keywords** in the host (two or more of `secure`, `login`, `verify`, `account`… as in
+**What makes a link "suspicious":** The one authoritative tell comes first: the destination host (or its
+registrable domain) is **on the [Phishing.Database](https://github.com/Phishing-Database/Phishing.Database)
+blocklist**. This check wins over every other bucket, so a listed link is flagged even when it points to
+the page's own domain, and because it is authoritative rather than heuristic, a single blocklisted link
+already turns the row risky. The remaining tells are heuristic: a link that points off-site to a
+destination carrying a phishing indicator drawn from standard anti-phishing guidance (CISA, the APWG,
+OWASP): a raw **IP address** host, a **punycode / IDN homograph** domain (`xn--`), **credentials embedded
+in the URL** (`https://paypal.com@evil.com`), a **brand look-alike**, where a known brand token appears in
+the host but the registrable domain is not that brand's (`paypal.secure-login.com`), a **URL shortener**
+that hides the real destination, **unusually deep subdomains** (`login.account.secure.verify.evil.tld`) or
+**stacked phishing keywords** in the host (two or more of `secure`, `login`, `verify`, `account`… as in
 `secure-account-login.com`). Single signals are kept high-signal to limit false positives (a stated
 project goal): a lone `login.` subdomain, a real brand domain, and an ordinary external link all stay good.
 
@@ -268,7 +278,7 @@ project goal): a lone `login.` subdomain, a real brand domain, and an ordinary e
 caught before the internal/external check so an open redirect hosted on the page's own trusted domain is
 still flagged. Two patterns are detected: an **open-redirect parameter** carrying an absolute off-domain
 URL (`https://trusted.com/out?url=https://evil.com`, scanning common parameter names like `url`, `next`,
-`redirect`, `dest`, `continue` in both the query and the fragment); and a **displayed-vs-real URL
+`redirect`, `dest`, `continue` in both the query and the fragment) and a **displayed-vs-real URL
 mismatch**, where the visible link text is presented as one domain (`https://www.mybank.com/login`) while
 the href opens another. A redirect that stays within the same domain family (a `continue=` back to a
 sibling subdomain) is not flagged.
@@ -280,29 +290,22 @@ unambiguous brand words so short or dictionary-ish labels don't trip it. The sho
 parameter lists live in [`link-analysis.ts`](scripts/shared/link-analysis.ts) and can be extended at any
 time.
 
-**Marking links on the page:** After scanning, the popup injects a second self-contained function
-(`highlightPageLinks`) that outlines the same links on the page itself, in document order so each mark
+**Marking links on the page:** After scanning, each mark
 lines up with its verdict: **internal links get a subtle green outline**, **suspicious links and malicious
-redirects a red one**, and **every mark carries a hover label** naming exactly what it is (greens
-included), for example _"Internal link (same domain)"_, _"Suspicious link: domain imitates a known brand"_,
-or _"Malicious redirect: link text shows a different domain than it opens"_. The marks are non-destructive
-(an `outline` plus a borrowed `title`, both restored on the next scan) and re-running clears the previous
-pass. **Benign external links are counted but deliberately not painted red:** an ordinary page links out
+redirects a red one**, and **every mark carries a hover label** naming exactly what it is, for example _"Internal link (same domain)"_, _"Suspicious link: domain imitates a known brand"_,
+or _"Malicious redirect: link text shows a different domain than it opens"_. **Benign external links are counted but deliberately not painted red:** an ordinary page links out
 to many legitimate sites (CDNs, social, references), so flagging every external link would bury the real
-warnings; only off-site links with an actual phishing tell are marked. Each link bucket (Internal,
-External, Suspicious, and Malicious Redirects) can be **switched off individually** from the **Link
-highlights** section of the options page, where every toggle shows a **live preview chip** of its outline
-(a sample link drawn in that bucket's exact colour and weight) so it's clear what each switch turns off;
-a disabled bucket is left unmarked on the next scan.
+warnings. only off-site links with an actual phishing tell are marked. Each link bucket (Internal,
+External, Suspicious, and Malicious Redirects) can be **toggled individually** from the **Link
+highlights** section of the options page. The two warning buckets (Suspicious and Malicious Redirects)
+are **on by default**. The benign Internal and External buckets are informational rather than warnings,
+so they start **off** and can be opted into from the same section.
 
 **Warning before following a red link:** Marking alone is passive, so the highlighter also **guards clicks
 on the red links**: clicking a suspicious link or a malicious redirect pops a
 [`confirm()`](https://developer.mozilla.org/en-US/docs/Web/API/Window/confirm) naming what was flagged,
 its reason, and the real destination host, and the page only navigates if the user chooses to continue.
-A single capture-phase listener on the document drives every guarded link (it reads a per-anchor
-`data-riskradar-warn` attribute holding the message, set from the same dictionary as the hover label), so
-re-scans never stack listeners; the guard covers `click` (left- and modifier-clicks) and `auxclick`
-(middle-click open-in-new-tab). Only the red buckets are guarded, so the green/blue internal and external
+ Only the red buckets are guarded, so the green/blue internal and external
 links navigate untouched, and a bucket switched off in the **Link highlights** options is neither marked
 nor guarded.
 
@@ -325,7 +328,7 @@ and, for a main-frame navigation the browser tags as coming from the omnibox (a 
 A host on the offline [Phishing.Database](https://github.com/Phishing-Database/Phishing.Database) blocklist,
 or a URL carrying a strong phishing tell (an IP-literal host, a punycode/IDN homograph, embedded
 credentials, a brand look-alike, a link shortener, unusually deep subdomains, stacked phishing keywords, or
-an off-domain redirect parameter — the same tells the Links view uses, reused via `classifyAddressBarUrl`),
+an off-domain redirect parameter, the same tells the Links view uses, reused via `classifyAddressBarUrl`),
 triggers the same-style
 [`confirm()`](https://developer.mozilla.org/en-US/docs/Web/API/Window/confirm). Because `confirm()` blocks
 the page's own scripts while it is open, catching it at commit time means declining can step the tab back
@@ -333,7 +336,7 @@ off the page (via [`chrome.tabs.goBack`](https://developer.chrome.com/docs/exten
 or a blank tab when there is no history) before the site really runs. When the guard action is set to
 **Block**, the confirmation is replaced by an
 [`alert()`](https://developer.mozilla.org/en-US/docs/Web/API/Window/alert) stating the website is blocked,
-and the tab is stepped back the same way once it is dismissed, with no option to continue; when it is set
+and the tab is stepped back the same way once it is dismissed, with no option to continue. When it is set
 to **Do nothing**, the navigation is let through untouched. This guard follows the same shared action
 setting in the **Safety warnings** section, and needs the
 [`webNavigation`](https://developer.chrome.com/docs/extensions/reference/api/webNavigation) permission.
@@ -350,10 +353,10 @@ chosen provider, and renders the model's structured verdict. The risk logic and 
 
 | Check                     | How it's computed                                                                 | Risk logic                                                                           |
 | ------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| **Phishing Probability**  | The model returns a `0`–`100` likelihood that the page is a phishing attempt.      | `< 34` → good; `34`–`66` → warning; `≥ 67` → risky. Shown as a percentage.            |
-| **Social Engineering**    | The model rates the page's manipulation / pressure as `low` / `medium` / `high`.   | `low` → good; `medium` → warning; `high` → risky.                                     |
-| **Content Risk Score**    | The model returns an overall `0`–`100` content-risk score.                          | `< 34` → good; `34`–`66` → warning; `≥ 67` → risky. Shown as `score / 100`.           |
-| **Summary**               | One or two sentences from the model explaining its verdict.                         | Shown in the **Summary** note; the category verdict is the worst of the three rows.  |
+| **Phishing Probability**  | The model returns a `0` to `100` likelihood that the page is a phishing attempt.      | `< 34` → good. `34` to `66` → warning. `≥ 67` → risky. Shown as a percentage.            |
+| **Social Engineering**    | The model rates the page's manipulation / pressure as `low` / `medium` / `high`.   | `low` → good. `medium` → warning. `high` → risky.                                     |
+| **Content Risk Score**    | The model returns an overall `0` to `100` content-risk score.                          | `< 34` → good. `34` to `66` → warning. `≥ 67` → risky. Shown as `score / 100`.           |
+| **Summary**               | One or two sentences from the model explaining its verdict.                         | Shown in the **Summary** note. The category verdict is the worst of the three rows.  |
 
 **On-demand by default:** Unlike the other categories (which run for free on every popup open), an
 AI request costs money per scan, so by default this category never calls the API on its own: the view
@@ -364,7 +367,7 @@ opens in an idle state and only contacts the model when you press **Analyze this
 default `manual`) chooses when the scan runs: **When I click Analyze** keeps the on-demand behaviour
 above, while **Automatically when the popup opens** runs the analysis as soon as the popup opens on a
 scannable page. Automatic mode only fires when a key for the selected provider is already set, so
-opening the popup never pops the key modal unprompted; without a key it falls back to the idle state
+opening the popup never pops the key modal unprompted. Without a key it falls back to the idle state
 until you click. Because automatic mode bills your provider on every popup open, the dropdown's help
 text spells that out.
 
@@ -378,13 +381,13 @@ same inline key modal the Reputation view uses, then runs the analysis.
 **Pick the model:** Each provider has a model dropdown under **Settings → AI**, saved on-device
 (`claudeModel` / `deepseekModel` in `chrome.storage.local`):
 
-- **Claude** — Anthropic's [Messages API](https://platform.claude.com/docs/en/api/messages) (`POST
+- **Claude**: Anthropic's [Messages API](https://platform.claude.com/docs/en/api/messages) (`POST
   https://api.anthropic.com/v1/messages`), choosing between
   [Opus 4.8, Sonnet 5, Sonnet 4.6, and Haiku 4.5](https://platform.claude.com/docs/en/about-claude/models/overview)
   (default **Sonnet 4.6**). The response shape is pinned with
   [structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)
   (`output_config.format` + a JSON schema).
-- **DeepSeek** — the OpenAI-compatible
+- **DeepSeek**: the OpenAI-compatible
   [chat completions](https://api-docs.deepseek.com/api/create-chat-completion) endpoint (`POST
   https://api.deepseek.com/chat/completions`), choosing between
   [V4 Flash and V4 Pro](https://api-docs.deepseek.com/quick_start/pricing) (default **V4 Flash**), with
@@ -428,12 +431,43 @@ then scans each page on its own, with the popup never opened.
 
 > **Note: the popup re-scans on every open.** Chrome tears down the popup document each time it
 > closes and builds a fresh one on the next open, so the popup keeps no state between openings. Every
-> time you open it the scan runs again from scratch, even if you closed it a second ago; there is no
+> time you open it the scan runs again from scratch, even if you closed it a second ago. There is no
 > caching of the previous result across opens, so a just-seen verdict is recomputed rather than reused.
 
 The **AI analysis is never run automatically here:**  it bills your provider, so it stays governed by
 the [**When to scan with AI**](#ai) dropdown and only ever runs from the popup.
 
+## Link click reputation check
+
+Off by default, enabled by **Settings → Scanning → Check the reputation of links I click**.
+When on, following a link on a page (or landing on a website through such a
+link) runs the same six [Reputation](#reputation) checks the popup uses on **both ends of the click**:
+
+- **The clicked link:** the URL the navigation started from, i.e. the link's own href.
+- **The final destination:** the URL the navigation actually landed on. The two often differ, because
+  shorteners, tracking wrappers, and open redirects rewrite the destination mid flight. Judging only
+  the visible link would miss where you really ended up.
+
+While the checks run, a small overlay in the corner of the page shows a **loading spinner** beside
+each address, replaced by a colour-coded verdict (**Safe** / **Caution** / **Dangerous** / _Unknown_,
+the reputation category's verdict for that URL) when its checks finish. A clean result dismisses
+itself after a few seconds. A warning or a risky verdict stays on screen until closed.
+
+**How the two URLs are captured:** the background worker listens on
+[`chrome.webNavigation.onBeforeNavigate`](https://developer.chrome.com/docs/extensions/reference/api/webNavigation#event-onBeforeNavigate),
+which still carries the link's original URL, and on
+[`chrome.webNavigation.onCommitted`](https://developer.chrome.com/docs/extensions/reference/api/webNavigation#event-onCommitted),
+by which point any server-side (HTTP 3xx) redirect has already rewritten the URL to the final one. A
+commit whose [transition type](https://developer.chrome.com/docs/extensions/reference/api/history#transition_types)
+is `link` (and that isn't a back/forward re-visit or an address-bar navigation, told apart by the
+`forward_back` / `from_address_bar` qualifiers) counts as a click. A commit carrying the
+`client_redirect` qualifier shortly after one (a bouncing interstitial or a
+[meta refresh](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meta#http-equiv))
+is scanned as the same click's new destination. The overlay itself is a self-contained renderer
+injected with [`chrome.scripting.executeScript`](https://developer.chrome.com/docs/extensions/reference/api/scripting)
+(`injectImmediately`, so the spinner appears the moment the navigation commits) and draws inside a
+[shadow root](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_shadow_DOM), so
+page CSS can't restyle it and no page style is touched.
 
 ## Tech stack
 
@@ -466,7 +500,7 @@ automatically.
 ## Development
 
 This is a Manifest V3 extension written in TypeScript and bundled with [esbuild](https://esbuild.github.io/).
-The source is **not** loaded directly; it is compiled into a `dist/` folder, which is what Chrome loads.
+The source is **not** loaded directly. It is compiled into a `dist/` folder, which is what Chrome loads.
 
 ### Prerequisites
 
@@ -486,15 +520,53 @@ Then load it in Chrome:
 
 ### Scripts
 
-| Command             | Description                                             |
-| ------------------- | ------------------------------------------------------- |
-| `npm run build`     | Production build into `dist/`.                          |
-| `npm run watch`     | Rebuild `dist/` automatically on file changes.          |
-| `npm run typecheck` | Type-check the project with `tsc` (no output emitted).  |
-| `npm run lint`      | Lint the project with ESLint.                           |
-| `npm run lint:fix`  | Lint and auto-fix where possible.                       |
+| Command               | Description                                             |
+| --------------------- | ------------------------------------------------------- |
+| `npm run build`       | Production build into `dist/`.                          |
+| `npm run watch`       | Rebuild `dist/` automatically on file changes.          |
+| `npm run typecheck`   | Type-check the project with `tsc` (no output emitted).  |
+| `npm run lint`        | Lint the project with ESLint.                           |
+| `npm run lint:fix`    | Lint and auto-fix where possible.                       |
+| `npm run bench:phish` | Benchmark the URL judgement against live phishing feeds (see below). |
 
 During development, run `npm run watch` and reload the extension from `chrome://extensions/`
 after each rebuild.
+
+### Benchmarking against real phishing URLs
+
+`npm run bench:phish` ([`test/phish-bench.ts`](test/phish-bench.ts)) measures how the extension's
+URL judgement performs against thousands of real, current phishing URLs, offline and without
+opening a browser. It runs the exact shipped code: `classifyAddressBarUrl` from
+[`link-analysis.ts`](scripts/shared/link-analysis.ts) (the heuristics behind the typed-address
+guard and the on-page link marks) plus the same
+[Phishing.Database](https://github.com/Phishing-Database/Phishing.Database) active-domains
+blocklist the background worker caches. A URL counts as caught when the guard would warn or block:
+the heuristics call it suspicious, or its host is on the blocklist.
+
+Two sets are evaluated and reported side by side:
+
+- **Phishing set** (detection rate): the [OpenPhish free feed](https://openphish.com/phishing_feeds.html)
+  by default. The free feed is a rolling window of only a few hundred current URLs, so every snapshot
+  is also merged into a local corpus that grows across runs (`--phish openphish-all` evaluates it).
+  Other sources: a head sample of Phishing.Database's active links file (`--phish phishdb`), a uniform
+  random sample of that whole 65 MB file via streamed reservoir sampling (`--phish phishdb-random`),
+  or any local file with one URL per line, including a downloaded
+  [PhishTank](https://phishtank.org/developer_info.php) CSV (`--phish path/to/file.csv`).
+- **Benign set** (false-positive rate): the [Tranco top-sites list](https://tranco-list.eu/), the
+  manipulation-hardened research ranking, top 10,000 by default (`--benign-count` to change,
+  `--benign none` to skip).
+
+Downloads are cached under `test/data/` (gitignored) for a day. `--refresh` forces a redownload,
+`--json` prints a machine-readable summary, and `--no-blocklist` isolates the heuristics. The
+report breaks heuristic hits down by reason (IP host, punycode, brand look-alike, shortener,
+stacked keywords, redirect parameter...) and lists sample missed phishing URLs and flagged benign
+hosts, which is exactly where to look when tuning the heuristics or the wordlists.
+
+Two caveats when reading the numbers. First, the `phishdb` phishing set and the blocklist share a
+source, so that combination's blocklist rate is close to 100% by construction. Use OpenPhish or
+PhishTank for an independent detection estimate. Second, the heuristics are deliberately tuned to
+keep false positives low (a stated project goal), so on their own they are expected to catch a
+minority of phishing URLs. The blocklist and the reputation services provide the authoritative
+bulk, and this benchmark shows what each layer contributes.
 
 See [PRIVACY.md](PRIVACY.md) for data-handling practices.
