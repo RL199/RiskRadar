@@ -156,7 +156,7 @@
   "set_scanning": { "message": "Scanning" },
   "set_autoscan": { "message": "Scan pages automatically" },
   "set_autoscan_help": {
-    "message": "When on, Risk Radar scans every page you visit on its own, without opening the popup: it shows a colour-coded risk badge on the toolbar icon and highlights findings on the page. It runs the same URL, reputation, content, and link checks the popup does; the AI analysis is never run automatically."
+    "message": "When on, Risk Radar scans every page you visit on its own, without opening the popup: it shows a colour-coded risk badge on the toolbar icon and highlights findings on the page. It runs the same URL, reputation, content, and link checks the popup does. The AI analysis is never run automatically."
   },
   "set_linkscan": { "message": "Check the reputation of links I click" },
   "set_linkscan_help": {
@@ -171,7 +171,7 @@
   "set_guard_action_block": { "message": "Block the website" },
   "set_guard_action_none": { "message": "Do nothing" },
   "set_guard_action_help": {
-    "message": "Warn shows a confirmation you can accept to continue anyway. Block cancels the navigation and shows a message that the website is blocked. Do nothing lets the navigation through without interruption; flagged links are still outlined."
+    "message": "Warn shows a confirmation you can accept to continue anyway. Block cancels the navigation and shows a message that the website is blocked. Do nothing lets the navigation through without interruption. Flagged links are still outlined."
   },
   "set_ai": { "message": "AI" },
   "set_ai_provider": { "message": "Default AI provider" },
@@ -201,13 +201,13 @@
   "set_reputation": { "message": "Reputation" },
   "set_safebrowsing_apikey": { "message": "Google Safe Browsing API key" },
   "set_safebrowsing_apikey_help": {
-    "message": "Optional. Safe Browsing already works without a key via Google's public Transparency Report; a key upgrades it to the official Lookup API. The key is free: create a project in Google Cloud and enable the Safe Browsing API. Stored locally on your device."
+    "message": "Optional. Safe Browsing already works without a key via Google's public Transparency Report. A key upgrades it to the official Lookup API. The key is free: create a project in Google Cloud and enable the Safe Browsing API. Stored locally on your device."
   },
   "set_safebrowsing_apikey_link": { "message": "Get a key in the Google Cloud Console" },
   "set_safebrowsing_apikey_placeholder": { "message": "AIza..." },
   "set_virustotal_apikey": { "message": "VirusTotal API key" },
   "set_virustotal_apikey_help": {
-    "message": "Needed for the VirusTotal check. With a key the row shows an inline malicious/total verdict; without one the popup shows a 'Key needed' prompt. A free public key is enough for personal use but is rate limited (about 4 lookups per minute); paid plans raise the limits. Stored locally on your device."
+    "message": "Needed for the VirusTotal check. With a key the row shows an inline malicious/total verdict. Without one the popup shows a 'Key needed' prompt. A free public key is enough for personal use but is rate limited (about 4 lookups per minute). Paid plans raise the limits but cost heavily. Stored locally on your device."
   },
   "set_virustotal_apikey_link": { "message": "Get a key at VirusTotal" },
   "set_virustotal_apikey_placeholder": { "message": "VirusTotal API key" },
