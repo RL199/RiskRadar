@@ -39,7 +39,6 @@ const safeBrowsingKeyInput = document.getElementById("safebrowsing-apikey") as H
 const toggleSafeBrowsingKeyBtn = document.getElementById("toggle-safebrowsing-key") as HTMLButtonElement;
 const virusTotalKeyInput = document.getElementById("virustotal-apikey") as HTMLInputElement;
 const toggleVirusTotalKeyBtn = document.getElementById("toggle-virustotal-key") as HTMLButtonElement;
-const saveBtn = document.getElementById("save") as HTMLButtonElement;
 const statusEl = document.getElementById("status") as HTMLElement;
 
 // Each on-page highlight toggle, paired with the checkbox that drives it. The id
@@ -54,6 +53,9 @@ const HIGHLIGHT_KEYS: (keyof HighlightSettings)[] = [
   "suspiciousLinks",
   "maliciousRedirects",
 ];
+
+// How long a key field must be idle before its value is written to storage.
+const KEY_SAVE_DEBOUNCE_MS = 400;
 
 let settings: Settings;
 // The loaded message dictionary for the user's language, filled by init().
@@ -251,7 +253,12 @@ async function init(): Promise<void> {
   toggleSafeBrowsingKeyBtn.addEventListener("click", () => toggleVisibility(safeBrowsingKeyInput));
   toggleVirusTotalKeyBtn.addEventListener("click", () => toggleVisibility(virusTotalKeyInput));
 
-  saveBtn.addEventListener("click", async () => {
+  // API keys save on their own while typing or pasting (the input event covers
+  // both), debounced so storage is written once per pause instead of on every
+  // keystroke.
+  const keyInputs = [apiKeyInput, deepseekKeyInput, safeBrowsingKeyInput, virusTotalKeyInput];
+  let keySaveTimer: number | undefined;
+  const saveKeys = async (): Promise<void> => {
     settings = {
       ...settings,
       apiKey: apiKeyInput.value.trim(),
@@ -261,7 +268,13 @@ async function init(): Promise<void> {
     };
     await saveSettings(settings);
     flashSaved();
-  });
+  };
+  for (const input of keyInputs) {
+    input.addEventListener("input", () => {
+      if (keySaveTimer) clearTimeout(keySaveTimer);
+      keySaveTimer = window.setTimeout(() => void saveKeys(), KEY_SAVE_DEBOUNCE_MS);
+    });
+  }
 }
 
 void init();
